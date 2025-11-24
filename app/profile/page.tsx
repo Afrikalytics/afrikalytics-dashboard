@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import {
   BarChart3,
   FileText,
-  Users,
   TrendingUp,
   LogOut,
   User,
+  Settings,
+  Menu,
+  X,
   Crown,
   Mail,
   Calendar,
@@ -21,13 +23,14 @@ interface UserData {
   full_name: string;
   plan: string;
   is_active: boolean;
-  created_at?: string;
+  is_admin?: boolean;
 }
 
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -62,10 +65,10 @@ export default function ProfilePage() {
   }
 
   const getPlanDetails = (plan: string) => {
-    const plans: Record<string, { label: string; color: string; price: string }> = {
-      starter: { label: "Starter", color: "text-gray-700", price: "49,000 CFA/mois" },
-      professional: { label: "Professional", color: "text-blue-700", price: "98,000 CFA/mois" },
-      enterprise: { label: "Enterprise", color: "text-purple-700", price: "195,000 CFA/mois" },
+    const plans: Record<string, { label: string; price: string }> = {
+      starter: { label: "Starter", price: "49,000 CFA/mois" },
+      professional: { label: "Professional", price: "98,000 CFA/mois" },
+      enterprise: { label: "Enterprise", price: "195,000 CFA/mois" },
     };
     return plans[plan] || plans.starter;
   };
@@ -73,9 +76,32 @@ export default function ProfilePage() {
   const planDetails = getPlanDetails(user?.plan || "starter");
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white p-2 rounded-lg shadow-lg"
+      >
+        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+      </button>
+
+      {/* Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-gray-900 text-white fixed h-full">
+      <aside
+        className={`
+          fixed h-full bg-gray-900 text-white z-40 transition-transform duration-300
+          w-64
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          lg:translate-x-0
+        `}
+      >
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
@@ -114,6 +140,19 @@ export default function ProfilePage() {
             <User className="h-5 w-5" />
             Profil
           </a>
+
+          {user?.is_admin && (
+            <>
+              <div className="border-t border-gray-800 my-4"></div>
+              <a
+                href="/admin"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+              >
+                <Settings className="h-5 w-5" />
+                Admin
+              </a>
+            </>
+          )}
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
@@ -137,28 +176,28 @@ export default function ProfilePage() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 ml-64 p-8">
+      <main className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
         <div className="max-w-3xl">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Mon Profil</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-8">Mon Profil</h1>
 
           {/* Profile Card */}
-          <div className="bg-white rounded-xl shadow-sm p-8 mb-6">
-            <div className="flex items-center gap-6 mb-8">
-              <div className="bg-blue-100 p-6 rounded-full">
-                <User className="h-12 w-12 text-blue-600" />
+          <div className="bg-white rounded-xl shadow-sm p-4 lg:p-8 mb-6">
+            <div className="flex flex-col sm:flex-row items-center gap-4 lg:gap-6 mb-8">
+              <div className="bg-blue-100 p-4 lg:p-6 rounded-full">
+                <User className="h-8 w-8 lg:h-12 lg:w-12 text-blue-600" />
               </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">{user?.full_name}</h2>
+              <div className="text-center sm:text-left">
+                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">{user?.full_name}</h2>
                 <p className="text-gray-600">{user?.email}</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
               <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
                 <Mail className="h-5 w-5 text-gray-500" />
                 <div>
                   <p className="text-sm text-gray-500">Email</p>
-                  <p className="font-medium text-gray-900">{user?.email}</p>
+                  <p className="font-medium text-gray-900 text-sm lg:text-base break-all">{user?.email}</p>
                 </div>
               </div>
 
@@ -181,7 +220,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                <Users className="h-5 w-5 text-gray-500" />
+                <User className="h-5 w-5 text-gray-500" />
                 <div>
                   <p className="text-sm text-gray-500">ID Utilisateur</p>
                   <p className="font-medium text-gray-900">#{user?.id}</p>
@@ -191,27 +230,27 @@ export default function ProfilePage() {
           </div>
 
           {/* Plan Card */}
-          <div className="bg-white rounded-xl shadow-sm p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Mon Abonnement</h3>
+          <div className="bg-white rounded-xl shadow-sm p-4 lg:p-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+              <h3 className="text-lg lg:text-xl font-bold text-gray-900">Mon Abonnement</h3>
               <div className="flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-full">
                 <Crown className="h-4 w-4 text-blue-600" />
                 <span className="font-medium text-blue-600">{planDetails.label}</span>
               </div>
             </div>
 
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-4 lg:p-6 text-white">
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <p className="text-blue-200">Plan actuel</p>
-                  <p className="text-2xl font-bold">{planDetails.label}</p>
+                  <p className="text-xl lg:text-2xl font-bold">{planDetails.label}</p>
                 </div>
-                <Crown className="h-8 w-8 text-yellow-400" />
+                <Crown className="h-6 w-6 lg:h-8 lg:w-8 text-yellow-400" />
               </div>
               <p className="text-blue-100 mb-4">{planDetails.price}</p>
               <a
                 href="https://afrikalytics.com/premium"
-                className="inline-block bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition"
+                className="inline-block bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition text-sm lg:text-base"
               >
                 Changer de plan
               </a>

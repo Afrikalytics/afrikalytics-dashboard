@@ -5,14 +5,17 @@ import { useRouter } from "next/navigation";
 import {
   BarChart3,
   FileText,
-  Users,
   TrendingUp,
   LogOut,
   User,
+  Settings,
+  Menu,
+  X,
   Crown,
   ChevronRight,
   Clock,
   Download,
+  Users,
 } from "lucide-react";
 
 interface UserData {
@@ -21,45 +24,19 @@ interface UserData {
   full_name: string;
   plan: string;
   is_active: boolean;
+  is_admin?: boolean;
 }
 
-const studies = [
-  {
-    id: 1,
-    title: "Salary Survey 2024 - Secteur Tech",
-    description: "Analyse complète des rémunérations dans la tech en Afrique francophone",
-    category: "RH & Talents",
-    status: "Disponible",
-    participants: "1,247",
-    date: "Janvier 2024",
-  },
-  {
-    id: 2,
-    title: "AI Readiness Index Afrique 2024",
-    description: "État de la maturité IA des entreprises africaines",
-    category: "Digital & IA",
-    status: "Disponible",
-    participants: "2,847",
-    date: "Février 2024",
-  },
-  {
-    id: 3,
-    title: "Tendances RH Post-COVID",
-    description: "Impact durable sur le marché du travail africain",
-    category: "RH & Talents",
-    status: "En cours",
-    participants: "892",
-    date: "Mars 2024",
-  },
-];
+const API_URL = "https://web-production-ef657.up.railway.app";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
+  const [studies, setStudies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    // Vérifier l'authentification
     const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
 
@@ -70,12 +47,27 @@ export default function DashboardPage() {
 
     try {
       setUser(JSON.parse(userData));
+      fetchStudies(token);
     } catch {
       router.push("/login");
     }
 
     setLoading(false);
   }, [router]);
+
+  const fetchStudies = async (token: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/studies/active`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStudies(data.slice(0, 3)); // 3 dernières études
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -103,10 +95,32 @@ export default function DashboardPage() {
   const planBadge = getPlanBadge(user?.plan || "starter");
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setSidebarOpen(!sidebarOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white p-2 rounded-lg shadow-lg"
+      >
+        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+      </button>
+
+      {/* Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-gray-900 text-white fixed h-full">
-        {/* Logo */}
+      <aside
+        className={`
+          fixed h-full bg-gray-900 text-white z-40 transition-transform duration-300
+          w-64
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          lg:translate-x-0
+        `}
+      >
         <div className="p-6 border-b border-gray-800">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
@@ -116,7 +130,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Navigation */}
         <nav className="p-4 space-y-2">
           <a
             href="/dashboard"
@@ -146,9 +159,21 @@ export default function DashboardPage() {
             <User className="h-5 w-5" />
             Profil
           </a>
+
+          {user?.is_admin && (
+            <>
+              <div className="border-t border-gray-800 my-4"></div>
+              <a
+                href="/admin"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+              >
+                <Settings className="h-5 w-5" />
+                Admin
+              </a>
+            </>
+          )}
         </nav>
 
-        {/* User Info */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
           <div className="flex items-center gap-3 mb-4">
             <div className="bg-gray-700 p-2 rounded-full">
@@ -170,11 +195,11 @@ export default function DashboardPage() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 ml-64 p-8">
+      <main className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
         {/* Header */}
-        <div className="flex justify-between items-start mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
               Bienvenue, {user?.full_name?.split(" ")[0]} 👋
             </h1>
             <p className="text-gray-600 mt-1">
@@ -188,96 +213,98 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+          <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <div className="bg-blue-100 p-3 rounded-lg">
-                <FileText className="h-6 w-6 text-blue-600" />
+              <div className="bg-blue-100 p-2 lg:p-3 rounded-lg">
+                <FileText className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
               </div>
-              <span className="text-green-500 text-sm font-medium">+2 ce mois</span>
+              <span className="text-green-500 text-xs lg:text-sm font-medium">+2</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">12</p>
-            <p className="text-gray-600 text-sm">Études accessibles</p>
+            <p className="text-xl lg:text-2xl font-bold text-gray-900">{studies.length || 0}</p>
+            <p className="text-gray-600 text-xs lg:text-sm">Études accessibles</p>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <div className="bg-green-100 p-3 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-green-600" />
+              <div className="bg-green-100 p-2 lg:p-3 rounded-lg">
+                <TrendingUp className="h-5 w-5 lg:h-6 lg:w-6 text-green-600" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900">48</p>
-            <p className="text-gray-600 text-sm">Insights générés</p>
+            <p className="text-xl lg:text-2xl font-bold text-gray-900">48</p>
+            <p className="text-gray-600 text-xs lg:text-sm">Insights générés</p>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <div className="bg-purple-100 p-3 rounded-lg">
-                <Download className="h-6 w-6 text-purple-600" />
+              <div className="bg-purple-100 p-2 lg:p-3 rounded-lg">
+                <Download className="h-5 w-5 lg:h-6 lg:w-6 text-purple-600" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900">7</p>
-            <p className="text-gray-600 text-sm">Rapports téléchargés</p>
+            <p className="text-xl lg:text-2xl font-bold text-gray-900">7</p>
+            <p className="text-gray-600 text-xs lg:text-sm">Rapports téléchargés</p>
           </div>
 
-          <div className="bg-white rounded-xl p-6 shadow-sm">
+          <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
-              <div className="bg-orange-100 p-3 rounded-lg">
-                <Users className="h-6 w-6 text-orange-600" />
+              <div className="bg-orange-100 p-2 lg:p-3 rounded-lg">
+                <Users className="h-5 w-5 lg:h-6 lg:w-6 text-orange-600" />
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900">3</p>
-            <p className="text-gray-600 text-sm">Études en cours</p>
+            <p className="text-xl lg:text-2xl font-bold text-gray-900">3</p>
+            <p className="text-gray-600 text-xs lg:text-sm">Études en cours</p>
           </div>
         </div>
 
         {/* Recent Studies */}
         <div className="bg-white rounded-xl shadow-sm">
-          <div className="p-6 border-b border-gray-100">
+          <div className="p-4 lg:p-6 border-b border-gray-100">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-gray-900">Dernières Études</h2>
+              <h2 className="text-lg lg:text-xl font-bold text-gray-900">Dernières Études</h2>
               <a href="/dashboard/etudes" className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center">
                 Voir tout <ChevronRight className="h-4 w-4 ml-1" />
               </a>
             </div>
           </div>
           <div className="divide-y divide-gray-100">
-            {studies.map((study) => (
-              <div
-                key={study.id}
-                className="p-6 hover:bg-gray-50 transition cursor-pointer"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">{study.title}</h3>
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full ${
-                          study.status === "Disponible"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {study.status}
-                      </span>
-                    </div>
-                    <p className="text-gray-600 text-sm mb-3">{study.description}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        {study.participants} participants
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {study.date}
-                      </span>
-                      <span className="text-blue-600 font-medium">{study.category}</span>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
-                </div>
+            {studies.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">
+                Aucune étude disponible pour le moment.
               </div>
-            ))}
+            ) : (
+              studies.map((study) => (
+                <div
+                  key={study.id}
+                  className="p-4 lg:p-6 hover:bg-gray-50 transition cursor-pointer"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <h3 className="font-semibold text-gray-900">{study.title}</h3>
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            study.status === "Ouvert"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-yellow-100 text-yellow-700"
+                          }`}
+                        >
+                          {study.status}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 text-sm mb-3 line-clamp-2">{study.description}</p>
+                      <div className="flex flex-wrap items-center gap-2 lg:gap-4 text-xs lg:text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {study.duration || "15-20 min"}
+                        </span>
+                        <span className="text-blue-600 font-medium">{study.category}</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-gray-400 hidden sm:block" />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </main>
