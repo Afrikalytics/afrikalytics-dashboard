@@ -273,9 +273,10 @@ export default function DashboardPage() {
               </div>
             ) : (
               studies.map((study) => (
-                <div
+                <a
                   key={study.id}
-                  className="p-4 lg:p-6 hover:bg-gray-50 transition cursor-pointer"
+                  href={`/dashboard/etudes/${study.id}`}
+                  className="block p-4 lg:p-6 hover:bg-gray-50 transition cursor-pointer"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -302,7 +303,7 @@ export default function DashboardPage() {
                     </div>
                     <ChevronRight className="h-5 w-5 text-gray-400 hidden sm:block" />
                   </div>
-                </div>
+                </a>
               ))
             )}
           </div>
