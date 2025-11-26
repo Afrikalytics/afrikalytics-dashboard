@@ -1,23 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
-import {
-  BarChart3,
-  FileText,
-  TrendingUp,
-  User,
-  Settings,
-  LogOut,
-  Menu,
-  X,
-  ArrowLeft,
-  Clock,
-  Calendar,
-  Crown,
-  Lightbulb,
-  Download,
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { 
+  ArrowLeft, 
+  BarChart3, 
+  Clock, 
+  Calendar, 
   Lock,
+  Crown,
+  Download,
+  FileText,
+  Lightbulb
 } from "lucide-react";
 
 const API_URL = "https://web-production-ef657.up.railway.app";
@@ -31,127 +26,84 @@ interface Study {
   deadline: string;
   status: string;
   embed_url_results: string;
+  report_url_basic: string;
+  report_url_premium: string;
+}
+
+interface User {
+  id: number;
+  email: string;
+  full_name: string;
+  plan: string;
 }
 
 interface Insight {
   id: number;
   study_id: number;
   title: string;
+  summary: string;
   is_published: boolean;
 }
 
-interface Report {
-  id: number;
-  study_id: number;
-  title: string;
-  file_url: string;
-  file_size: string;
-  is_available: boolean;
-}
-
-interface UserData {
-  id: number;
-  email: string;
-  full_name: string;
-  plan: string;
-  is_admin?: boolean;
-}
-
 export default function StudyResultsPage() {
-  const router = useRouter();
   const params = useParams();
-  const studyId = params.id as string;
-
-  const [user, setUser] = useState<UserData | null>(null);
+  const router = useRouter();
   const [study, setStudy] = useState<Study | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [insight, setInsight] = useState<Insight | null>(null);
-  const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-
-    if (!token || !userData) {
-      router.push("/login");
-      return;
+    // Récupérer l'utilisateur depuis localStorage
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
     }
 
-    try {
-      setUser(JSON.parse(userData));
-      fetchData(token);
-    } catch {
-      router.push("/login");
-    }
-  }, [router, studyId]);
-
-  const fetchData = async (token: string) => {
-    try {
-      // Fetch study
-      const studyRes = await fetch(`${API_URL}/api/studies/${studyId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (studyRes.ok) {
-        const studyData = await studyRes.json();
-        setStudy(studyData);
-      }
-
-      // Fetch insights for this study
-      const insightsRes = await fetch(`${API_URL}/api/insights/study/${studyId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (insightsRes.ok) {
-        const insightsData = await insightsRes.json();
-        if (insightsData.length > 0) {
-          setInsight(insightsData[0]);
-        }
-      }
-
-      // Fetch report for this study
+    // Récupérer l'étude
+    const fetchStudy = async () => {
       try {
-        const reportRes = await fetch(`${API_URL}/api/reports/study/${studyId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (reportRes.ok) {
-          const reportData = await reportRes.json();
-          setReport(reportData);
+        const response = await fetch(`${API_URL}/api/studies/${params.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setStudy(data);
         }
-      } catch {
-        // Pas de rapport disponible
+      } catch (error) {
+        console.error("Erreur:", error);
       }
-    } catch (error) {
-      console.error("Erreur:", error);
-    } finally {
+    };
+
+    // Récupérer l'insight
+    const fetchInsight = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/insights/study/${params.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setInsight(data);
+        }
+      } catch (error) {
+        // Pas d'insight pour cette étude
+      }
+    };
+
+    Promise.all([fetchStudy(), fetchInsight()]).finally(() => {
       setLoading(false);
+    });
+  }, [params.id]);
+
+  const isPremium = user?.plan === "professionnel" || user?.plan === "entreprise";
+
+  const getReportUrl = () => {
+    if (!study) return null;
+    if (isPremium && study.report_url_premium) {
+      return study.report_url_premium;
     }
-  };
-
-  const handleDownloadReport = async () => {
-    if (!report) return;
-
-    const token = localStorage.getItem("token");
-    try {
-      await fetch(`${API_URL}/api/reports/${report.id}/download`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      window.open(report.file_url, "_blank");
-    } catch (error) {
-      console.error("Erreur:", error);
-      window.open(report.file_url, "_blank");
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
+    return study.report_url_basic;
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -159,252 +111,216 @@ export default function StudyResultsPage() {
 
   if (!study) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Étude non trouvée</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Étude non trouvée</h1>
+          <Link href="/dashboard/etudes" className="text-blue-600 hover:text-blue-700">
+            ← Retour aux études
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white p-2 rounded-lg shadow-lg"
-      >
-        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
-
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed h-full bg-gray-900 text-white z-40 transition-transform duration-300
-          w-64
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-        `}
-      >
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <BarChart3 className="h-6 w-6" />
-            </div>
-            <span className="font-bold text-lg">Afrikalytics</span>
-          </div>
-        </div>
-
-        <nav className="p-4 space-y-2">
-          <a
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+      {/* Header */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <Link 
+            href="/dashboard/etudes" 
+            className="inline-flex items-center text-gray-500 hover:text-gray-700 mb-4"
           >
-            <BarChart3 className="h-5 w-5" />
-            Dashboard
-          </a>
-          <a
-            href="/dashboard/etudes"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 text-white"
-          >
-            <FileText className="h-5 w-5" />
-            Études
-          </a>
-          <a
-            href="/dashboard/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <TrendingUp className="h-5 w-5" />
-            Insights
-          </a>
-          <a
-            href="/profile"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <User className="h-5 w-5" />
-            Profil
-          </a>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Retour aux études
+          </Link>
 
-          {user?.is_admin && (
-            <>
-              <div className="border-t border-gray-800 my-4"></div>
-              <a
-                href="/admin"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-              >
-                <Settings className="h-5 w-5" />
-                Admin
-              </a>
-            </>
-          )}
-        </nav>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-gray-700 p-2 rounded-full">
-              <User className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{user?.full_name}</p>
-              <p className="text-gray-400 text-sm truncate">{user?.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition w-full px-4 py-2 rounded-lg hover:bg-gray-800"
-          >
-            <LogOut className="h-5 w-5" />
-            Déconnexion
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
-        {/* Back Button */}
-        <a
-          href="/dashboard/etudes"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-        >
-          <ArrowLeft className="h-5 w-5" />
-          Retour aux études
-        </a>
-
-        {/* Study Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-            <div className="flex-1">
+          <div className="flex items-start justify-between">
+            <div>
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">{study.title}</h1>
-                <Crown className="h-6 w-6 text-yellow-500" />
+                <BarChart3 className="h-8 w-8 text-blue-600" />
+                <h1 className="text-2xl font-bold text-gray-900">{study.title}</h1>
               </div>
-              <p className="text-gray-600 mb-4">{study.description}</p>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                <div className="flex items-center gap-2">
+              <p className="text-gray-600 max-w-2xl">{study.description}</p>
+              
+              <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
+                <span className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
-                  <span>{study.duration}</span>
-                </div>
+                  {study.duration}
+                </span>
                 {study.deadline && (
-                  <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    <span>{study.deadline}</span>
-                  </div>
+                    {study.deadline}
+                  </span>
                 )}
-                <span className="text-blue-600 font-medium">{study.category}</span>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    study.status === "Ouvert"
-                      ? "bg-green-100 text-green-700"
-                      : study.status === "Fermé"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-yellow-100 text-yellow-700"
-                  }`}
-                >
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  study.status === "Ouvert" 
+                    ? "bg-green-100 text-green-700" 
+                    : "bg-red-100 text-red-700"
+                }`}>
                   {study.status}
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white rounded-lg">
-              <Crown className="h-5 w-5" />
-              <span className="font-semibold">Premium</span>
+
+            {/* Badge Plan */}
+            <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+              isPremium 
+                ? "bg-yellow-100 text-yellow-800" 
+                : "bg-gray-100 text-gray-600"
+            }`}>
+              {isPremium ? "👑 Premium" : "Basic"}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Action Buttons - AVANT l'iframe */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {/* Bouton Insight */}
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* Actions Buttons */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          {/* Insight Button */}
           {insight ? (
-            <a
+            <Link
               href={`/dashboard/insights/${insight.id}`}
-              className="flex items-center justify-between px-6 py-4 bg-purple-50 text-purple-700 rounded-xl hover:bg-purple-100 transition border border-purple-200"
+              className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-500 hover:shadow-md transition"
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Lightbulb className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="font-semibold">Lire l&apos;insight</p>
-                  <p className="text-sm text-purple-500">Analyse détaillée des résultats</p>
-                </div>
+              <div className="bg-purple-100 p-3 rounded-lg">
+                <Lightbulb className="h-6 w-6 text-purple-600" />
               </div>
-              <ArrowLeft className="h-5 w-5 rotate-180" />
+              <div>
+                <p className="font-semibold text-gray-900">Lire l&apos;insight</p>
+                <p className="text-sm text-gray-500">Analyse et recommandations</p>
+              </div>
+            </Link>
+          ) : (
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="bg-gray-100 p-3 rounded-lg">
+                <Lightbulb className="h-6 w-6 text-gray-400" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-400">Insight bientôt disponible</p>
+                <p className="text-sm text-gray-400">En cours de rédaction</p>
+              </div>
+            </div>
+          )}
+
+          {/* Report Button */}
+          {getReportUrl() ? (
+            <a
+              href={getReportUrl()!}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition"
+            >
+              <div className="bg-green-100 p-3 rounded-lg">
+                <Download className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">
+                  Télécharger le rapport {isPremium ? "complet" : ""}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {isPremium ? "Version Premium" : "Version Basic"}
+                </p>
+              </div>
             </a>
           ) : (
-            <div className="flex items-center justify-between px-6 py-4 bg-gray-100 text-gray-400 rounded-xl border border-gray-200 cursor-not-allowed">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gray-200 rounded-lg">
-                  <Lock className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="font-semibold">Insight bientôt disponible</p>
-                  <p className="text-sm">En cours de rédaction</p>
-                </div>
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="bg-gray-100 p-3 rounded-lg">
+                <FileText className="h-6 w-6 text-gray-400" />
               </div>
-            </div>
-          )}
-
-          {/* Bouton Rapport */}
-          {report ? (
-            <button
-              onClick={handleDownloadReport}
-              className="flex items-center justify-between px-6 py-4 bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition border border-green-200"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Download className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="font-semibold">Télécharger le rapport</p>
-                  <p className="text-sm text-green-500">PDF • {report.file_size}</p>
-                </div>
-              </div>
-              <Download className="h-5 w-5" />
-            </button>
-          ) : (
-            <div className="flex items-center justify-between px-6 py-4 bg-gray-100 text-gray-400 rounded-xl border border-gray-200 cursor-not-allowed">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gray-200 rounded-lg">
-                  <Lock className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="font-semibold">Rapport bientôt disponible</p>
-                  <p className="text-sm">En cours de préparation</p>
-                </div>
+              <div>
+                <p className="font-semibold text-gray-400">Rapport bientôt disponible</p>
+                <p className="text-sm text-gray-400">En cours de préparation</p>
               </div>
             </div>
           )}
         </div>
 
-        {/* Résultats iframe */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-blue-600" />
-              {study.status === "Ouvert" ? "Résultats en temps réel" : "Résultats finaux"}
+        {/* Results Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+              <BarChart3 className="h-6 w-6 text-blue-600" />
+              Résultats de l&apos;étude
             </h2>
           </div>
-          {study.embed_url_results ? (
-            <iframe
-              src={study.embed_url_results}
-              className="w-full border-0"
-              style={{ height: "800px", minHeight: "600px" }}
-              title={`Résultats - ${study.title}`}
-            />
+
+          {isPremium ? (
+            /* Premium: Show iframe */
+            <div className="p-6">
+              {study.embed_url_results ? (
+                <iframe
+                  src={study.embed_url_results}
+                  className="w-full h-[800px] border-0 rounded-lg"
+                  title="Résultats de l'étude"
+                />
+              ) : (
+                <div className="text-center py-12">
+                  <BarChart3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">Résultats en cours de préparation</p>
+                </div>
+              )}
+            </div>
           ) : (
-            <div className="p-12 text-center text-gray-500">
-              <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>Les résultats ne sont pas encore disponibles.</p>
+            /* Basic: Show upgrade message */
+            <div className="p-12 text-center">
+              <div className="bg-yellow-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+                <Lock className="h-10 w-10 text-yellow-600" />
+              </div>
+              
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                Contenu réservé aux membres Premium
+              </h3>
+              
+              <p className="text-gray-600 max-w-md mx-auto mb-8">
+                Les résultats en temps réel sont disponibles pour les abonnés Professionnel et Entreprise. Passez à Premium pour débloquer l&apos;accès complet.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  href="/premium"
+                  className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+                >
+                  <Crown className="h-5 w-5" />
+                  Devenir Premium
+                </Link>
+                
+                <Link
+                  href="/dashboard/etudes"
+                  className="inline-flex items-center justify-center gap-2 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition"
+                >
+                  Voir d&apos;autres études
+                </Link>
+              </div>
+
+              {/* What's included */}
+              <div className="mt-10 pt-8 border-t border-gray-200">
+                <p className="text-sm font-semibold text-gray-700 mb-4">
+                  Avec Premium, vous obtenez :
+                </p>
+                <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
+                  <span className="flex items-center gap-1">
+                    ✅ Résultats en temps réel
+                  </span>
+                  <span className="flex items-center gap-1">
+                    ✅ Insights complets
+                  </span>
+                  <span className="flex items-center gap-1">
+                    ✅ Rapports détaillés
+                  </span>
+                  <span className="flex items-center gap-1">
+                    ✅ Dashboard avancé
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
