@@ -12,38 +12,37 @@ import {
   Menu,
   X,
   ArrowLeft,
-  Clock,
-  Calendar,
-  Crown,
   Lightbulb,
+  Crown,
+  Calendar,
+  UserCircle,
   Download,
   Lock,
 } from "lucide-react";
 
 const API_URL = "https://web-production-ef657.up.railway.app";
 
-interface Study {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  duration: string;
-  deadline: string;
-  status: string;
-  embed_url_results: string;
-}
-
 interface Insight {
   id: number;
   study_id: number;
   title: string;
+  summary: string;
+  key_findings: string;
+  recommendations: string;
+  author: string;
   is_published: boolean;
+  created_at: string;
+}
+
+interface Study {
+  id: number;
+  title: string;
+  category: string;
 }
 
 interface Report {
   id: number;
   study_id: number;
-  title: string;
   file_url: string;
   file_size: string;
   is_available: boolean;
@@ -57,14 +56,14 @@ interface UserData {
   is_admin?: boolean;
 }
 
-export default function StudyResultsPage() {
+export default function InsightDetailPage() {
   const router = useRouter();
   const params = useParams();
-  const studyId = params.id as string;
+  const insightId = params.id as string;
 
   const [user, setUser] = useState<UserData | null>(null);
-  const [study, setStudy] = useState<Study | null>(null);
   const [insight, setInsight] = useState<Insight | null>(null);
+  const [study, setStudy] = useState<Study | null>(null);
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -84,41 +83,39 @@ export default function StudyResultsPage() {
     } catch {
       router.push("/login");
     }
-  }, [router, studyId]);
+  }, [router, insightId]);
 
   const fetchData = async (token: string) => {
     try {
-      // Fetch study
-      const studyRes = await fetch(`${API_URL}/api/studies/${studyId}`, {
+      // Fetch insight
+      const insightRes = await fetch(`${API_URL}/api/insights/${insightId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (studyRes.ok) {
-        const studyData = await studyRes.json();
-        setStudy(studyData);
-      }
+      if (insightRes.ok) {
+        const insightData = await insightRes.json();
+        setInsight(insightData);
 
-      // Fetch insights for this study
-      const insightsRes = await fetch(`${API_URL}/api/insights/study/${studyId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (insightsRes.ok) {
-        const insightsData = await insightsRes.json();
-        if (insightsData.length > 0) {
-          setInsight(insightsData[0]);
-        }
-      }
-
-      // Fetch report for this study
-      try {
-        const reportRes = await fetch(`${API_URL}/api/reports/study/${studyId}`, {
+        // Fetch study
+        const studyRes = await fetch(`${API_URL}/api/studies/${insightData.study_id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (reportRes.ok) {
-          const reportData = await reportRes.json();
-          setReport(reportData);
+        if (studyRes.ok) {
+          const studyData = await studyRes.json();
+          setStudy(studyData);
         }
-      } catch {
-        // Pas de rapport disponible
+
+        // Fetch report
+        try {
+          const reportRes = await fetch(`${API_URL}/api/reports/study/${insightData.study_id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (reportRes.ok) {
+            const reportData = await reportRes.json();
+            setReport(reportData);
+          }
+        } catch {
+          // Pas de rapport
+        }
       }
     } catch (error) {
       console.error("Erreur:", error);
@@ -149,6 +146,15 @@ export default function StudyResultsPage() {
     router.push("/login");
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -157,10 +163,10 @@ export default function StudyResultsPage() {
     );
   }
 
-  if (!study) {
+  if (!insight) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-500">Étude non trouvée</p>
+        <p className="text-gray-500">Insight non trouvé</p>
       </div>
     );
   }
@@ -211,14 +217,14 @@ export default function StudyResultsPage() {
           </a>
           <a
             href="/dashboard/etudes"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 text-white"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
           >
             <FileText className="h-5 w-5" />
             Études
           </a>
           <a
             href="/dashboard/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 text-white"
           >
             <TrendingUp className="h-5 w-5" />
             Insights
@@ -276,104 +282,67 @@ export default function StudyResultsPage() {
           Retour aux études
         </a>
 
-        {/* Study Header */}
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+        {/* Header Card */}
+        <div className="bg-gradient-to-r from-purple-600 to-purple-800 rounded-xl shadow-lg p-6 lg:p-8 mb-6 text-white">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">{study.title}</h1>
-                <Crown className="h-6 w-6 text-yellow-500" />
-              </div>
-              <p className="text-gray-600 mb-4">{study.description}</p>
-              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  <span>{study.duration}</span>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="bg-white/20 p-2 rounded-lg">
+                  <Lightbulb className="h-6 w-6" />
                 </div>
-                {study.deadline && (
+                <span className="text-purple-200 text-sm font-medium">INSIGHT</span>
+              </div>
+              <h1 className="text-2xl lg:text-3xl font-bold mb-2">{insight.title}</h1>
+              {study && (
+                <p className="text-purple-200">
+                  Étude : <span className="text-white font-medium">{study.title}</span>
+                </p>
+              )}
+              <div className="flex flex-wrap items-center gap-4 mt-4 text-sm text-purple-200">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>{formatDate(insight.created_at)}</span>
+                </div>
+                {insight.author && (
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>{study.deadline}</span>
+                    <UserCircle className="h-4 w-4" />
+                    <span>{insight.author}</span>
                   </div>
                 )}
-                <span className="text-blue-600 font-medium">{study.category}</span>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    study.status === "Ouvert"
-                      ? "bg-green-100 text-green-700"
-                      : study.status === "Fermé"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-yellow-100 text-yellow-700"
-                  }`}
-                >
-                  {study.status}
-                </span>
               </div>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-white rounded-lg">
+            <div className="flex items-center gap-2 px-4 py-2 bg-white/20 rounded-lg">
               <Crown className="h-5 w-5" />
               <span className="font-semibold">Premium</span>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons - AVANT l'iframe */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          {/* Bouton Insight */}
-          {insight ? (
-            <a
-              href={`/dashboard/insights/${insight.id}`}
-              className="flex items-center justify-between px-6 py-4 bg-purple-50 text-purple-700 rounded-xl hover:bg-purple-100 transition border border-purple-200"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Lightbulb className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="font-semibold">Lire l&apos;insight</p>
-                  <p className="text-sm text-purple-500">Analyse détaillée des résultats</p>
-                </div>
-              </div>
-              <ArrowLeft className="h-5 w-5 rotate-180" />
-            </a>
-          ) : (
-            <div className="flex items-center justify-between px-6 py-4 bg-gray-100 text-gray-400 rounded-xl border border-gray-200 cursor-not-allowed">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gray-200 rounded-lg">
-                  <Lock className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="font-semibold">Insight bientôt disponible</p>
-                  <p className="text-sm">En cours de rédaction</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Bouton Rapport */}
+        {/* Download Report Button */}
+        <div className="mb-6">
           {report ? (
             <button
               onClick={handleDownloadReport}
-              className="flex items-center justify-between px-6 py-4 bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition border border-green-200"
+              className="flex items-center justify-between w-full md:w-auto px-6 py-4 bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition border border-green-200"
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-green-100 rounded-lg">
                   <Download className="h-6 w-6" />
                 </div>
-                <div>
-                  <p className="font-semibold">Télécharger le rapport</p>
+                <div className="text-left">
+                  <p className="font-semibold">Télécharger le rapport complet</p>
                   <p className="text-sm text-green-500">PDF • {report.file_size}</p>
                 </div>
               </div>
-              <Download className="h-5 w-5" />
+              <Download className="h-5 w-5 ml-4" />
             </button>
           ) : (
-            <div className="flex items-center justify-between px-6 py-4 bg-gray-100 text-gray-400 rounded-xl border border-gray-200 cursor-not-allowed">
+            <div className="flex items-center justify-between w-full md:w-auto px-6 py-4 bg-gray-100 text-gray-400 rounded-xl border border-gray-200 cursor-not-allowed">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-gray-200 rounded-lg">
                   <Lock className="h-6 w-6" />
                 </div>
-                <div>
+                <div className="text-left">
                   <p className="font-semibold">Rapport bientôt disponible</p>
                   <p className="text-sm">En cours de préparation</p>
                 </div>
@@ -382,28 +351,58 @@ export default function StudyResultsPage() {
           )}
         </div>
 
-        {/* Résultats iframe */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-blue-600" />
-              {study.status === "Ouvert" ? "Résultats en temps réel" : "Résultats finaux"}
+        {/* Content */}
+        <div className="space-y-6">
+          {/* Summary */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <div className="w-1 h-6 bg-purple-600 rounded-full"></div>
+              Résumé Exécutif
             </h2>
+            <p className="text-gray-700 leading-relaxed whitespace-pre-line">{insight.summary}</p>
           </div>
-          {study.embed_url_results ? (
-            <iframe
-              src={study.embed_url_results}
-              className="w-full border-0"
-              style={{ height: "800px", minHeight: "600px" }}
-              title={`Résultats - ${study.title}`}
-            />
-          ) : (
-            <div className="p-12 text-center text-gray-500">
-              <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-              <p>Les résultats ne sont pas encore disponibles.</p>
+
+          {/* Key Findings */}
+          {insight.key_findings && (
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <div className="w-1 h-6 bg-blue-600 rounded-full"></div>
+                Découvertes Clés
+              </h2>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-line">{insight.key_findings}</p>
+            </div>
+          )}
+
+          {/* Recommendations */}
+          {insight.recommendations && (
+            <div className="bg-white rounded-xl shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <div className="w-1 h-6 bg-green-600 rounded-full"></div>
+                Recommandations
+              </h2>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-line">{insight.recommendations}</p>
             </div>
           )}
         </div>
+
+        {/* View Results CTA */}
+        {study && (
+          <div className="mt-8 bg-blue-50 border border-blue-200 rounded-xl p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h3 className="font-semibold text-gray-900">Voir les résultats détaillés</h3>
+                <p className="text-sm text-gray-600">Consultez les graphiques et données de l&apos;étude</p>
+              </div>
+              <a
+                href={`/dashboard/etudes/${study.id}`}
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+              >
+                <BarChart3 className="h-5 w-5" />
+                Voir les résultats
+              </a>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
