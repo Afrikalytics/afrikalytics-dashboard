@@ -65,15 +65,16 @@ export default function ProfilePage() {
   }
 
   const getPlanDetails = (plan: string) => {
-    const plans: Record<string, { label: string; price: string }> = {
-      starter: { label: "Starter", price: "49,000 CFA/mois" },
-      professional: { label: "Professional", price: "98,000 CFA/mois" },
-      enterprise: { label: "Enterprise", price: "195,000 CFA/mois" },
+    const plans: Record<string, { label: string; price: string; color: string }> = {
+      basic: { label: "Basic", price: "Gratuit", color: "gray" },
+      professionnel: { label: "Professionnel", price: "295,000 CFA/mois", color: "blue" },
+      entreprise: { label: "Entreprise", price: "Sur mesure", color: "purple" },
     };
-    return plans[plan] || plans.starter;
+    return plans[plan] || plans.basic;
   };
 
-  const planDetails = getPlanDetails(user?.plan || "starter");
+  const planDetails = getPlanDetails(user?.plan || "basic");
+  const isPremium = user?.plan === "professionnel" || user?.plan === "entreprise";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -233,28 +234,63 @@ export default function ProfilePage() {
           <div className="bg-white rounded-xl shadow-sm p-4 lg:p-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
               <h3 className="text-lg lg:text-xl font-bold text-gray-900">Mon Abonnement</h3>
-              <div className="flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-full">
-                <Crown className="h-4 w-4 text-blue-600" />
-                <span className="font-medium text-blue-600">{planDetails.label}</span>
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
+                isPremium 
+                  ? "bg-yellow-100" 
+                  : "bg-gray-100"
+              }`}>
+                <Crown className={`h-4 w-4 ${isPremium ? "text-yellow-600" : "text-gray-500"}`} />
+                <span className={`font-medium ${isPremium ? "text-yellow-600" : "text-gray-600"}`}>
+                  {planDetails.label}
+                </span>
               </div>
             </div>
 
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-4 lg:p-6 text-white">
+            <div className={`rounded-xl p-4 lg:p-6 text-white ${
+              user?.plan === "entreprise"
+                ? "bg-gradient-to-r from-purple-600 to-purple-700"
+                : user?.plan === "professionnel"
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700"
+                  : "bg-gradient-to-r from-gray-600 to-gray-700"
+            }`}>
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <p className="text-blue-200">Plan actuel</p>
+                  <p className="text-white/70">Plan actuel</p>
                   <p className="text-xl lg:text-2xl font-bold">{planDetails.label}</p>
                 </div>
-                <Crown className="h-6 w-6 lg:h-8 lg:w-8 text-yellow-400" />
+                <Crown className={`h-6 w-6 lg:h-8 lg:w-8 ${isPremium ? "text-yellow-400" : "text-white/50"}`} />
               </div>
-              <p className="text-blue-100 mb-4">{planDetails.price}</p>
-              <a
-                href="https://afrikalytics.com/premium"
-                className="inline-block bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition text-sm lg:text-base"
-              >
-                Changer de plan
-              </a>
+              <p className="text-white/80 mb-4">{planDetails.price}</p>
+              
+              {!isPremium ? (
+                <a
+                  href="https://afrikalytics.com/premium"
+                  className="inline-block bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition text-sm lg:text-base"
+                >
+                  Passer à Premium
+                </a>
+              ) : (
+                <a
+                  href="https://afrikalytics.com/premium"
+                  className="inline-block bg-white/20 text-white px-4 py-2 rounded-lg font-medium hover:bg-white/30 transition text-sm lg:text-base"
+                >
+                  Gérer mon abonnement
+                </a>
+              )}
             </div>
+
+            {/* Avantages du plan */}
+            {!isPremium && (
+              <div className="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="font-semibold text-yellow-800 mb-2">🚀 Passez à Premium pour :</p>
+                <ul className="text-sm text-yellow-700 space-y-1">
+                  <li>✅ Accès aux résultats en temps réel</li>
+                  <li>✅ Insights complets et détaillés</li>
+                  <li>✅ Rapports PDF Premium</li>
+                  <li>✅ Dashboard avancé avec KPIs</li>
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </main>
