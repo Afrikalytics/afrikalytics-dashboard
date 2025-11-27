@@ -12,12 +12,12 @@ import {
   Menu,
   X,
   Plus,
-  Pencil,
   Trash2,
   Eye,
   EyeOff,
   Download,
   Lightbulb,
+  ShieldX,
 } from "lucide-react";
 
 const API_URL = "https://web-production-ef657.up.railway.app";
@@ -54,6 +54,7 @@ export default function AdminReportsPage() {
   const [studies, setStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -67,6 +68,14 @@ export default function AdminReportsPage() {
     try {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
+
+      // Vérifier si l'utilisateur est admin
+      if (!parsedUser.is_admin) {
+        setAccessDenied(true);
+        setLoading(false);
+        return;
+      }
+
       fetchData(token);
     } catch {
       router.push("/login");
@@ -125,6 +134,29 @@ export default function AdminReportsPage() {
   const getClosedStudies = () => {
     return studies.filter((s) => s.status === "Fermé");
   };
+
+  // Écran Accès Refusé
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="bg-red-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+            <ShieldX className="h-10 w-10 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Accès refusé</h1>
+          <p className="text-gray-600 mb-6">
+            Cette page est réservée aux administrateurs. Vous n&apos;avez pas les permissions nécessaires pour y accéder.
+          </p>
+          <a
+            href="/dashboard"
+            className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+          >
+            Retour au dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -264,7 +296,7 @@ export default function AdminReportsPage() {
         {getClosedStudies().length === 0 && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
             <p className="text-yellow-800 text-sm">
-              <strong>Note :</strong> Aucune étude fermée pour le moment. Les rapports ne peuvent être ajoutés que pour des études avec le statut "Fermé".
+              <strong>Note :</strong> Aucune étude fermée pour le moment. Les rapports ne peuvent être ajoutés que pour des études avec le statut &quot;Fermé&quot;.
             </p>
           </div>
         )}

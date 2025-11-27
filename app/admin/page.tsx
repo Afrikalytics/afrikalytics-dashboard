@@ -16,6 +16,9 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  ShieldX,
+  Download,
+  Lightbulb,
 } from "lucide-react";
 
 interface Study {
@@ -43,6 +46,7 @@ export default function AdminPage() {
   const [studies, setStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -56,6 +60,14 @@ export default function AdminPage() {
     try {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
+
+      // Vérifier si l'utilisateur est admin
+      if (!parsedUser.is_admin) {
+        setAccessDenied(true);
+        setLoading(false);
+        return;
+      }
+
       fetchStudies(token);
     } catch {
       router.push("/login");
@@ -100,6 +112,29 @@ export default function AdminPage() {
     localStorage.removeItem("user");
     router.push("/login");
   };
+
+  // Écran Accès Refusé
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="bg-red-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+            <ShieldX className="h-10 w-10 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Accès refusé</h1>
+          <p className="text-gray-600 mb-6">
+            Cette page est réservée aux administrateurs. Vous n&apos;avez pas les permissions nécessaires pour y accéder.
+          </p>
+          <a
+            href="/dashboard"
+            className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+          >
+            Retour au dashboard
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -181,7 +216,21 @@ export default function AdminPage() {
             className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 text-white"
           >
             <Settings className="h-5 w-5" />
-            Admin
+            Admin Études
+          </a>
+          <a
+            href="/admin/insights"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+          >
+            <Lightbulb className="h-5 w-5" />
+            Admin Insights
+          </a>
+          <a
+            href="/admin/reports"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+          >
+            <Download className="h-5 w-5" />
+            Admin Rapports
           </a>
         </nav>
 
