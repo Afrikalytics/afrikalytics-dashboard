@@ -16,6 +16,7 @@ import {
   Clock,
   Download,
   Users,
+  Lightbulb,
 } from "lucide-react";
 
 interface UserData {
@@ -85,14 +86,15 @@ export default function DashboardPage() {
 
   const getPlanBadge = (plan: string) => {
     const badges: Record<string, { bg: string; text: string; label: string }> = {
-      starter: { bg: "bg-gray-100", text: "text-gray-700", label: "Starter" },
-      professional: { bg: "bg-blue-100", text: "text-blue-700", label: "Professional" },
-      enterprise: { bg: "bg-purple-100", text: "text-purple-700", label: "Enterprise" },
+      basic: { bg: "bg-gray-100", text: "text-gray-700", label: "Basic" },
+      professionnel: { bg: "bg-blue-100", text: "text-blue-700", label: "Professionnel" },
+      entreprise: { bg: "bg-purple-100", text: "text-purple-700", label: "Entreprise" },
     };
-    return badges[plan] || badges.starter;
+    return badges[plan] || badges.basic;
   };
 
-  const planBadge = getPlanBadge(user?.plan || "starter");
+  const planBadge = getPlanBadge(user?.plan || "basic");
+  const isPremium = user?.plan === "professionnel" || user?.plan === "entreprise";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -168,7 +170,21 @@ export default function DashboardPage() {
                 className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
               >
                 <Settings className="h-5 w-5" />
-                Admin
+                Admin Études
+              </a>
+              <a
+                href="/admin/insights"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+              >
+                <Lightbulb className="h-5 w-5" />
+                Admin Insights
+              </a>
+              <a
+                href="/admin/reports"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+              >
+                <Download className="h-5 w-5" />
+                Admin Rapports
               </a>
             </>
           )}
@@ -211,6 +227,29 @@ export default function DashboardPage() {
             <span className={`font-medium ${planBadge.text}`}>{planBadge.label}</span>
           </div>
         </div>
+
+        {/* Upgrade Banner for Basic users */}
+        {!isPremium && (
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 lg:p-6 mb-8 text-white">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  <Crown className="h-5 w-5 text-yellow-300" />
+                  Passez à Premium
+                </h3>
+                <p className="text-blue-100 text-sm mt-1">
+                  Accédez aux résultats en temps réel, insights complets et rapports détaillés
+                </p>
+              </div>
+              <a
+                href="https://afrikalytics.com/premium"
+                className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition text-sm whitespace-nowrap"
+              >
+                Voir les offres
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
@@ -286,7 +325,7 @@ export default function DashboardPage() {
                           className={`text-xs px-2 py-1 rounded-full ${
                             study.status === "Ouvert"
                               ? "bg-green-100 text-green-700"
-                              : "bg-yellow-100 text-yellow-700"
+                              : "bg-red-100 text-red-700"
                           }`}
                         >
                           {study.status}
