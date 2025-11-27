@@ -1,18 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, ArrowLeft, Loader2, CheckCircle } from "lucide-react";
 import Link from "next/link";
 
 const API_URL = "https://web-production-ef657.up.railway.app";
 
-export default function LoginPage() {
-  const router = useRouter();
+export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,32 +18,58 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.detail || "Erreur de connexion");
+        const data = await response.json();
+        throw new Error(data.detail || "Une erreur est survenue");
       }
 
-      // Stocker le token et les infos utilisateur
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      // Rediriger vers le dashboard
-      router.push("/dashboard");
+      setSubmitted(true);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-purple-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">
+              Email envoyé !
+            </h1>
+            <p className="text-gray-600 mb-6">
+              Si un compte existe avec l'adresse <strong>{email}</strong>, vous
+              recevrez un email avec un lien pour réinitialiser votre mot de
+              passe.
+            </p>
+            <p className="text-sm text-gray-500 mb-6">
+              Le lien expire dans 1 heure. Pensez à vérifier vos spams.
+            </p>
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Retour à la connexion
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-purple-900 flex items-center justify-center p-4">
@@ -66,14 +89,17 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-white">
             Afrikalytics<span className="text-yellow-400">.</span>
           </h1>
-          <p className="text-blue-200 mt-2">Intelligence d&apos;Affaires pour l&apos;Afrique</p>
         </div>
 
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">
-            Connexion
+          <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
+            Mot de passe oublié ?
           </h2>
+          <p className="text-gray-600 text-center mb-6">
+            Entrez votre email et nous vous enverrons un lien pour réinitialiser
+            votre mot de passe.
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
@@ -82,7 +108,6 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Adresse email
@@ -100,80 +125,30 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Password */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Mot de passe
-                </label>
-                <Link
-                  href="/forgot-password"
-                  className="text-sm text-blue-600 hover:text-blue-700"
-                >
-                  Mot de passe oublié ?
-                </Link>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-            </div>
-
             <button
               type="submit"
-              disabled={loading || !email || !password}
+              disabled={loading || !email}
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  Connexion en cours...
+                  Envoi en cours...
                 </>
               ) : (
-                "Se connecter"
+                "Envoyer le lien"
               )}
             </button>
           </form>
 
-          {/* Register Link */}
           <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              Pas encore de compte ?{" "}
-              <Link
-                href="/register"
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Créer un compte
-              </Link>
-            </p>
-          </div>
-
-          {/* Back to site */}
-          <div className="mt-4 text-center">
-            <a
-              href="https://afrikalytics.com"
-              className="text-sm text-gray-500 hover:text-gray-700"
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
             >
-              ← Retour au site
-            </a>
+              <ArrowLeft className="h-4 w-4" />
+              Retour à la connexion
+            </Link>
           </div>
         </div>
       </div>
