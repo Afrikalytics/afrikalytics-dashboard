@@ -91,13 +91,13 @@ export default function RegisterPage() {
       <div className="w-full max-w-md relative z-10">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-3">
+          <Link href="https://afrikalytics.com" className="inline-flex items-center gap-3">
             <div className="bg-blue-600 p-3 rounded-xl">
               <BarChart3 className="h-8 w-8 text-white" />
             </div>
-            <span className="text-3xl font-bold text-white">Afrikalytics</span>
+            <span className="text-3xl font-bold text-white">Afrikalytics AI</span>
           </Link>
-          <p className="text-blue-200 mt-2">Intelligence d&apos;Affaires pour l&apos;Afrique</p>
+          <p className="text-blue-200 mt-2">by Marketym</p>
         </div>
 
         {/* Register Card */}
@@ -269,19 +269,19 @@ export default function RegisterPage() {
         {/* Premium CTA */}
         <div className="mt-6 text-center">
           <p className="text-blue-200 text-sm mb-2">Besoin d&apos;un accès complet ?</p>
-          <Link
-            href="/premium"
+          <a
+            href="https://afrikalytics.com/premium"
             className="text-yellow-400 font-semibold hover:text-yellow-300 transition"
           >
             Découvrir les offres Premium →
-          </Link>
+          </a>
         </div>
 
         {/* Back Link */}
         <div className="text-center mt-4">
-          <Link href="/" className="text-blue-200 hover:text-white transition text-sm">
+          <a href="https://afrikalytics.com" className="text-blue-200 hover:text-white transition text-sm">
             ← Retour à l&apos;accueil
-          </Link>
+          </a>
         </div>
       </div>
     </div>

@@ -64,9 +64,9 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">
-            Afrikalytics<span className="text-yellow-400">.</span>
+            Afrikalytics AI<span className="text-yellow-400">.</span>
           </h1>
-          <p className="text-blue-200 mt-2">Intelligence d&apos;Affaires pour l&apos;Afrique</p>
+          <p className="text-blue-200 mt-2">by Marketym</p>
         </div>
 
         {/* Card */}
