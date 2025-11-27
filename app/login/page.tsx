@@ -166,6 +166,16 @@ export default function LoginPage() {
             </p>
           </div>
 
+          {/* Premium Link */}
+          <div className="mt-4 text-center">
+            <a
+              href="https://afrikalytics.com/premium"
+              className="inline-flex items-center justify-center gap-2 text-yellow-600 hover:text-yellow-700 font-medium"
+            >
+              ✨ Devenir Premium
+            </a>
+          </div>
+
           {/* Back to site */}
           <div className="mt-4 text-center">
             <a
