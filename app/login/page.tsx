@@ -35,11 +35,15 @@ export default function LoginPage() {
         throw new Error(data.detail || "Erreur de connexion");
       }
 
-      // Stocker le token et les infos utilisateur
+      // Si 2FA requis, rediriger vers la page de vérification
+      if (data.requires_verification) {
+        router.push(`/verify-code?email=${encodeURIComponent(email)}`);
+        return;
+      }
+
+      // Sinon (fallback), stocker le token directement
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
-
-      // Rediriger vers le dashboard
       router.push("/dashboard");
     } catch (err: any) {
       setError(err.message);
