@@ -1,21 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BarChart3,
-  FileText,
-  TrendingUp,
-  LogOut,
   User,
-  Settings,
-  Menu,
-  X,
-  Crown,
   Mail,
-  Calendar,
   Shield,
+  Calendar,
+  Crown,
+  Lock,
+  Eye,
+  EyeOff,
+  CheckCircle,
+  AlertCircle,
+  ArrowLeft,
+  Loader2,
 } from "lucide-react";
+
+const API_URL = "https://web-production-ef657.up.railway.app";
 
 interface UserData {
   id: number;
@@ -23,14 +25,25 @@ interface UserData {
   full_name: string;
   plan: string;
   is_active: boolean;
-  is_admin?: boolean;
+  is_admin: boolean;
+  created_at: string;
 }
 
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -42,258 +55,321 @@ export default function ProfilePage() {
     }
 
     try {
-      setUser(JSON.parse(userData));
-    } catch {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+    } catch (e) {
       router.push("/login");
     }
 
     setLoading(false);
   }, [router]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError("");
+    setPasswordSuccess(false);
+
+    // Validation
+    if (newPassword.length < 8) {
+      setPasswordError("Le nouveau mot de passe doit contenir au moins 8 caractères");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Les mots de passe ne correspondent pas");
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/api/users/change-password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Erreur lors du changement de mot de passe");
+      }
+
+      setPasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      setPasswordError(err.message);
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const getPlanDetails = (plan: string) => {
+    switch (plan) {
+      case "professionnel":
+        return {
+          name: "Professionnel",
+          price: "295 000 CFA/mois",
+          color: "bg-blue-100 text-blue-700",
+          icon: Crown,
+        };
+      case "entreprise":
+        return {
+          name: "Entreprise",
+          price: "Sur mesure",
+          color: "bg-purple-100 text-purple-700",
+          icon: Crown,
+        };
+      default:
+        return {
+          name: "Basic",
+          price: "Gratuit",
+          color: "bg-gray-100 text-gray-700",
+          icon: User,
+        };
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     );
   }
 
-  const getPlanDetails = (plan: string) => {
-    const plans: Record<string, { label: string; price: string; color: string }> = {
-      basic: { label: "Basic", price: "Gratuit", color: "gray" },
-      professionnel: { label: "Professionnel", price: "295,000 CFA/mois", color: "blue" },
-      entreprise: { label: "Entreprise", price: "Sur mesure", color: "purple" },
-    };
-    return plans[plan] || plans.basic;
-  };
+  if (!user) return null;
 
-  const planDetails = getPlanDetails(user?.plan || "basic");
-  const isPremium = user?.plan === "professionnel" || user?.plan === "entreprise";
+  const planDetails = getPlanDetails(user.plan);
+  const isPremium = user.plan === "professionnel" || user.plan === "entreprise";
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white p-2 rounded-lg shadow-lg"
-      >
-        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+        {/* Back Button */}
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition"
+        >
+          <ArrowLeft className="h-5 w-5" />
+          Retour au dashboard
+        </button>
 
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed h-full bg-gray-900 text-white z-40 transition-transform duration-300
-          w-64
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-        `}
-      >
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <BarChart3 className="h-6 w-6" />
-            </div>
-            <span className="font-bold text-lg">Afrikalytics</span>
-          </div>
-        </div>
-
-        <nav className="p-4 space-y-2">
-          <a
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <BarChart3 className="h-5 w-5" />
-            Dashboard
-          </a>
-          <a
-            href="/dashboard/etudes"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <FileText className="h-5 w-5" />
-            Études
-          </a>
-          <a
-            href="/dashboard/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <TrendingUp className="h-5 w-5" />
-            Insights
-          </a>
-          <a
-            href="/profile"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 text-white"
-          >
-            <User className="h-5 w-5" />
-            Profil
-          </a>
-
-          {user?.is_admin && (
-            <>
-              <div className="border-t border-gray-800 my-4"></div>
-              <a
-                href="/admin"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-              >
-                <Settings className="h-5 w-5" />
-                Admin
-              </a>
-            </>
-          )}
-        </nav>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-gray-700 p-2 rounded-full">
-              <User className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{user?.full_name}</p>
-              <p className="text-gray-400 text-sm truncate">{user?.email}</p>
+        {/* Profile Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8 text-white">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                <User className="h-8 w-8" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold">{user.full_name}</h1>
+                <p className="text-blue-100">{user.email}</p>
+              </div>
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition w-full px-4 py-2 rounded-lg hover:bg-gray-800"
-          >
-            <LogOut className="h-5 w-5" />
-            Déconnexion
-          </button>
-        </div>
-      </aside>
 
-      {/* Main Content */}
-      <main className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
-        <div className="max-w-3xl">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-8">Mon Profil</h1>
-
-          {/* Profile Card */}
-          <div className="bg-white rounded-xl shadow-sm p-4 lg:p-8 mb-6">
-            <div className="flex flex-col sm:flex-row items-center gap-4 lg:gap-6 mb-8">
-              <div className="bg-blue-100 p-4 lg:p-6 rounded-full">
-                <User className="h-8 w-8 lg:h-12 lg:w-12 text-blue-600" />
+          <div className="p-6 space-y-4">
+            {/* Plan */}
+            <div className="flex items-center justify-between py-3 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <planDetails.icon className="h-5 w-5 text-gray-400" />
+                <span className="text-gray-600">Plan</span>
               </div>
-              <div className="text-center sm:text-left">
-                <h2 className="text-xl lg:text-2xl font-bold text-gray-900">{user?.full_name}</h2>
-                <p className="text-gray-600">{user?.email}</p>
-              </div>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${planDetails.color}`}>
+                {planDetails.name}
+              </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
-              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                <Mail className="h-5 w-5 text-gray-500" />
-                <div>
-                  <p className="text-sm text-gray-500">Email</p>
-                  <p className="font-medium text-gray-900 text-sm lg:text-base break-all">{user?.email}</p>
-                </div>
+            {/* Email */}
+            <div className="flex items-center justify-between py-3 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <Mail className="h-5 w-5 text-gray-400" />
+                <span className="text-gray-600">Email</span>
               </div>
+              <span className="text-gray-900">{user.email}</span>
+            </div>
 
-              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                <Shield className="h-5 w-5 text-gray-500" />
+            {/* Status */}
+            <div className="flex items-center justify-between py-3 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <Shield className="h-5 w-5 text-gray-400" />
+                <span className="text-gray-600">Statut</span>
+              </div>
+              <span className="text-green-600 flex items-center gap-1">
+                <CheckCircle className="h-4 w-4" />
+                Actif
+              </span>
+            </div>
+
+            {/* Member Since */}
+            <div className="flex items-center justify-between py-3">
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-gray-400" />
+                <span className="text-gray-600">Membre depuis</span>
+              </div>
+              <span className="text-gray-900">
+                {new Date(user.created_at).toLocaleDateString("fr-FR", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </span>
+            </div>
+          </div>
+
+          {/* Upgrade CTA for Basic users */}
+          {!isPremium && (
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 border-t">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Statut</p>
-                  <p className="font-medium text-green-600">
-                    {user?.is_active ? "Actif" : "Inactif"}
+                  <h3 className="font-semibold text-gray-900">Passez à Premium</h3>
+                  <p className="text-sm text-gray-600">
+                    Accédez aux résultats, insights complets et rapports
                   </p>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                <Calendar className="h-5 w-5 text-gray-500" />
-                <div>
-                  <p className="text-sm text-gray-500">Membre depuis</p>
-                  <p className="font-medium text-gray-900">Novembre 2024</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
-                <User className="h-5 w-5 text-gray-500" />
-                <div>
-                  <p className="text-sm text-gray-500">ID Utilisateur</p>
-                  <p className="font-medium text-gray-900">#{user?.id}</p>
-                </div>
+                <a
+                  href="https://afrikalytics.com/premium"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                >
+                  Voir les offres
+                </a>
               </div>
             </div>
+          )}
+        </div>
+
+        {/* Password Change Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Lock className="h-5 w-5 text-gray-400" />
+              Changer le mot de passe
+            </h2>
           </div>
 
-          {/* Plan Card */}
-          <div className="bg-white rounded-xl shadow-sm p-4 lg:p-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-              <h3 className="text-lg lg:text-xl font-bold text-gray-900">Mon Abonnement</h3>
-              <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${
-                isPremium 
-                  ? "bg-yellow-100" 
-                  : "bg-gray-100"
-              }`}>
-                <Crown className={`h-4 w-4 ${isPremium ? "text-yellow-600" : "text-gray-500"}`} />
-                <span className={`font-medium ${isPremium ? "text-yellow-600" : "text-gray-600"}`}>
-                  {planDetails.label}
-                </span>
-              </div>
-            </div>
-
-            <div className={`rounded-xl p-4 lg:p-6 text-white ${
-              user?.plan === "entreprise"
-                ? "bg-gradient-to-r from-purple-600 to-purple-700"
-                : user?.plan === "professionnel"
-                  ? "bg-gradient-to-r from-blue-600 to-blue-700"
-                  : "bg-gradient-to-r from-gray-600 to-gray-700"
-            }`}>
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <p className="text-white/70">Plan actuel</p>
-                  <p className="text-xl lg:text-2xl font-bold">{planDetails.label}</p>
-                </div>
-                <Crown className={`h-6 w-6 lg:h-8 lg:w-8 ${isPremium ? "text-yellow-400" : "text-white/50"}`} />
-              </div>
-              <p className="text-white/80 mb-4">{planDetails.price}</p>
-              
-              {!isPremium ? (
-                <a
-                  href="https://afrikalytics.com/premium"
-                  className="inline-block bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition text-sm lg:text-base"
-                >
-                  Passer à Premium
-                </a>
-              ) : (
-                <a
-                  href="https://afrikalytics.com/premium"
-                  className="inline-block bg-white/20 text-white px-4 py-2 rounded-lg font-medium hover:bg-white/30 transition text-sm lg:text-base"
-                >
-                  Gérer mon abonnement
-                </a>
-              )}
-            </div>
-
-            {/* Avantages du plan */}
-            {!isPremium && (
-              <div className="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <p className="font-semibold text-yellow-800 mb-2">🚀 Passez à Premium pour :</p>
-                <ul className="text-sm text-yellow-700 space-y-1">
-                  <li>✅ Accès aux résultats en temps réel</li>
-                  <li>✅ Insights complets et détaillés</li>
-                  <li>✅ Rapports PDF Premium</li>
-                  <li>✅ Dashboard avancé avec KPIs</li>
-                </ul>
+          <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
+            {passwordError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                {passwordError}
               </div>
             )}
-          </div>
+
+            {passwordSuccess && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                Mot de passe modifié avec succès ! Un email de confirmation a été envoyé.
+              </div>
+            )}
+
+            {/* Current Password */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Mot de passe actuel
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type={showCurrentPassword ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+
+            {/* New Password */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Nouveau mot de passe
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Minimum 8 caractères</p>
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Confirmer le nouveau mot de passe
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
+              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {passwordLoading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Modification en cours...
+                </>
+              ) : (
+                <>
+                  <Lock className="h-5 w-5" />
+                  Changer le mot de passe
+                </>
+              )}
+            </button>
+          </form>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
