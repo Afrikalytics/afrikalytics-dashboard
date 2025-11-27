@@ -52,6 +52,7 @@ export default function StudyResultsPage() {
   const [user, setUser] = useState<User | null>(null);
   const [insight, setInsight] = useState<Insight | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     // Récupérer l'utilisateur depuis localStorage
@@ -99,6 +100,35 @@ export default function StudyResultsPage() {
       return study.report_url_premium;
     }
     return study.report_url_basic;
+  };
+
+  const getReportType = () => {
+    if (isPremium && study?.report_url_premium) {
+      return "premium";
+    }
+    return "basic";
+  };
+
+  const handleDownloadReport = async () => {
+    if (!study) return;
+    
+    const reportUrl = getReportUrl();
+    if (!reportUrl) return;
+
+    setDownloading(true);
+
+    try {
+      // Tracker le téléchargement
+      await fetch(`${API_URL}/api/reports/study/${study.id}/type/${getReportType()}/download`, {
+        method: "POST",
+      });
+    } catch (error) {
+      console.error("Erreur tracking:", error);
+    }
+
+    // Ouvrir le PDF
+    window.open(reportUrl, "_blank");
+    setDownloading(false);
   };
 
   if (loading) {
@@ -209,24 +239,23 @@ export default function StudyResultsPage() {
 
           {/* Report Button */}
           {getReportUrl() ? (
-            <a
-              href={getReportUrl()!}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition"
+            <button
+              onClick={handleDownloadReport}
+              disabled={downloading}
+              className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition text-left"
             >
               <div className="bg-green-100 p-3 rounded-lg">
                 <Download className="h-6 w-6 text-green-600" />
               </div>
               <div>
                 <p className="font-semibold text-gray-900">
-                  Télécharger le rapport {isPremium ? "complet" : ""}
+                  {downloading ? "Ouverture..." : `Télécharger le rapport ${isPremium ? "complet" : ""}`}
                 </p>
                 <p className="text-sm text-gray-500">
                   {isPremium ? "Version Premium" : "Version Basic"}
                 </p>
               </div>
-            </a>
+            </button>
           ) : (
             <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
               <div className="bg-gray-100 p-3 rounded-lg">
