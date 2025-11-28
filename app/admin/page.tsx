@@ -19,6 +19,7 @@ import {
   ShieldX,
   Download,
   Lightbulb,
+  Users,
 } from "lucide-react";
 
 interface Study {
@@ -211,6 +212,8 @@ export default function AdminPage() {
           </a>
 
           <div className="border-t border-gray-800 my-4"></div>
+          <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Administration</p>
+          
           <a
             href="/admin"
             className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 text-white"
@@ -231,6 +234,13 @@ export default function AdminPage() {
           >
             <Download className="h-5 w-5" />
             Admin Rapports
+          </a>
+          <a
+            href="/admin/users"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+          >
+            <Users className="h-5 w-5" />
+            Admin Utilisateurs
           </a>
         </nav>
 
