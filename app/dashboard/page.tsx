@@ -13,6 +13,7 @@ import {
   X,
   Crown,
   ChevronRight,
+  ChevronDown,
   Clock,
   Download,
   Users,
@@ -36,6 +37,7 @@ export default function DashboardPage() {
   const [studies, setStudies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -162,30 +164,64 @@ export default function DashboardPage() {
             Profil
           </a>
 
+          {/* Admin Menu avec sous-menu déroulant */}
           {user?.is_admin && (
             <>
               <div className="border-t border-gray-800 my-4"></div>
-              <a
-                href="/admin"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+              
+              {/* Bouton Admin */}
+              <button
+                onClick={() => setAdminMenuOpen(!adminMenuOpen)}
+                className="flex items-center justify-between w-full px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
               >
-                <Settings className="h-5 w-5" />
-                Admin Études
-              </a>
-              <a
-                href="/admin/insights"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+                <div className="flex items-center gap-3">
+                  <Settings className="h-5 w-5" />
+                  <span>Administration</span>
+                </div>
+                <ChevronDown 
+                  className={`h-4 w-4 transition-transform duration-200 ${
+                    adminMenuOpen ? "rotate-180" : ""
+                  }`} 
+                />
+              </button>
+
+              {/* Sous-menu Admin */}
+              <div
+                className={`overflow-hidden transition-all duration-200 ${
+                  adminMenuOpen ? "max-h-48 opacity-100" : "max-h-0 opacity-0"
+                }`}
               >
-                <Lightbulb className="h-5 w-5" />
-                Admin Insights
-              </a>
-              <a
-                href="/admin/reports"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-              >
-                <Download className="h-5 w-5" />
-                Admin Rapports
-              </a>
+                <div className="pl-4 space-y-1 mt-1">
+                  <a
+                    href="/admin"
+                    className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Études
+                  </a>
+                  <a
+                    href="/admin/insights"
+                    className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
+                  >
+                    <Lightbulb className="h-4 w-4" />
+                    Insights
+                  </a>
+                  <a
+                    href="/admin/reports"
+                    className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
+                  >
+                    <Download className="h-4 w-4" />
+                    Rapports
+                  </a>
+                  <a
+                    href="/admin/users"
+                    className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
+                  >
+                    <Users className="h-4 w-4" />
+                    Utilisateurs
+                  </a>
+                </div>
+              </div>
             </>
           )}
         </nav>
