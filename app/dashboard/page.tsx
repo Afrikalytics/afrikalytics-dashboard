@@ -18,6 +18,7 @@ import {
   Download,
   Users,
   Lightbulb,
+  CheckCircle,
 } from "lucide-react";
 
 interface UserData {
@@ -29,12 +30,24 @@ interface UserData {
   is_admin?: boolean;
 }
 
+interface DashboardStats {
+  studies_accessible: number;
+  studies_total: number;
+  studies_open: number;
+  reports_available: number;
+  insights_available: number;
+  subscription_days_remaining: number | null;
+  plan: string;
+  is_premium: boolean;
+}
+
 const API_URL = "https://web-production-ef657.up.railway.app";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
   const [studies, setStudies] = useState<any[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
@@ -51,6 +64,7 @@ export default function DashboardPage() {
     try {
       setUser(JSON.parse(userData));
       fetchStudies(token);
+      fetchStats(token);
     } catch {
       router.push("/login");
     }
@@ -69,6 +83,20 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error("Erreur:", error);
+    }
+  };
+
+  const fetchStats = async (token: string) => {
+    try {
+      const response = await fetch(`${API_URL}/api/dashboard/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      }
+    } catch (error) {
+      console.error("Erreur stats:", error);
     }
   };
 
@@ -294,40 +322,39 @@ export default function DashboardPage() {
               <div className="bg-blue-100 p-2 lg:p-3 rounded-lg">
                 <FileText className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
               </div>
-              <span className="text-green-500 text-xs lg:text-sm font-medium">+2</span>
             </div>
-            <p className="text-xl lg:text-2xl font-bold text-gray-900">{studies.length || 0}</p>
+            <p className="text-xl lg:text-2xl font-bold text-gray-900">{stats?.studies_accessible || 0}</p>
             <p className="text-gray-600 text-xs lg:text-sm">Études accessibles</p>
           </div>
 
           <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="bg-green-100 p-2 lg:p-3 rounded-lg">
-                <TrendingUp className="h-5 w-5 lg:h-6 lg:w-6 text-green-600" />
+                <CheckCircle className="h-5 w-5 lg:h-6 lg:w-6 text-green-600" />
               </div>
             </div>
-            <p className="text-xl lg:text-2xl font-bold text-gray-900">48</p>
-            <p className="text-gray-600 text-xs lg:text-sm">Insights générés</p>
+            <p className="text-xl lg:text-2xl font-bold text-gray-900">{stats?.studies_open || 0}</p>
+            <p className="text-gray-600 text-xs lg:text-sm">Études ouvertes</p>
           </div>
 
           <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="bg-purple-100 p-2 lg:p-3 rounded-lg">
-                <Download className="h-5 w-5 lg:h-6 lg:w-6 text-purple-600" />
+                <Lightbulb className="h-5 w-5 lg:h-6 lg:w-6 text-purple-600" />
               </div>
             </div>
-            <p className="text-xl lg:text-2xl font-bold text-gray-900">7</p>
-            <p className="text-gray-600 text-xs lg:text-sm">Rapports téléchargés</p>
+            <p className="text-xl lg:text-2xl font-bold text-gray-900">{stats?.insights_available || 0}</p>
+            <p className="text-gray-600 text-xs lg:text-sm">Insights disponibles</p>
           </div>
 
           <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <div className="bg-orange-100 p-2 lg:p-3 rounded-lg">
-                <Users className="h-5 w-5 lg:h-6 lg:w-6 text-orange-600" />
+                <Download className="h-5 w-5 lg:h-6 lg:w-6 text-orange-600" />
               </div>
             </div>
-            <p className="text-xl lg:text-2xl font-bold text-gray-900">3</p>
-            <p className="text-gray-600 text-xs lg:text-sm">Études en cours</p>
+            <p className="text-xl lg:text-2xl font-bold text-gray-900">{stats?.reports_available || 0}</p>
+            <p className="text-gray-600 text-xs lg:text-sm">Rapports disponibles</p>
           </div>
         </div>
 
