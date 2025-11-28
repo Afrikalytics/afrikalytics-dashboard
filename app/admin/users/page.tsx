@@ -18,6 +18,7 @@ import {
   Mail,
   Lock,
   Crown,
+  ShieldX,
 } from "lucide-react";
 
 const API_URL = "https://web-production-ef657.up.railway.app";
@@ -36,6 +37,7 @@ export default function AdminUsersPage() {
   const router = useRouter();
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPlan, setFilterPlan] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -59,10 +61,37 @@ export default function AdminUsersPage() {
   });
 
   useEffect(() => {
-    fetchUsers();
+    checkAuthAndFetchUsers();
   }, []);
 
   const getToken = () => localStorage.getItem("token");
+
+  const checkAuthAndFetchUsers = async () => {
+    const token = localStorage.getItem("token");
+    const userData = localStorage.getItem("user");
+
+    // Vérifier si connecté
+    if (!token || !userData) {
+      router.push("/login");
+      return;
+    }
+
+    // Vérifier si admin
+    try {
+      const parsedUser = JSON.parse(userData);
+      if (!parsedUser.is_admin) {
+        setAccessDenied(true);
+        setLoading(false);
+        return;
+      }
+    } catch {
+      router.push("/login");
+      return;
+    }
+
+    // Fetch users
+    fetchUsers();
+  };
 
   const fetchUsers = async () => {
     try {
@@ -73,7 +102,13 @@ export default function AdminUsersPage() {
       });
 
       if (response.status === 403) {
-        router.push("/dashboard");
+        setAccessDenied(true);
+        setLoading(false);
+        return;
+      }
+
+      if (response.status === 401) {
+        router.push("/login");
         return;
       }
 
@@ -269,6 +304,29 @@ export default function AdminUsersPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
+
+  // Écran Accès Refusé
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="bg-red-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+            <ShieldX className="h-10 w-10 text-red-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Accès refusé</h1>
+          <p className="text-gray-600 mb-6">
+            Cette page est réservée aux administrateurs. Vous n&apos;avez pas les permissions nécessaires pour y accéder.
+          </p>
+          <a
+            href="/dashboard"
+            className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+          >
+            Retour au dashboard
+          </a>
+        </div>
       </div>
     );
   }
