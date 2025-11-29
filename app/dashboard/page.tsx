@@ -192,6 +192,20 @@ export default function DashboardPage() {
             Profil
           </a>
 
+          {/* Lien Mon Équipe - uniquement pour plan Entreprise */}
+          {user?.plan === "entreprise" && (
+            <a
+              href="/dashboard/equipe"
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
+            >
+              <Users className="h-5 w-5" />
+              Mon Équipe
+              <span className="ml-auto px-2 py-0.5 bg-purple-600 text-white text-xs rounded-full">
+                5
+              </span>
+            </a>
+          )}
+
           {/* Admin Menu avec sous-menu déroulant */}
           {user?.is_admin && (
             <>
@@ -310,6 +324,29 @@ export default function DashboardPage() {
                 className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition text-sm whitespace-nowrap"
               >
                 Voir les offres
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* Carte Mon Équipe - uniquement pour plan Entreprise */}
+        {user?.plan === "entreprise" && (
+          <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl p-4 lg:p-6 mb-8 text-white">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Mon Équipe Entreprise
+                </h3>
+                <p className="text-purple-100 text-sm mt-1">
+                  Gérez les membres de votre équipe (jusqu&apos;à 5 utilisateurs)
+                </p>
+              </div>
+              <a
+                href="/dashboard/equipe"
+                className="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition text-sm whitespace-nowrap"
+              >
+                Gérer mon équipe
               </a>
             </div>
           </div>
