@@ -74,7 +74,8 @@ export default function EntrepriseTeamPage() {
 
     try {
       const parsedUser = JSON.parse(userData);
-      if (parsedUser.plan !== "entreprise") {
+      // Vérifier : plan entreprise ET propriétaire (pas de parent_user_id)
+      if (parsedUser.plan !== "entreprise" || parsedUser.parent_user_id) {
         setAccessDenied(true);
         setLoading(false);
         return;

@@ -28,6 +28,7 @@ interface UserData {
   plan: string;
   is_active: boolean;
   is_admin?: boolean;
+  parent_user_id?: number | null;  // null = propriétaire, sinon = membre invité
 }
 
 interface DashboardStats {
@@ -192,8 +193,8 @@ export default function DashboardPage() {
             Profil
           </a>
 
-          {/* Lien Mon Équipe - uniquement pour plan Entreprise */}
-          {user?.plan === "entreprise" && (
+          {/* Lien Mon Équipe - uniquement pour propriétaire Entreprise (pas les membres invités) */}
+          {user?.plan === "entreprise" && !user?.parent_user_id && (
             <a
               href="/dashboard/equipe"
               className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
@@ -329,8 +330,8 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Carte Mon Équipe - uniquement pour plan Entreprise */}
-        {user?.plan === "entreprise" && (
+        {/* Carte Mon Équipe - uniquement pour propriétaire Entreprise (pas les membres invités) */}
+        {user?.plan === "entreprise" && !user?.parent_user_id && (
           <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl p-4 lg:p-6 mb-8 text-white">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
