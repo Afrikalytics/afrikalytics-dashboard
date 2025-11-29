@@ -28,8 +28,25 @@ interface UserData {
   plan: string;
   is_active: boolean;
   is_admin?: boolean;
+  admin_role?: string | null;  // super_admin, admin_content, admin_studies, admin_insights, admin_reports
   parent_user_id?: number | null;  // null = propriétaire, sinon = membre invité
 }
+
+// Permissions par rôle admin
+const ADMIN_PERMISSIONS: Record<string, { studies: boolean; insights: boolean; reports: boolean; users: boolean }> = {
+  super_admin: { studies: true, insights: true, reports: true, users: true },
+  admin_content: { studies: true, insights: true, reports: true, users: false },
+  admin_studies: { studies: true, insights: false, reports: false, users: false },
+  admin_insights: { studies: false, insights: true, reports: false, users: false },
+  admin_reports: { studies: false, insights: false, reports: true, users: false }
+};
+
+// Helper pour vérifier une permission
+const hasPermission = (user: UserData | null, permission: 'studies' | 'insights' | 'reports' | 'users'): boolean => {
+  if (!user?.is_admin) return false;
+  const role = user.admin_role || 'super_admin'; // Rétrocompatibilité
+  return ADMIN_PERMISSIONS[role]?.[permission] ?? false;
+};
 
 interface DashboardStats {
   studies_accessible: number;
@@ -228,41 +245,56 @@ export default function DashboardPage() {
                 />
               </button>
 
-              {/* Sous-menu Admin */}
+              {/* Sous-menu Admin - Affichage conditionnel selon permissions */}
               <div
                 className={`overflow-hidden transition-all duration-200 ${
                   adminMenuOpen ? "max-h-48 opacity-100" : "max-h-0 opacity-0"
                 }`}
               >
                 <div className="pl-4 space-y-1 mt-1">
-                  <a
-                    href="/admin"
-                    className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
-                  >
-                    <FileText className="h-4 w-4" />
-                    Études
-                  </a>
-                  <a
-                    href="/admin/insights"
-                    className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
-                  >
-                    <Lightbulb className="h-4 w-4" />
-                    Insights
-                  </a>
-                  <a
-                    href="/admin/reports"
-                    className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
-                  >
-                    <Download className="h-4 w-4" />
-                    Rapports
-                  </a>
-                  <a
-                    href="/admin/users"
-                    className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
-                  >
-                    <Users className="h-4 w-4" />
-                    Utilisateurs
-                  </a>
+                  {/* Études - visible si permission studies */}
+                  {hasPermission(user, 'studies') && (
+                    <a
+                      href="/admin"
+                      className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Études
+                    </a>
+                  )}
+                  
+                  {/* Insights - visible si permission insights */}
+                  {hasPermission(user, 'insights') && (
+                    <a
+                      href="/admin/insights"
+                      className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
+                    >
+                      <Lightbulb className="h-4 w-4" />
+                      Insights
+                    </a>
+                  )}
+                  
+                  {/* Rapports - visible si permission reports */}
+                  {hasPermission(user, 'reports') && (
+                    <a
+                      href="/admin/reports"
+                      className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
+                    >
+                      <Download className="h-4 w-4" />
+                      Rapports
+                    </a>
+                  )}
+                  
+                  {/* Utilisateurs - visible si permission users (super_admin uniquement) */}
+                  {hasPermission(user, 'users') && (
+                    <a
+                      href="/admin/users"
+                      className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
+                    >
+                      <Users className="h-4 w-4" />
+                      Utilisateurs
+                    </a>
+                  )}
                 </div>
               </div>
             </>
