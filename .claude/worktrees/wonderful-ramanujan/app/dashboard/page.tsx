@@ -19,9 +19,6 @@ import {
   Users,
   Lightbulb,
   CheckCircle,
-  Coins,
-  Infinity,
-  Zap,
 } from "lucide-react";
 
 interface UserData {
@@ -62,23 +59,6 @@ interface DashboardStats {
   is_premium: boolean;
 }
 
-interface TokenInfo {
-  name: string;
-  limit: number;
-  unlimited: boolean;
-  used: number;
-  remaining: number | null;
-  percentage: number;
-}
-
-interface QuotaData {
-  plan: string;
-  tokens: TokenInfo[];
-  days_remaining: number | null;
-  subscription_end: string | null;
-  billing_period_start: string;
-}
-
 const API_URL = "https://web-production-ef657.up.railway.app";
 
 export default function DashboardPage() {
@@ -86,7 +66,6 @@ export default function DashboardPage() {
   const [user, setUser] = useState<UserData | null>(null);
   const [studies, setStudies] = useState<any[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [quota, setQuota] = useState<QuotaData | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
@@ -104,7 +83,6 @@ export default function DashboardPage() {
       setUser(JSON.parse(userData));
       fetchStudies(token);
       fetchStats(token);
-      fetchQuota(token);
     } catch {
       router.push("/login");
     }
@@ -138,33 +116,6 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Erreur stats:", error);
     }
-  };
-
-  const fetchQuota = async (token: string) => {
-    try {
-      const response = await fetch(`${API_URL}/api/users/quota`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setQuota(data);
-      }
-    } catch (error) {
-      console.error("Erreur quota:", error);
-    }
-  };
-
-  const TOKEN_LABELS: Record<string, { label: string; icon: string }> = {
-    reports_downloads: { label: "Rapports", icon: "download" },
-    insights_access: { label: "Insights", icon: "lightbulb" },
-    studies_participation: { label: "Etudes", icon: "file" },
-    api_requests: { label: "Requetes API", icon: "zap" },
-  };
-
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 90) return "bg-red-500";
-    if (percentage >= 70) return "bg-orange-500";
-    return "bg-blue-600";
   };
 
   const handleLogout = () => {
@@ -476,108 +427,6 @@ export default function DashboardPage() {
             <p className="text-gray-600 text-xs lg:text-sm">Rapports disponibles</p>
           </div>
         </div>
-
-        {/* Tokens / Quota Card */}
-        {quota && (
-          <div className="bg-white rounded-xl shadow-sm mb-8 overflow-hidden">
-            <div className="px-4 lg:px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="bg-yellow-100 p-2 rounded-lg">
-                  <Coins className="h-5 w-5 text-yellow-600" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900">Mes Tokens</h2>
-                  <p className="text-xs text-gray-500">
-                    Utilisation du mois en cours
-                  </p>
-                </div>
-              </div>
-              {quota.days_remaining !== null && (
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-900">
-                    {quota.days_remaining}j
-                  </p>
-                  <p className="text-xs text-gray-500">restants</p>
-                </div>
-              )}
-            </div>
-
-            <div className="p-4 lg:p-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {quota.tokens.map((token) => {
-                  const meta = TOKEN_LABELS[token.name] || {
-                    label: token.name,
-                    icon: "zap",
-                  };
-
-                  return (
-                    <div
-                      key={token.name}
-                      className="border border-gray-100 rounded-xl p-4 hover:border-blue-200 transition"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-medium text-gray-700">
-                          {meta.label}
-                        </span>
-                        {token.unlimited ? (
-                          <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                            <Infinity className="h-3 w-3" />
-                            Illimite
-                          </span>
-                        ) : (
-                          <span className="text-xs text-gray-500">
-                            {token.used}/{token.limit}
-                          </span>
-                        )}
-                      </div>
-
-                      {token.unlimited ? (
-                        <div className="w-full bg-green-100 rounded-full h-2">
-                          <div className="bg-green-500 h-2 rounded-full w-full" />
-                        </div>
-                      ) : (
-                        <>
-                          <div className="w-full bg-gray-100 rounded-full h-2">
-                            <div
-                              className={`${getProgressColor(token.percentage)} h-2 rounded-full transition-all duration-500`}
-                              style={{ width: `${Math.min(token.percentage, 100)}%` }}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-xs text-gray-500">
-                              {token.remaining} restant{(token.remaining ?? 0) > 1 ? "s" : ""}
-                            </span>
-                            {token.percentage >= 90 && (
-                              <span className="text-xs text-red-600 font-medium flex items-center gap-1">
-                                <Zap className="h-3 w-3" />
-                                Presque epuise
-                              </span>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Upgrade CTA for basic users */}
-              {quota.plan === "basic" && (
-                <div className="mt-4 flex items-center justify-between bg-blue-50 rounded-lg p-3">
-                  <p className="text-sm text-blue-700">
-                    Passez a Premium pour debloquer des tokens illimites
-                  </p>
-                  <a
-                    href="https://afrikalytics.com/premium"
-                    className="text-sm font-semibold text-blue-600 hover:text-blue-700 whitespace-nowrap ml-4"
-                  >
-                    Voir les offres
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Recent Studies */}
         <div className="bg-white rounded-xl shadow-sm">
