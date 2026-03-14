@@ -1,0 +1,419 @@
+name: CD — Deploy
+
+# Triggered on push to main (after CI passes) or manually via workflow_dispatch
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      deploy_target:
+        description: 'What to deploy'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - api-only
+          - dashboard-only
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false  # Never cancel an in-progress deploy
+
+# Required secrets:
+#   RAILWAY_TOKEN          — Railway API token for API deployment
+#   VERCEL_TOKEN           — Vercel token for Dashboard deployment
+#   VERCEL_ORG_ID          — Vercel organization ID
+#   VERCEL_PROJECT_ID      — Vercel project ID
+#   API_URL_PRODUCTION     — Production API URL for health checks
+#   API_URL_STAGING        — Staging API URL for health checks
+#   DASH_URL_PRODUCTION    — Production Dashboard URL for health checks
+#   DASH_URL_STAGING       — Staging Dashboard URL for health checks
+
+jobs:
+  # =========================================================================
+  # Gate: Wait for CI to pass (on push events)
+  # =========================================================================
+  ci-gate:
+    name: Wait for CI
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for Backend CI
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Tests
+          ref: ${{ github.sha }}
+          timeoutSeconds: 600
+          intervalSeconds: 30
+
+      - name: Wait for Frontend Build
+        uses: fountainhead/action-wait-for-check@v1.2.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: Build
+          ref: ${{ github.sha }}
+          timeoutSeconds: 600
+          intervalSeconds: 30
+
+  # =========================================================================
+  # Pre-deploy validation
+  # =========================================================================
+  pre-deploy:
+    name: Pre-Deploy Checks
+    runs-on: ubuntu-latest
+    needs: [ci-gate]
+    if: always() && (needs.ci-gate.result == 'success' || needs.ci-gate.result == 'skipped')
+    outputs:
+      environment: ${{ steps.env.outputs.environment }}
+      deploy_api: ${{ steps.env.outputs.deploy_api }}
+      deploy_dashboard: ${{ steps.env.outputs.deploy_dashboard }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine environment and targets
+        id: env
+        run: |
+          # On push to main: deploy to staging by default
+          # On workflow_dispatch: use selected environment
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+            case "${{ github.event.inputs.deploy_target }}" in
+              all)
+                echo "deploy_api=true" >> $GITHUB_OUTPUT
+                echo "deploy_dashboard=true" >> $GITHUB_OUTPUT
+                ;;
+              api-only)
+                echo "deploy_api=true" >> $GITHUB_OUTPUT
+                echo "deploy_dashboard=false" >> $GITHUB_OUTPUT
+                ;;
+              dashboard-only)
+                echo "deploy_api=false" >> $GITHUB_OUTPUT
+                echo "deploy_dashboard=true" >> $GITHUB_OUTPUT
+                ;;
+            esac
+          else
+            echo "environment=staging" >> $GITHUB_OUTPUT
+            echo "deploy_api=true" >> $GITHUB_OUTPUT
+            echo "deploy_dashboard=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Detect changes
+        id: changes
+        run: |
+          # Check which sub-projects have changes in this push
+          API_CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -c '^afrikalytics-api/' || echo "0")
+          DASH_CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -c '^afrikalytics-dashboard/' || echo "0")
+          echo "api_changed=$API_CHANGED" >> $GITHUB_OUTPUT
+          echo "dashboard_changed=$DASH_CHANGED" >> $GITHUB_OUTPUT
+          echo "API files changed: $API_CHANGED"
+          echo "Dashboard files changed: $DASH_CHANGED"
+
+      - name: Run pre-deploy checks
+        run: |
+          chmod +x scripts/pre-deploy-check.sh
+          bash scripts/pre-deploy-check.sh all --skip-build --ci
+
+  # =========================================================================
+  # Deploy API (Railway)
+  # =========================================================================
+  deploy-api:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    needs: [pre-deploy]
+    if: needs.pre-deploy.outputs.deploy_api == 'true'
+    environment:
+      name: api-${{ needs.pre-deploy.outputs.environment }}
+      url: ${{ steps.health.outputs.api_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set environment URLs
+        id: urls
+        run: |
+          ENV="${{ needs.pre-deploy.outputs.environment }}"
+          if [[ "$ENV" == "production" ]]; then
+            echo "api_url=${{ secrets.API_URL_PRODUCTION || 'https://web-production-ef657.up.railway.app' }}" >> $GITHUB_OUTPUT
+          else
+            echo "api_url=${{ secrets.API_URL_STAGING || 'https://afrikalytics-api-staging.up.railway.app' }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          cd afrikalytics-api
+          railway up --detach
+        continue-on-error: true
+        id: railway_deploy
+
+      - name: Wait for deployment propagation
+        run: sleep 30
+
+      - name: Health check
+        id: health
+        run: |
+          API_URL="${{ steps.urls.outputs.api_url }}"
+          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+
+          for i in 1 2 3 4 5; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "${API_URL}/health" || echo "000")
+            if [[ "$HTTP_CODE" == "200" ]]; then
+              echo "API health check passed (attempt $i)"
+              exit 0
+            fi
+            echo "API health check failed (HTTP $HTTP_CODE, attempt $i/5)"
+            sleep 10
+          done
+
+          echo "API health check failed after 5 attempts"
+          exit 1
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "### API Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ needs.pre-deploy.outputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | ${{ steps.urls.outputs.api_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploy | ${{ steps.railway_deploy.outcome }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Health | ${{ steps.health.outcome }} |" >> $GITHUB_STEP_SUMMARY
+
+  # =========================================================================
+  # Deploy Dashboard (Vercel)
+  # =========================================================================
+  deploy-dashboard:
+    name: Deploy Dashboard
+    runs-on: ubuntu-latest
+    needs: [pre-deploy, deploy-api]
+    # Run after API, but also if API was skipped (dashboard-only)
+    if: |
+      always() &&
+      needs.pre-deploy.outputs.deploy_dashboard == 'true' &&
+      (needs.deploy-api.result == 'success' || needs.deploy-api.result == 'skipped')
+    environment:
+      name: dashboard-${{ needs.pre-deploy.outputs.environment }}
+      url: ${{ steps.deploy.outputs.dashboard_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: afrikalytics-dashboard/package-lock.json
+
+      - name: Set environment URLs
+        id: urls
+        run: |
+          ENV="${{ needs.pre-deploy.outputs.environment }}"
+          if [[ "$ENV" == "production" ]]; then
+            echo "dash_url=${{ secrets.DASH_URL_PRODUCTION || 'https://afrikalytics.vercel.app' }}" >> $GITHUB_OUTPUT
+            echo "api_url=${{ secrets.API_URL_PRODUCTION || 'https://web-production-ef657.up.railway.app' }}" >> $GITHUB_OUTPUT
+            echo "vercel_flag=--prod" >> $GITHUB_OUTPUT
+          else
+            echo "dash_url=${{ secrets.DASH_URL_STAGING || 'https://afrikalytics-staging.vercel.app' }}" >> $GITHUB_OUTPUT
+            echo "api_url=${{ secrets.API_URL_STAGING || 'https://afrikalytics-api-staging.up.railway.app' }}" >> $GITHUB_OUTPUT
+            echo "vercel_flag=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel
+
+      - name: Pull Vercel config
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          cd afrikalytics-dashboard
+          vercel pull --yes --token=$VERCEL_TOKEN
+
+      - name: Build
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          NEXT_PUBLIC_API_URL: ${{ steps.urls.outputs.api_url }}
+        run: |
+          cd afrikalytics-dashboard
+          vercel build ${{ steps.urls.outputs.vercel_flag }} --token=$VERCEL_TOKEN
+
+      - name: Deploy
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          cd afrikalytics-dashboard
+          DEPLOY_URL=$(vercel deploy --prebuilt ${{ steps.urls.outputs.vercel_flag }} --token=$VERCEL_TOKEN 2>&1)
+          echo "dashboard_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $DEPLOY_URL"
+
+      - name: Wait for deployment propagation
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          DASH_URL="${{ steps.urls.outputs.dash_url }}"
+
+          for i in 1 2 3 4 5; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$DASH_URL" || echo "000")
+            if [[ "$HTTP_CODE" =~ ^(200|301|302|307|308)$ ]]; then
+              echo "Dashboard health check passed (HTTP $HTTP_CODE, attempt $i)"
+              exit 0
+            fi
+            echo "Dashboard health check failed (HTTP $HTTP_CODE, attempt $i/5)"
+            sleep 10
+          done
+
+          echo "Dashboard health check failed after 5 attempts"
+          exit 1
+
+      - name: Deployment summary
+        if: always()
+        run: |
+          echo "### Dashboard Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | ${{ needs.pre-deploy.outputs.environment }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | ${{ steps.deploy.outputs.dashboard_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| API URL | ${{ steps.urls.outputs.api_url }} |" >> $GITHUB_STEP_SUMMARY
+
+  # =========================================================================
+  # Post-deploy verification
+  # =========================================================================
+  post-deploy:
+    name: Post-Deploy Verification
+    runs-on: ubuntu-latest
+    needs: [pre-deploy, deploy-api, deploy-dashboard]
+    if: always() && (needs.deploy-api.result == 'success' || needs.deploy-dashboard.result == 'success')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set URLs
+        id: urls
+        run: |
+          ENV="${{ needs.pre-deploy.outputs.environment }}"
+          if [[ "$ENV" == "production" ]]; then
+            echo "api_url=${{ secrets.API_URL_PRODUCTION || 'https://web-production-ef657.up.railway.app' }}" >> $GITHUB_OUTPUT
+            echo "dash_url=${{ secrets.DASH_URL_PRODUCTION || 'https://afrikalytics.vercel.app' }}" >> $GITHUB_OUTPUT
+          else
+            echo "api_url=${{ secrets.API_URL_STAGING || 'https://afrikalytics-api-staging.up.railway.app' }}" >> $GITHUB_OUTPUT
+            echo "dash_url=${{ secrets.DASH_URL_STAGING || 'https://afrikalytics-staging.vercel.app' }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Full health check suite
+        run: |
+          chmod +x scripts/health-check.sh
+          export API_URL="${{ steps.urls.outputs.api_url }}"
+          export DASHBOARD_URL="${{ steps.urls.outputs.dash_url }}"
+          bash scripts/health-check.sh all
+
+      - name: CORS connectivity check
+        run: |
+          API_URL="${{ steps.urls.outputs.api_url }}"
+          DASH_URL="${{ steps.urls.outputs.dash_url }}"
+
+          echo "Checking CORS: Dashboard ($DASH_URL) -> API ($API_URL)"
+
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Origin: $DASH_URL" \
+            -H "Access-Control-Request-Method: GET" \
+            -H "Access-Control-Request-Headers: Authorization,Content-Type,X-Requested-With" \
+            -X OPTIONS \
+            --max-time 10 \
+            "${API_URL}/health" || echo "000")
+
+          if [[ "$HTTP_CODE" =~ ^(200|204)$ ]]; then
+            echo "CORS preflight OK (HTTP $HTTP_CODE)"
+          else
+            echo "WARNING: CORS preflight returned HTTP $HTTP_CODE"
+            echo "Verify FRONTEND_URL environment variable on Railway includes: $DASH_URL"
+          fi
+
+      - name: Deployment report
+        if: always()
+        run: |
+          ENV="${{ needs.pre-deploy.outputs.environment }}"
+          echo "## Deployment Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+
+          API_STATUS="${{ needs.deploy-api.result }}"
+          DASH_STATUS="${{ needs.deploy-dashboard.result }}"
+
+          if [[ "$API_STATUS" == "success" ]]; then
+            echo "| API | Deployed |" >> $GITHUB_STEP_SUMMARY
+          elif [[ "$API_STATUS" == "skipped" ]]; then
+            echo "| API | Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| API | **FAILED** |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [[ "$DASH_STATUS" == "success" ]]; then
+            echo "| Dashboard | Deployed |" >> $GITHUB_STEP_SUMMARY
+          elif [[ "$DASH_STATUS" == "skipped" ]]; then
+            echo "| Dashboard | Skipped |" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| Dashboard | **FAILED** |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** $ENV" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+  # =========================================================================
+  # Notify on failure
+  # =========================================================================
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy-api, deploy-dashboard, post-deploy]
+    if: failure()
+    steps:
+      - name: Create GitHub issue on failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const env = '${{ needs.pre-deploy.outputs.environment || 'unknown' }}';
+            const apiResult = '${{ needs.deploy-api.result }}';
+            const dashResult = '${{ needs.deploy-dashboard.result }}';
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Deployment to ${env} failed`,
+              body: [
+                `## Deployment Failure Report`,
+                ``,
+                `| Detail | Value |`,
+                `|--------|-------|`,
+                `| Environment | ${env} |`,
+                `| Commit | \`${context.sha}\` |`,
+                `| API Deploy | ${apiResult} |`,
+                `| Dashboard Deploy | ${dashResult} |`,
+                `| Workflow Run | ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId} |`,
+                ``,
+                `Please investigate and redeploy.`,
+              ].join('\n'),
+              labels: ['deployment', 'bug'],
+            });
