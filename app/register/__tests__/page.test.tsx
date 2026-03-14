@@ -136,25 +136,30 @@ describe('RegisterPage', () => {
 
   // ---- Soumission valide -----------------------------------------------------
 
-  it('should call the register API with correct body on valid submission', async () => {
+  it('should call the register API and save session via httpOnly cookie on valid submission', async () => {
     const user = userEvent.setup();
+    const fakeUser = { id: 1, email: 'jean@example.com', full_name: 'Jean Dupont' };
 
-    mockFetchFn.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        access_token: 'fake-jwt',
-        user: { id: 1, email: 'jean@example.com', full_name: 'Jean Dupont' },
-      }),
-    });
+    // First call: register API, second call: saveSession
+    mockFetchFn
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: 'fake-jwt', user: fakeUser }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
 
     render(<RegisterPage />);
     await fillForm(user);
     await user.click(screen.getByRole('button', { name: /créer mon compte/i }));
 
     await waitFor(() => {
-      expect(mockFetchFn).toHaveBeenCalledTimes(1);
+      expect(mockFetchFn).toHaveBeenCalledTimes(2);
     });
 
+    // First call: register API
     expect(mockFetchFn).toHaveBeenCalledWith(
       expect.stringContaining('/api/auth/register'),
       expect.objectContaining({
@@ -170,28 +175,15 @@ describe('RegisterPage', () => {
         }),
       }),
     );
-  });
 
-  it('should store token and user in localStorage then redirect to /dashboard on success', async () => {
-    const user = userEvent.setup();
-    const fakeUser = { id: 1, email: 'jean@example.com', full_name: 'Jean Dupont' };
-
-    mockFetchFn.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ access_token: 'fake-jwt', user: fakeUser }),
-    });
-
-    render(<RegisterPage />);
-    await fillForm(user);
-    await user.click(screen.getByRole('button', { name: /créer mon compte/i }));
-
-    await waitFor(() => {
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('token', 'fake-jwt');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'user',
-        JSON.stringify(fakeUser),
-      );
-    });
+    // Second call: saveSession (httpOnly cookie)
+    expect(mockFetchFn).toHaveBeenCalledWith(
+      '/api/auth/session',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('fake-jwt'),
+      }),
+    );
 
     expect(mockPush).toHaveBeenCalledWith('/dashboard');
   });

@@ -75,16 +75,22 @@ describe('LoginPage', () => {
     expect(button).toBeDisabled();
   });
 
-  it('calls fetch on form submit and stores token on success', async () => {
+  it('calls fetch on form submit and saves session via httpOnly cookie', async () => {
     const user = userEvent.setup();
 
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        access_token: 'fake-jwt-token',
-        user: { id: 1, email: 'test@example.com', full_name: 'Test' },
-      }),
-    });
+    // First call: login API, second call: saveSession (POST /api/auth/session)
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          access_token: 'fake-jwt-token',
+          user: { id: 1, email: 'test@example.com', full_name: 'Test' },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
 
     render(<LoginPage />);
 
@@ -97,9 +103,10 @@ describe('LoginPage', () => {
     await user.click(submitButton);
 
     await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledTimes(1);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
+    // First call: login API
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/auth/login'),
       expect.objectContaining({
@@ -109,9 +116,14 @@ describe('LoginPage', () => {
       }),
     );
 
-    await waitFor(() => {
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('token', 'fake-jwt-token');
-    });
+    // Second call: saveSession (httpOnly cookie)
+    expect(mockFetch).toHaveBeenCalledWith(
+      '/api/auth/session',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('fake-jwt-token'),
+      }),
+    );
 
     expect(mockPush).toHaveBeenCalledWith('/dashboard');
   });

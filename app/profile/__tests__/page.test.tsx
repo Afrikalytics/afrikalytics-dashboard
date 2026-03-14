@@ -173,7 +173,7 @@ describe('ProfilePage', () => {
     });
   });
 
-  it('should call the change-password API with correct payload', async () => {
+  it('should call the change-password API through proxy with correct payload', async () => {
     const user = userEvent.setup();
     setupAuth();
 
@@ -188,12 +188,11 @@ describe('ProfilePage', () => {
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/users/change-password'),
+        '/api/proxy/api/users/change-password',
         expect.objectContaining({
           method: 'PUT',
           headers: expect.objectContaining({
             'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
           }),
           body: JSON.stringify({
             current_password: 'OldPass123!',

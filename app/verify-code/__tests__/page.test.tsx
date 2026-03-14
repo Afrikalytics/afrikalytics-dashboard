@@ -105,14 +105,20 @@ describe('VerifyCodePage', () => {
 
   // ---- Soumission valide -----------------------------------------------------
 
-  it('should store token and user in localStorage then redirect to /dashboard on valid code', async () => {
+  it('should save session via httpOnly cookie then redirect to /dashboard on valid code', async () => {
     const user = userEvent.setup();
     const fakeUser = { id: 1, email: 'user@example.com', full_name: 'Test User' };
 
-    mockFetchFn.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ access_token: 'jwt-token', user: fakeUser }),
-    });
+    // First call: verify-code API, second call: saveSession
+    mockFetchFn
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: 'jwt-token', user: fakeUser }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
 
     render(<VerifyCodePage />);
     await enterCode(user, '123456');
@@ -131,11 +137,14 @@ describe('VerifyCodePage', () => {
       );
     });
 
+    // Verify saveSession was called (httpOnly cookie)
     await waitFor(() => {
-      expect(localStorageMock.setItem).toHaveBeenCalledWith('token', 'jwt-token');
-      expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'user',
-        JSON.stringify(fakeUser),
+      expect(mockFetchFn).toHaveBeenCalledWith(
+        '/api/auth/session',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('jwt-token'),
+        }),
       );
     });
 
