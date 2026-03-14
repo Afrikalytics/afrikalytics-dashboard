@@ -1,0 +1,15 @@
+#!/bin/sh
+# Pre-commit hook: TypeScript check only
+# Note: next lint requires special path handling, run via npm run lint manually
+
+echo "Running TypeScript check..."
+node "$(dirname "$0")/../node_modules/typescript/bin/tsc" --noEmit --pretty
+TSC_EXIT=$?
+
+if [ $TSC_EXIT -ne 0 ]; then
+  echo ""
+  echo "TypeScript errors found. Fix them before committing."
+  exit 1
+fi
+
+echo "All checks passed!"
