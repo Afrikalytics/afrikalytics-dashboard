@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Shield, Loader2, ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { API_URL } from "@/lib/constants";
+import { saveSession } from "@/lib/api";
 
 function VerifyCodeForm() {
   const router = useRouter();
@@ -108,16 +109,12 @@ function VerifyCodeForm() {
         throw new Error(data.detail || "Code invalide");
       }
 
-      // Stocker le token et les infos utilisateur
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      // Mirror token to cookie for middleware auth
-      document.cookie = `auth-token=${data.access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+      // Store auth in httpOnly cookies (XSS-safe)
+      await saveSession(data.access_token, data.user);
 
       // Nettoyer l'email de sessionStorage
       sessionStorage.removeItem('verify_email');
 
-      // Rediriger vers le dashboard
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");

@@ -12,14 +12,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Allow static files and API routes
+  // Allow static files, internal API routes (proxy, session), and root
   if (pathname.startsWith('/_next') ||
       pathname.startsWith('/api') ||
       pathname === '/') {
     return NextResponse.next();
   }
 
-  // Check for auth cookie (mirrored from localStorage on login)
+  // Check for auth cookie (httpOnly, set by /api/auth/session)
   const authToken = request.cookies.get('auth-token');
 
   if (!authToken?.value) {

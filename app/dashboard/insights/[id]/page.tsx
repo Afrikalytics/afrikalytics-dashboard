@@ -44,31 +44,28 @@ export default function InsightDetailPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Récupérer l'utilisateur depuis localStorage
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    // Récupérer l'utilisateur depuis la session httpOnly
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/session");
+        const session = await res.json();
+        if (session.authenticated && session.user) {
+          setUser(session.user);
+        }
+      } catch {}
+    };
+    fetchUser();
 
-    // Récupérer l'insight
+    // Récupérer l'insight via proxy
     const fetchInsight = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const authHeaders: HeadersInit = {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        };
-        const response = await fetch(`${API_URL}/api/insights/${params.id}`, {
-          headers: authHeaders,
-        });
+        const response = await fetch(`/api/proxy/api/insights/${params.id}`);
         if (response.ok) {
           const data = await response.json();
           setInsight(data);
-          
+
           // Récupérer l'étude associée
-          const studyResponse = await fetch(`${API_URL}/api/studies/${data.study_id}`, {
-            headers: authHeaders,
-          });
+          const studyResponse = await fetch(`/api/proxy/api/studies/${data.study_id}`);
           if (studyResponse.ok) {
             const studyData = await studyResponse.json();
             setStudy(studyData);

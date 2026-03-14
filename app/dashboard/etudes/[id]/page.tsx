@@ -56,24 +56,22 @@ export default function StudyResultsPage() {
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    // Récupérer l'utilisateur et le token depuis localStorage
-    const storedUser = localStorage.getItem("user");
-    const token = localStorage.getItem("token");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-
-    const authHeaders: HeadersInit = {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
+    // Récupérer l'utilisateur depuis la session httpOnly
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/session");
+        const session = await res.json();
+        if (session.authenticated && session.user) {
+          setUser(session.user);
+        }
+      } catch {}
     };
+    fetchUser();
 
-    // Récupérer l'étude
+    // Récupérer l'étude via proxy
     const fetchStudy = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/studies/${params.id}`, {
-          headers: authHeaders,
-        });
+        const response = await fetch(`/api/proxy/api/studies/${params.id}`);
         if (response.ok) {
           const data = await response.json();
           setStudy(data);
@@ -83,12 +81,10 @@ export default function StudyResultsPage() {
       }
     };
 
-    // Récupérer l'insight
+    // Récupérer l'insight via proxy
     const fetchInsight = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/insights/study/${params.id}`, {
-          headers: authHeaders,
-        });
+        const response = await fetch(`/api/proxy/api/insights/study/${params.id}`);
         if (response.ok) {
           const data = await response.json();
           setInsight(data);
@@ -129,15 +125,9 @@ export default function StudyResultsPage() {
     setDownloading(true);
 
     try {
-      const token = localStorage.getItem("token");
-      // Tracker le téléchargement
-      await fetch(`${API_URL}/api/reports/study/${study.id}/type/${getReportType()}/download`, {
+      // Tracker le téléchargement via proxy
+      await fetch(`/api/proxy/api/reports/study/${study.id}/type/${getReportType()}/download`, {
         method: "POST",
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest', // CSRF protection
-        },
       });
     } catch (error) {
       console.error("Erreur tracking:", error);

@@ -2,16 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { CheckCircle, Crown, ArrowRight, Mail, Loader2 } from "lucide-react";
+import { getSession } from "@/lib/api";
 
 export default function PaymentSuccessPage() {
   const [countdown, setCountdown] = useState(10);
 
   useEffect(() => {
+    // Check auth to redirect to the right page
+    let redirectUrl = "/login";
+    getSession().then((session) => {
+      if (session.authenticated) {
+        redirectUrl = "/dashboard";
+      }
+    });
+
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          window.location.href = "/login";
+          window.location.href = redirectUrl;
           return 0;
         }
         return prev - 1;

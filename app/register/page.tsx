@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BarChart3, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check } from "lucide-react";
 import { API_URL } from "@/lib/constants";
+import { saveSession } from "@/lib/api";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -63,13 +64,8 @@ export default function RegisterPage() {
         throw new Error(data.detail || "Erreur lors de l'inscription");
       }
 
-      // Stocker le token et les infos utilisateur
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      // Mirror token to cookie for middleware auth
-      document.cookie = `auth-token=${data.access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-
-      // Rediriger vers le dashboard
+      // Store auth in httpOnly cookies (XSS-safe)
+      await saveSession(data.access_token, data.user);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur lors de l'inscription");

@@ -3,18 +3,16 @@
 // =============================================================================
 // Afrikalytics Dashboard — useAuth Hook
 // =============================================================================
-// Centralizes the auth check pattern duplicated across ~15 pages:
-//   1. Read token/user from localStorage
-//   2. Redirect to /login if missing
-//   3. Optionally check admin role
-//   4. Return user, token, loading state, and logout function
+// Fetches auth state from httpOnly cookies via /api/auth/session.
+// No token or user data is stored in localStorage (XSS-safe).
 // =============================================================================
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { User } from "../types";
-import { AUTH_TOKEN_KEY, AUTH_USER_KEY, ROUTES, ADMIN_PERMISSIONS } from "../constants";
+import { ROUTES, ADMIN_PERMISSIONS } from "../constants";
 import type { AdminRolePermissions } from "../types";
+import { clearSession, getSession } from "../api";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -64,13 +62,8 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthReturn {
   const [accessDenied, setAccessDenied] = useState(false);
 
   // Logout function
-  const logout = useCallback(() => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(AUTH_TOKEN_KEY);
-      localStorage.removeItem(AUTH_USER_KEY);
-      // Clear auth cookie used by middleware
-      document.cookie = "auth-token=; path=/; max-age=0";
-    }
+  const logout = useCallback(async () => {
+    await clearSession();
     setUser(null);
     setToken(null);
     router.push(ROUTES.LOGIN);
@@ -86,59 +79,67 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthReturn {
     [user]
   );
 
-  // Auth check on mount
+  // Auth check on mount — fetches from httpOnly cookie via API route
   useEffect(() => {
-    const storedToken = localStorage.getItem(AUTH_TOKEN_KEY);
-    const storedUser = localStorage.getItem(AUTH_USER_KEY);
+    let cancelled = false;
 
-    // No credentials found
-    if (!storedToken || !storedUser) {
-      if (!optional) {
-        router.push(redirectTo);
-      }
-      setIsLoading(false);
-      return;
-    }
+    async function checkAuth() {
+      try {
+        const session = await getSession();
 
-    // Parse user
-    let parsedUser: User;
-    try {
-      parsedUser = JSON.parse(storedUser);
-    } catch {
-      if (!optional) {
-        router.push(redirectTo);
-      }
-      setIsLoading(false);
-      return;
-    }
+        if (cancelled) return;
 
-    // Admin check
-    if (requireAdmin) {
-      if (!parsedUser.is_admin) {
-        setAccessDenied(true);
-        setUser(parsedUser);
-        setToken(storedToken);
-        setIsLoading(false);
-        return;
-      }
-
-      // Check specific permission if requireAdmin is a permission key
-      if (typeof requireAdmin === "string") {
-        const role = parsedUser.admin_role || "super_admin";
-        const perms = ADMIN_PERMISSIONS[role];
-        if (!perms?.[requireAdmin]) {
-          setAccessDenied(true);
-          setUser(parsedUser);
-          setToken(storedToken);
+        if (!session.authenticated || !session.user) {
+          if (!optional) {
+            router.push(redirectTo);
+          }
           setIsLoading(false);
           return;
+        }
+
+        const parsedUser = session.user;
+
+        // Admin check
+        if (requireAdmin) {
+          if (!parsedUser.is_admin) {
+            setAccessDenied(true);
+            setUser(parsedUser);
+            setToken(session.token);
+            setIsLoading(false);
+            return;
+          }
+
+          if (typeof requireAdmin === "string") {
+            const role = parsedUser.admin_role || "super_admin";
+            const perms = ADMIN_PERMISSIONS[role];
+            if (!perms?.[requireAdmin]) {
+              setAccessDenied(true);
+              setUser(parsedUser);
+              setToken(session.token);
+              setIsLoading(false);
+              return;
+            }
+          }
+        }
+
+        setUser(parsedUser);
+        setToken(session.token);
+        setIsLoading(false);
+      } catch {
+        if (!cancelled) {
+          if (!optional) {
+            router.push(redirectTo);
+          }
+          setIsLoading(false);
         }
       }
     }
 
-    setUser(parsedUser);
-    setToken(storedToken);
-    setIsLoading(false);
+    checkAuth();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router, redirectTo, requireAdmin, optional]);
 
   return {

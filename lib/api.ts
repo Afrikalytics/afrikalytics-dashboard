@@ -1,12 +1,12 @@
 // =============================================================================
 // Afrikalytics Dashboard — Centralized API Service
 // =============================================================================
-// Replaces duplicated fetch() calls across all pages.
-// Handles auth headers, 401 redirects, and typed error responses.
+// All API calls go through /api/proxy/ which injects the auth token from
+// httpOnly cookies server-side. No token is ever exposed to client JS.
 // =============================================================================
 
-import { API_URL, AUTH_TOKEN_KEY, ROUTES } from "./constants";
-import type { ApiError } from "./types";
+import { API_URL, ROUTES } from "./constants";
+import type { User } from "./types";
 
 // -----------------------------------------------------------------------------
 // Custom error class for API errors
@@ -25,69 +25,50 @@ export class ApiRequestError extends Error {
 }
 
 // -----------------------------------------------------------------------------
-// API Service
+// Session helpers (httpOnly cookie management via /api/auth/session)
+// -----------------------------------------------------------------------------
+
+/** Save auth session (token + user) in httpOnly cookies */
+export async function saveSession(token: string, user: User): Promise<void> {
+  await fetch("/api/auth/session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, user }),
+  });
+}
+
+/** Clear auth session (httpOnly cookies) */
+export async function clearSession(): Promise<void> {
+  await fetch("/api/auth/session", { method: "DELETE" });
+}
+
+/** Get current session from httpOnly cookies */
+export async function getSession(): Promise<{
+  authenticated: boolean;
+  user: User | null;
+  token: string | null;
+}> {
+  const res = await fetch("/api/auth/session");
+  return res.json();
+}
+
+// -----------------------------------------------------------------------------
+// API Service — routes through /api/proxy/ for authenticated requests
 // -----------------------------------------------------------------------------
 
 class ApiService {
-  private baseUrl: string;
-
-  constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
-  }
-
-  /** Read the JWT token from localStorage (client-side only) */
-  getToken(): string | null {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem(AUTH_TOKEN_KEY);
-  }
-
-  /** Store token in localStorage and mirror to cookie for middleware auth */
-  setToken(token: string): void {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(AUTH_TOKEN_KEY, token);
-    // Mirror to cookie so Next.js middleware can check auth server-side
-    document.cookie = `auth-token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
-  }
-
-  /** Clear all auth state (localStorage + cookie) */
-  clearAuth(): void {
-    if (typeof window === "undefined") return;
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    // Clear the auth cookie
-    document.cookie = "auth-token=; path=/; max-age=0";
-  }
-
-  /** Build headers with optional Authorization */
-  private getHeaders(includeContentType = true): HeadersInit {
-    const headers: Record<string, string> = {
-      "X-Requested-With": "XMLHttpRequest", // CSRF protection
-    };
-
-    if (includeContentType) {
-      headers["Content-Type"] = "application/json";
-    }
-
-    const token = this.getToken();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
-    return headers;
-  }
-
   /** Handle the response — parse JSON, handle 401 redirects, throw on errors */
   private async handleResponse<T>(response: Response): Promise<T> {
-    // 401 Unauthorized — clear auth and redirect to login
+    // 401 Unauthorized — clear session and redirect
     if (response.status === 401) {
       if (typeof window !== "undefined") {
-        this.clearAuth();
+        await clearSession();
         window.location.href = ROUTES.LOGIN;
       }
-      throw new ApiRequestError(401, "Session expirée. Veuillez vous reconnecter.");
+      throw new ApiRequestError(401, "Session expiree. Veuillez vous reconnecter.");
     }
 
-    // Try to parse JSON body (some endpoints may return empty body)
+    // Try to parse JSON body
     let data: any;
     const contentType = response.headers.get("content-type");
     if (contentType?.includes("application/json")) {
@@ -106,51 +87,49 @@ class ApiService {
     return data as T;
   }
 
-  /** GET request */
+  /** GET request (through proxy — auth token injected server-side) */
   async get<T>(path: string): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
+    const response = await fetch(`/api/proxy${path}`, {
       method: "GET",
-      headers: this.getHeaders(false),
     });
     return this.handleResponse<T>(response);
   }
 
-  /** POST request */
+  /** POST request (through proxy) */
   async post<T>(path: string, body?: unknown): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
+    const response = await fetch(`/api/proxy${path}`, {
       method: "POST",
-      headers: this.getHeaders(),
+      headers: { "Content-Type": "application/json" },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     return this.handleResponse<T>(response);
   }
 
-  /** PUT request */
+  /** PUT request (through proxy) */
   async put<T>(path: string, body?: unknown): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
+    const response = await fetch(`/api/proxy${path}`, {
       method: "PUT",
-      headers: this.getHeaders(),
+      headers: { "Content-Type": "application/json" },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     return this.handleResponse<T>(response);
   }
 
-  /** DELETE request */
+  /** DELETE request (through proxy) */
   async delete<T = void>(path: string): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
+    const response = await fetch(`/api/proxy${path}`, {
       method: "DELETE",
-      headers: this.getHeaders(false),
     });
     return this.handleResponse<T>(response);
   }
 
-  /** POST without auth (for login, register, etc.) */
+  /** POST without auth (for login, register — calls Railway directly) */
   async postPublic<T>(path: string, body: unknown): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
+    const response = await fetch(`${API_URL}${path}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Requested-With": "XMLHttpRequest", // CSRF protection
+        "X-Requested-With": "XMLHttpRequest",
       },
       body: JSON.stringify(body),
     });
@@ -170,4 +149,4 @@ class ApiService {
 // Singleton export
 // -----------------------------------------------------------------------------
 
-export const api = new ApiService(API_URL);
+export const api = new ApiService();

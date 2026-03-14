@@ -33,18 +33,16 @@ export default function EtudesListPage() {
 
   useEffect(() => {
     if (authLoading || !token) return;
-    fetchData(token);
+    fetchData();
   }, [authLoading, token]);
 
-  const fetchData = async (authToken: string) => {
-    const headers = { Authorization: `Bearer ${authToken}` };
-
+  const fetchData = async () => {
     try {
-      // Parallel fetch — all three API calls at once (Issue #17)
+      // Parallel fetch through proxy — auth token injected server-side
       const [studiesRes, insightsRes, reportsRes] = await Promise.all([
-        fetch(`${API_URL}/api/studies`, { headers }).catch(() => null),
-        fetch(`${API_URL}/api/insights`, { headers }).catch(() => null),
-        fetch(`${API_URL}/api/reports`, { headers }).catch(() => null),
+        fetch("/api/proxy/api/studies").catch(() => null),
+        fetch("/api/proxy/api/insights").catch(() => null),
+        fetch("/api/proxy/api/reports").catch(() => null),
       ]);
 
       // Parse responses in parallel
@@ -94,14 +92,9 @@ export default function EtudesListPage() {
   }, [reports]);
 
   const handleDownloadReport = useCallback(async (report: Report) => {
-    const storedToken = localStorage.getItem("token");
     try {
-      await fetch(`${API_URL}/api/reports/${report.id}/download`, {
+      await fetch(`/api/proxy/api/reports/${report.id}/download`, {
         method: "POST",
-        headers: {
-          "X-Requested-With": "XMLHttpRequest", // CSRF protection
-          Authorization: `Bearer ${storedToken}`,
-        },
       });
       window.open(report.file_url, "_blank");
     } catch (error) {
