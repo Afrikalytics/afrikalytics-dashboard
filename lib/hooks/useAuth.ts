@@ -68,6 +68,8 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthReturn {
     if (typeof window !== "undefined") {
       localStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem(AUTH_USER_KEY);
+      // Clear auth cookie used by middleware
+      document.cookie = "auth-token=; path=/; max-age=0";
     }
     setUser(null);
     setToken(null);

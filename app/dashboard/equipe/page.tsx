@@ -200,6 +200,7 @@ export default function EntrepriseTeamPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest", // CSRF protection
           Authorization: `Bearer ${getToken()}`,
         },
         body: JSON.stringify(formData),
@@ -230,6 +231,7 @@ export default function EntrepriseTeamPage() {
       const response = await fetch(`${API_URL}/api/enterprise/team/${selectedMember.id}`, {
         method: "DELETE",
         headers: {
+          "X-Requested-With": "XMLHttpRequest", // CSRF protection
           Authorization: `Bearer ${getToken()}`,
         },
       });

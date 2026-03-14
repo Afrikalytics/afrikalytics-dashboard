@@ -136,6 +136,7 @@ export default function StudyResultsPage() {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest', // CSRF protection
         },
       });
     } catch (error) {
