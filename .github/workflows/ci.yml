@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: ESLint
+        run: npm run lint
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Jest
+        run: npm test -- --coverage --ci --watchAll=false 2>&1 | tee jest-output.txt
+        env:
+          NEXT_PUBLIC_API_URL: https://test-api.example.com
+
+      - name: Test Summary
+        if: always()
+        run: |
+          echo "### Frontend Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f jest-output.txt ]; then
+            SUMMARY=$(grep -E "^(Tests|Test Suites):" jest-output.txt || echo "No summary available")
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "$SUMMARY" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            COV_LINE=$(grep "^All files" jest-output.txt || echo "")
+            if [ -n "$COV_LINE" ]; then
+              echo "**Coverage:** \`$COV_LINE\`" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "No test output captured." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: coverage/
+          retention-days: 30
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Build Next.js
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://test-api.example.com
+
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "### Frontend Build" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -d .next ]; then
+            echo "Build completed successfully." >> $GITHUB_STEP_SUMMARY
+            SIZE=$(du -sh .next | cut -f1)
+            echo "**Bundle size:** $SIZE" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Build failed - no .next directory found." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: npm audit
+        run: npm audit --audit-level=high || true

@@ -24,6 +24,7 @@ export default function LoginPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest", // CSRF protection
         },
         body: JSON.stringify({ email, password }),
       });
@@ -44,6 +45,8 @@ export default function LoginPage() {
       // Sinon (fallback), stocker le token directement
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      // Mirror token to cookie for middleware auth
+      document.cookie = `auth-token=${data.access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");

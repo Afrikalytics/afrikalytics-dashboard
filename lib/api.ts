@@ -41,9 +41,28 @@ class ApiService {
     return localStorage.getItem(AUTH_TOKEN_KEY);
   }
 
+  /** Store token in localStorage and mirror to cookie for middleware auth */
+  setToken(token: string): void {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(AUTH_TOKEN_KEY, token);
+    // Mirror to cookie so Next.js middleware can check auth server-side
+    document.cookie = `auth-token=${token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+  }
+
+  /** Clear all auth state (localStorage + cookie) */
+  clearAuth(): void {
+    if (typeof window === "undefined") return;
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    // Clear the auth cookie
+    document.cookie = "auth-token=; path=/; max-age=0";
+  }
+
   /** Build headers with optional Authorization */
   private getHeaders(includeContentType = true): HeadersInit {
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = {
+      "X-Requested-With": "XMLHttpRequest", // CSRF protection
+    };
 
     if (includeContentType) {
       headers["Content-Type"] = "application/json";
@@ -62,8 +81,7 @@ class ApiService {
     // 401 Unauthorized — clear auth and redirect to login
     if (response.status === 401) {
       if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        this.clearAuth();
         window.location.href = ROUTES.LOGIN;
       }
       throw new ApiRequestError(401, "Session expirée. Veuillez vous reconnecter.");
@@ -130,7 +148,10 @@ class ApiService {
   async postPublic<T>(path: string, body: unknown): Promise<T> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest", // CSRF protection
+      },
       body: JSON.stringify(body),
     });
 

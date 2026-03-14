@@ -98,7 +98,10 @@ export default function EtudesListPage() {
     try {
       await fetch(`${API_URL}/api/reports/${report.id}/download`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${storedToken}` },
+        headers: {
+          "X-Requested-With": "XMLHttpRequest", // CSRF protection
+          Authorization: `Bearer ${storedToken}`,
+        },
       });
       window.open(report.file_url, "_blank");
     } catch (error) {

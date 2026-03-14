@@ -65,6 +65,7 @@ function ResetPasswordForm() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest", // CSRF protection
         },
         body: JSON.stringify({
           token: token,

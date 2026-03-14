@@ -94,6 +94,7 @@ function VerifyCodeForm() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest", // CSRF protection
         },
         body: JSON.stringify({
           email: email,
@@ -110,6 +111,8 @@ function VerifyCodeForm() {
       // Stocker le token et les infos utilisateur
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      // Mirror token to cookie for middleware auth
+      document.cookie = `auth-token=${data.access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
 
       // Nettoyer l'email de sessionStorage
       sessionStorage.removeItem('verify_email');
@@ -136,6 +139,7 @@ function VerifyCodeForm() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest", // CSRF protection
         },
         body: JSON.stringify({ email }),
       });

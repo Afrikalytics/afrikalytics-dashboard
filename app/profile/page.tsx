@@ -58,6 +58,7 @@ export default function ProfilePage() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest", // CSRF protection
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({

@@ -21,6 +21,7 @@ export default function ForgotPasswordPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-Requested-With": "XMLHttpRequest", // CSRF protection
         },
         body: JSON.stringify({ email }),
       });
