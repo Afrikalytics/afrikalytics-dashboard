@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { Sidebar } from "@/components/Sidebar";
-import { API_URL } from "@/lib/constants";
 import type { Study, Insight, Report } from "@/lib/types";
 
 // Skeleton component for loading states

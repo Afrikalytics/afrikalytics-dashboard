@@ -17,7 +17,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { API_URL, PLAN_DETAILS } from "@/lib/constants";
+import { PLAN_DETAILS } from "@/lib/constants";
 
 export default function ProfilePage() {
   const router = useRouter();

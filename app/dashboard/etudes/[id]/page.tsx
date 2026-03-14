@@ -14,7 +14,6 @@ import {
   FileText,
   Lightbulb
 } from "lucide-react";
-import { API_URL } from "@/lib/constants";
 import type { User, Insight } from "@/lib/types";
 
 const ALLOWED_EMBED_ORIGINS = [

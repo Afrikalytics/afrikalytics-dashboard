@@ -15,7 +15,6 @@ import {
   Download,
   BarChart3
 } from "lucide-react";
-import { API_URL } from "@/lib/constants";
 import type { User } from "@/lib/types";
 
 interface InsightDetail {

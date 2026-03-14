@@ -18,8 +18,6 @@ import {
   CheckCircle,
 } from "lucide-react";
 
-import { API_URL } from "@/lib/constants";
-
 interface TeamMember {
   id: number;
   email: string;

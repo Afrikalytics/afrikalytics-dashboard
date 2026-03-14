@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { Sidebar } from "@/components/Sidebar";
-import { API_URL, PLAN_BADGES, TOKEN_LABELS, ROUTES } from "@/lib/constants";
+import { PLAN_BADGES, TOKEN_LABELS, ROUTES } from "@/lib/constants";
 import type { DashboardStats, QuotaData } from "@/lib/types";
 
 // Skeleton component for loading states
