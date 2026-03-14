@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  User,
+  User as UserIcon,
   Mail,
   Shield,
   Calendar,
@@ -16,23 +16,12 @@ import {
   ArrowLeft,
   Loader2,
 } from "lucide-react";
-
-const API_URL = "https://web-production-ef657.up.railway.app";
-
-interface UserData {
-  id: number;
-  email: string;
-  full_name: string;
-  plan: string;
-  is_active: boolean;
-  is_admin: boolean;
-  created_at: string;
-}
+import { useAuth } from "@/lib/hooks/useAuth";
+import { API_URL, PLAN_DETAILS } from "@/lib/constants";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [user, setUser] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isLoading } = useAuth();
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -44,25 +33,6 @@ export default function ProfilePage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-
-    if (!token || !userData) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-    } catch (e) {
-      router.push("/login");
-    }
-
-    setLoading(false);
-  }, [router]);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,43 +76,35 @@ export default function ProfilePage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-    } catch (err: any) {
-      setPasswordError(err.message);
+    } catch (err: unknown) {
+      setPasswordError(err instanceof Error ? err.message : "Une erreur est survenue");
     } finally {
       setPasswordLoading(false);
     }
   };
 
   const getPlanDetails = (plan: string) => {
-    switch (plan) {
-      case "professionnel":
-        return {
-          name: "Professionnel",
-          price: "295 000 CFA/mois",
-          color: "bg-blue-100 text-blue-700",
-          icon: Crown,
-        };
-      case "entreprise":
-        return {
-          name: "Entreprise",
-          price: "Sur mesure",
-          color: "bg-purple-100 text-purple-700",
-          icon: Crown,
-        };
-      default:
-        return {
-          name: "Basic",
-          price: "Gratuit",
-          color: "bg-gray-100 text-gray-700",
-          icon: User,
-        };
+    const details = PLAN_DETAILS[plan];
+    if (plan === "professionnel" || plan === "entreprise") {
+      return {
+        name: details?.name || plan,
+        price: details?.price || "",
+        color: details?.color || "bg-gray-100 text-gray-700",
+        icon: Crown,
+      };
     }
+    return {
+      name: details?.name || "Basic",
+      price: details?.price || "Gratuit",
+      color: details?.color || "bg-gray-100 text-gray-700",
+      icon: UserIcon,
+    };
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" role="status" aria-label="Chargement du profil" />
       </div>
     );
   }
@@ -153,14 +115,14 @@ export default function ProfilePage() {
   const isPremium = user.plan === "professionnel" || user.plan === "entreprise";
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Back Button */}
         <button
           onClick={() => router.push("/dashboard")}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           Retour au dashboard
         </button>
 
@@ -169,7 +131,7 @@ export default function ProfilePage() {
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8 text-white">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                <User className="h-8 w-8" />
+                <UserIcon className="h-8 w-8" aria-hidden="true" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold">{user.full_name}</h1>
@@ -182,7 +144,7 @@ export default function ProfilePage() {
             {/* Plan */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <planDetails.icon className="h-5 w-5 text-gray-400" />
+                <planDetails.icon className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 <span className="text-gray-600">Plan</span>
               </div>
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${planDetails.color}`}>
@@ -193,7 +155,7 @@ export default function ProfilePage() {
             {/* Email */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-gray-400" />
+                <Mail className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 <span className="text-gray-600">Email</span>
               </div>
               <span className="text-gray-900">{user.email}</span>
@@ -202,11 +164,11 @@ export default function ProfilePage() {
             {/* Status */}
             <div className="flex items-center justify-between py-3 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-gray-400" />
+                <Shield className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 <span className="text-gray-600">Statut</span>
               </div>
               <span className="text-green-600 flex items-center gap-1">
-                <CheckCircle className="h-4 w-4" />
+                <CheckCircle className="h-4 w-4" aria-hidden="true" />
                 Actif
               </span>
             </div>
@@ -214,7 +176,7 @@ export default function ProfilePage() {
             {/* Member Since */}
             <div className="flex items-center justify-between py-3">
               <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-gray-400" />
+                <Calendar className="h-5 w-5 text-gray-400" aria-hidden="true" />
                 <span className="text-gray-600">Membre depuis</span>
               </div>
               <span className="text-gray-900">
@@ -252,100 +214,110 @@ export default function ProfilePage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-200">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Lock className="h-5 w-5 text-gray-400" />
+              <Lock className="h-5 w-5 text-gray-400" aria-hidden="true" />
               Changer le mot de passe
             </h2>
           </div>
 
           <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
             {passwordError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
+              <div role="alert" aria-live="polite" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" aria-hidden="true" />
                 {passwordError}
               </div>
             )}
 
             {passwordSuccess && (
-              <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
+              <div role="status" aria-live="polite" className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" aria-hidden="true" />
                 Mot de passe modifié avec succès ! Un email de confirmation a été envoyé.
               </div>
             )}
 
             {/* Current Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="current-password" className="block text-sm font-medium text-gray-700 mb-2">
                 Mot de passe actuel
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
                 <input
+                  id="current-password"
                   type={showCurrentPassword ? "text" : "password"}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   required
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  aria-required="true"
+                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-primary-600 focus-visible:outline-offset-2 transition"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  aria-label={showCurrentPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showCurrentPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
                 </button>
               </div>
             </div>
 
             {/* New Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-2">
                 Nouveau mot de passe
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
                 <input
+                  id="new-password"
                   type={showNewPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
+                  aria-required="true"
+                  aria-describedby="new-password-hint"
                   minLength={8}
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-primary-600 focus-visible:outline-offset-2 transition"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
+                  aria-label={showNewPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showNewPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">Minimum 8 caractères</p>
+              <p id="new-password-hint" className="text-xs text-gray-500 mt-1">Minimum 8 caractères</p>
             </div>
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-2">
                 Confirmer le nouveau mot de passe
               </label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
                 <input
+                  id="confirm-password"
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
+                  aria-required="true"
                   minLength={8}
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-primary-600 focus-visible:outline-offset-2 transition"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  aria-label={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
                 </button>
               </div>
             </div>
@@ -353,16 +325,18 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
+              aria-busy={passwordLoading}
+              aria-disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
               className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {passwordLoading ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                   Modification en cours...
                 </>
               ) : (
                 <>
-                  <Lock className="h-5 w-5" />
+                  <Lock className="h-5 w-5" aria-hidden="true" />
                   Changer le mot de passe
                 </>
               )}
@@ -370,6 +344,6 @@ export default function ProfilePage() {
           </form>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

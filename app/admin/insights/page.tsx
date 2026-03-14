@@ -1,140 +1,70 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
-  BarChart3,
-  FileText,
-  TrendingUp,
-  User,
-  Settings,
-  LogOut,
-  Menu,
-  X,
   Plus,
   Pencil,
   Trash2,
   Eye,
   EyeOff,
-  Lightbulb,
-  Download,
   ShieldX,
 } from "lucide-react";
-
-const API_URL = "https://web-production-ef657.up.railway.app";
-
-interface Insight {
-  id: number;
-  study_id: number;
-  title: string;
-  summary: string;
-  is_published: boolean;
-  author: string;
-}
-
-interface Study {
-  id: number;
-  title: string;
-  status: string;
-}
-
-interface UserData {
-  id: number;
-  email: string;
-  full_name: string;
-  plan: string;
-  is_admin?: boolean;
-}
+import { useAuth } from "@/lib/hooks/useAuth";
+import { Sidebar } from "@/components/Sidebar";
+import { api } from "@/lib/api";
+import type { Insight, Study } from "@/lib/types";
 
 export default function AdminInsightsPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<UserData | null>(null);
+  const { user, token, isLoading: authLoading, accessDenied, logout } = useAuth({ requireAdmin: "insights" });
   const [insights, setInsights] = useState<Insight[]>([]);
   const [studies, setStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
+    if (authLoading || !token || accessDenied) return;
+    const controller = new AbortController();
 
-    if (!token || !userData) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-
-      // Vérifier si l'utilisateur est admin
-      if (!parsedUser.is_admin) {
-        setAccessDenied(true);
-        setLoading(false);
-        return;
-      }
-
-      fetchData(token);
-    } catch {
-      router.push("/login");
-    }
-  }, [router]);
-
-  const fetchData = async (token: string) => {
-    try {
-      // Fetch insights
-      const insightsRes = await fetch(`${API_URL}/api/insights`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (insightsRes.ok) {
-        const insightsData = await insightsRes.json();
+    const fetchData = async () => {
+      try {
+        // Fetch insights and studies in parallel
+        const [insightsData, studiesData] = await Promise.all([
+          api.get<Insight[]>("/api/insights"),
+          api.get<Study[]>("/api/studies"),
+        ]);
+        if (controller.signal.aborted) return;
         setInsights(insightsData);
-      }
-
-      // Fetch studies
-      const studiesRes = await fetch(`${API_URL}/api/studies`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (studiesRes.ok) {
-        const studiesData = await studiesRes.json();
         setStudies(studiesData);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("Erreur:", error);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
-    } catch (error) {
-      console.error("Erreur:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    fetchData();
+    return () => controller.abort();
+  }, [authLoading, token, accessDenied]);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cet insight ?")) return;
 
-    const token = localStorage.getItem("token");
     try {
-      const response = await fetch(`${API_URL}/api/insights/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        setInsights(insights.filter((i) => i.id !== id));
-      }
+      await api.delete(`/api/insights/${id}`);
+      setInsights(insights.filter((i) => i.id !== id));
     } catch (error) {
       console.error("Erreur:", error);
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
   };
 
   const getClosedStudies = () => {
     return studies.filter((s) => s.status === "Fermé");
   };
 
-  // Écran Accès Refusé
+  // Access Denied screen
   if (accessDenied) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -157,7 +87,7 @@ export default function AdminInsightsPage() {
     );
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -166,114 +96,8 @@ export default function AdminInsightsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white p-2 rounded-lg shadow-lg"
-      >
-        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
-
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed h-full bg-gray-900 text-white z-40 transition-transform duration-300
-          w-64
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-        `}
-      >
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <BarChart3 className="h-6 w-6" />
-            </div>
-            <span className="font-bold text-lg">Afrikalytics</span>
-          </div>
-        </div>
-
-        <nav className="p-4 space-y-2">
-          <a
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <BarChart3 className="h-5 w-5" />
-            Dashboard
-          </a>
-          <a
-            href="/dashboard/etudes"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <FileText className="h-5 w-5" />
-            Études
-          </a>
-          <a
-            href="/dashboard/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <TrendingUp className="h-5 w-5" />
-            Insights
-          </a>
-          <a
-            href="/profile"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <User className="h-5 w-5" />
-            Profil
-          </a>
-
-          <div className="border-t border-gray-800 my-4"></div>
-          <a
-            href="/admin"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <Settings className="h-5 w-5" />
-            Admin Études
-          </a>
-          <a
-            href="/admin/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 text-white"
-          >
-            <Lightbulb className="h-5 w-5" />
-            Admin Insights
-          </a>
-          <a
-            href="/admin/reports"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <Download className="h-5 w-5" />
-            Admin Rapports
-          </a>
-        </nav>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-gray-700 p-2 rounded-full">
-              <User className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{user?.full_name}</p>
-              <p className="text-gray-400 text-sm truncate">{user?.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition w-full px-4 py-2 rounded-lg hover:bg-gray-800"
-          >
-            <LogOut className="h-5 w-5" />
-            Déconnexion
-          </button>
-        </div>
-      </aside>
+    <div id="main-content" className="min-h-screen bg-gray-50">
+      <Sidebar currentPath="/admin/insights" user={user} onLogout={logout} />
 
       {/* Main Content */}
       <main className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">

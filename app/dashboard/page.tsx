@@ -1,19 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
 import {
-  BarChart3,
   FileText,
-  TrendingUp,
-  LogOut,
-  User,
-  Settings,
-  Menu,
-  X,
   Crown,
   ChevronRight,
-  ChevronDown,
   Clock,
   Download,
   Users,
@@ -23,352 +14,104 @@ import {
   Infinity,
   Zap,
 } from "lucide-react";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { Sidebar } from "@/components/Sidebar";
+import { API_URL, PLAN_BADGES, TOKEN_LABELS, ROUTES } from "@/lib/constants";
+import type { DashboardStats, QuotaData } from "@/lib/types";
 
-interface UserData {
-  id: number;
-  email: string;
-  full_name: string;
-  plan: string;
-  is_active: boolean;
-  is_admin?: boolean;
-  admin_role?: string | null;  // super_admin, admin_content, admin_studies, admin_insights, admin_reports
-  parent_user_id?: number | null;  // null = propriétaire, sinon = membre invité
-}
-
-// Permissions par rôle admin
-const ADMIN_PERMISSIONS: Record<string, { studies: boolean; insights: boolean; reports: boolean; users: boolean }> = {
-  super_admin: { studies: true, insights: true, reports: true, users: true },
-  admin_content: { studies: true, insights: true, reports: true, users: false },
-  admin_studies: { studies: true, insights: false, reports: false, users: false },
-  admin_insights: { studies: false, insights: true, reports: false, users: false },
-  admin_reports: { studies: false, insights: false, reports: true, users: false }
-};
-
-// Helper pour vérifier une permission
-const hasPermission = (user: UserData | null, permission: 'studies' | 'insights' | 'reports' | 'users'): boolean => {
-  if (!user?.is_admin) return false;
-  const role = user.admin_role || 'super_admin'; // Rétrocompatibilité
-  return ADMIN_PERMISSIONS[role]?.[permission] ?? false;
-};
-
-interface DashboardStats {
-  studies_accessible: number;
-  studies_total: number;
-  studies_open: number;
-  reports_available: number;
-  insights_available: number;
-  subscription_days_remaining: number | null;
-  plan: string;
-  is_premium: boolean;
-}
-
-interface TokenInfo {
-  name: string;
-  limit: number;
-  unlimited: boolean;
-  used: number;
-  remaining: number | null;
-  percentage: number;
-}
-
-interface QuotaData {
-  plan: string;
-  tokens: TokenInfo[];
-  days_remaining: number | null;
-  subscription_end: string | null;
-  billing_period_start: string;
-}
-
-const API_URL = "https://web-production-ef657.up.railway.app";
+// Skeleton component for loading states
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse bg-gray-200 rounded ${className || ''}`} />
+);
 
 export default function DashboardPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<UserData | null>(null);
+  const { user, token, isLoading: authLoading, logout } = useAuth();
   const [studies, setStudies] = useState<any[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [quota, setQuota] = useState<QuotaData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
+    if (authLoading || !token) return;
+    fetchAllData(token);
+  }, [authLoading, token]);
 
-    if (!token || !userData) {
-      router.push("/login");
-      return;
-    }
+  const fetchAllData = async (authToken: string) => {
+    const headers = { Authorization: `Bearer ${authToken}` };
 
     try {
-      setUser(JSON.parse(userData));
-      fetchStudies(token);
-      fetchStats(token);
-      fetchQuota(token);
-    } catch {
-      router.push("/login");
-    }
+      // Parallel fetch — all three API calls at once (Issue #17)
+      const [studiesRes, statsRes, quotaRes] = await Promise.all([
+        fetch(`${API_URL}/api/studies/active`, { headers }).catch(() => null),
+        fetch(`${API_URL}/api/dashboard/stats`, { headers }).catch(() => null),
+        fetch(`${API_URL}/api/users/quota`, { headers }).catch(() => null),
+      ]);
 
-    setLoading(false);
-  }, [router]);
+      // Parse responses in parallel
+      const [studiesData, statsData, quotaData] = await Promise.all([
+        studiesRes?.ok ? studiesRes.json().catch(() => null) : null,
+        statsRes?.ok ? statsRes.json().catch(() => null) : null,
+        quotaRes?.ok ? quotaRes.json().catch(() => null) : null,
+      ]);
 
-  const fetchStudies = async (token: string) => {
-    try {
-      const response = await fetch(`${API_URL}/api/studies/active`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setStudies(data.slice(0, 3)); // 3 dernières études
-      }
+      if (studiesData) setStudies(studiesData.slice(0, 3));
+      if (statsData) setStats(statsData);
+      if (quotaData) setQuota(quotaData);
     } catch (error) {
-      console.error("Erreur:", error);
+      console.error("Erreur chargement données:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fetchStats = async (token: string) => {
-    try {
-      const response = await fetch(`${API_URL}/api/dashboard/stats`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
-      }
-    } catch (error) {
-      console.error("Erreur stats:", error);
-    }
-  };
-
-  const fetchQuota = async (token: string) => {
-    try {
-      const response = await fetch(`${API_URL}/api/users/quota`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setQuota(data);
-      }
-    } catch (error) {
-      console.error("Erreur quota:", error);
-    }
-  };
-
-  const TOKEN_LABELS: Record<string, { label: string; icon: string }> = {
-    reports_downloads: { label: "Rapports", icon: "download" },
-    insights_access: { label: "Insights", icon: "lightbulb" },
-    studies_participation: { label: "Etudes", icon: "file" },
-    api_requests: { label: "Requetes API", icon: "zap" },
-  };
-
-  const getProgressColor = (percentage: number) => {
+  const getProgressColor = useCallback((percentage: number) => {
     if (percentage >= 90) return "bg-red-500";
     if (percentage >= 70) return "bg-orange-500";
     return "bg-blue-600";
-  };
+  }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
-  };
-
-  if (loading) {
+  // Loading skeleton (Issue #18)
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
+          {/* Header skeleton */}
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
+            <div>
+              <Skeleton className="h-8 w-64 mb-2" />
+              <Skeleton className="h-5 w-80" />
+            </div>
+            <Skeleton className="h-10 w-36 rounded-full" />
+          </div>
+          {/* Stats cards skeleton */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
+            <Skeleton className="h-32 rounded-xl" />
+            <Skeleton className="h-32 rounded-xl" />
+            <Skeleton className="h-32 rounded-xl" />
+            <Skeleton className="h-32 rounded-xl" />
+          </div>
+          {/* Tokens skeleton */}
+          <Skeleton className="h-48 rounded-xl mb-8" />
+          {/* Studies skeleton */}
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <Skeleton className="h-6 w-48 mb-4" />
+            <div className="space-y-4">
+              <Skeleton className="h-20" />
+              <Skeleton className="h-20" />
+              <Skeleton className="h-20" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  const getPlanBadge = (plan: string) => {
-    const badges: Record<string, { bg: string; text: string; label: string }> = {
-      basic: { bg: "bg-gray-100", text: "text-gray-700", label: "Basic" },
-      professionnel: { bg: "bg-blue-100", text: "text-blue-700", label: "Professionnel" },
-      entreprise: { bg: "bg-purple-100", text: "text-purple-700", label: "Entreprise" },
-    };
-    return badges[plan] || badges.basic;
-  };
-
-  const planBadge = getPlanBadge(user?.plan || "basic");
+  const planBadge = PLAN_BADGES[user?.plan || "basic"] || PLAN_BADGES.basic;
   const isPremium = user?.plan === "professionnel" || user?.plan === "entreprise";
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white p-2 rounded-lg shadow-lg"
-      >
-        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
-
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed h-full bg-gray-900 text-white z-40 transition-transform duration-300
-          w-64
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-        `}
-      >
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <BarChart3 className="h-6 w-6" />
-            </div>
-            <span className="font-bold text-lg">Afrikalytics</span>
-          </div>
-        </div>
-
-        <nav className="p-4 space-y-2">
-          <a
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 text-white"
-          >
-            <BarChart3 className="h-5 w-5" />
-            Dashboard
-          </a>
-          <a
-            href="/dashboard/etudes"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <FileText className="h-5 w-5" />
-            Études
-          </a>
-          <a
-            href="/dashboard/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <TrendingUp className="h-5 w-5" />
-            Insights
-          </a>
-          <a
-            href="/profile"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <User className="h-5 w-5" />
-            Profil
-          </a>
-
-          {/* Lien Mon Équipe - uniquement pour propriétaire Entreprise (pas les membres invités) */}
-          {user?.plan === "entreprise" && !user?.parent_user_id && (
-            <a
-              href="/dashboard/equipe"
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-            >
-              <Users className="h-5 w-5" />
-              Mon Équipe
-              <span className="ml-auto px-2 py-0.5 bg-purple-600 text-white text-xs rounded-full">
-                5
-              </span>
-            </a>
-          )}
-
-          {/* Admin Menu avec sous-menu déroulant */}
-          {user?.is_admin && (
-            <>
-              <div className="border-t border-gray-800 my-4"></div>
-              
-              {/* Bouton Admin */}
-              <button
-                onClick={() => setAdminMenuOpen(!adminMenuOpen)}
-                className="flex items-center justify-between w-full px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-              >
-                <div className="flex items-center gap-3">
-                  <Settings className="h-5 w-5" />
-                  <span>Administration</span>
-                </div>
-                <ChevronDown 
-                  className={`h-4 w-4 transition-transform duration-200 ${
-                    adminMenuOpen ? "rotate-180" : ""
-                  }`} 
-                />
-              </button>
-
-              {/* Sous-menu Admin - Affichage conditionnel selon permissions */}
-              <div
-                className={`overflow-hidden transition-all duration-200 ${
-                  adminMenuOpen ? "max-h-48 opacity-100" : "max-h-0 opacity-0"
-                }`}
-              >
-                <div className="pl-4 space-y-1 mt-1">
-                  {/* Études - visible si permission studies */}
-                  {hasPermission(user, 'studies') && (
-                    <a
-                      href="/admin"
-                      className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
-                    >
-                      <FileText className="h-4 w-4" />
-                      Études
-                    </a>
-                  )}
-                  
-                  {/* Insights - visible si permission insights */}
-                  {hasPermission(user, 'insights') && (
-                    <a
-                      href="/admin/insights"
-                      className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
-                    >
-                      <Lightbulb className="h-4 w-4" />
-                      Insights
-                    </a>
-                  )}
-                  
-                  {/* Rapports - visible si permission reports */}
-                  {hasPermission(user, 'reports') && (
-                    <a
-                      href="/admin/reports"
-                      className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
-                    >
-                      <Download className="h-4 w-4" />
-                      Rapports
-                    </a>
-                  )}
-                  
-                  {/* Utilisateurs - visible si permission users (super_admin uniquement) */}
-                  {hasPermission(user, 'users') && (
-                    <a
-                      href="/admin/users"
-                      className="flex items-center gap-3 px-4 py-2 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition text-sm"
-                    >
-                      <Users className="h-4 w-4" />
-                      Utilisateurs
-                    </a>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </nav>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-gray-700 p-2 rounded-full">
-              <User className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{user?.full_name}</p>
-              <p className="text-gray-400 text-sm truncate">{user?.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition w-full px-4 py-2 rounded-lg hover:bg-gray-800"
-          >
-            <LogOut className="h-5 w-5" />
-            Déconnexion
-          </button>
-        </div>
-      </aside>
+    <div id="main-content" className="min-h-screen bg-gray-50">
+      <Sidebar currentPath="/dashboard" user={user} onLogout={logout} />
 
       {/* Main Content */}
       <main className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
@@ -402,7 +145,7 @@ export default function DashboardPage() {
                 </p>
               </div>
               <a
-                href="https://afrikalytics.com/premium"
+                href={ROUTES.PREMIUM}
                 className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition text-sm whitespace-nowrap"
               >
                 Voir les offres
@@ -425,7 +168,7 @@ export default function DashboardPage() {
                 </p>
               </div>
               <a
-                href="/dashboard/equipe"
+                href={ROUTES.EQUIPE}
                 className="bg-white text-purple-600 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50 transition text-sm whitespace-nowrap"
               >
                 Gérer mon équipe
@@ -504,34 +247,34 @@ export default function DashboardPage() {
 
             <div className="p-4 lg:p-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {quota.tokens.map((token) => {
-                  const meta = TOKEN_LABELS[token.name] || {
-                    label: token.name,
+                {quota.tokens.map((tokenItem) => {
+                  const meta = TOKEN_LABELS[tokenItem.name] || {
+                    label: tokenItem.name,
                     icon: "zap",
                   };
 
                   return (
                     <div
-                      key={token.name}
+                      key={tokenItem.name}
                       className="border border-gray-100 rounded-xl p-4 hover:border-blue-200 transition"
                     >
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-sm font-medium text-gray-700">
                           {meta.label}
                         </span>
-                        {token.unlimited ? (
+                        {tokenItem.unlimited ? (
                           <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                             <Infinity className="h-3 w-3" />
                             Illimite
                           </span>
                         ) : (
                           <span className="text-xs text-gray-500">
-                            {token.used}/{token.limit}
+                            {tokenItem.used}/{tokenItem.limit}
                           </span>
                         )}
                       </div>
 
-                      {token.unlimited ? (
+                      {tokenItem.unlimited ? (
                         <div className="w-full bg-green-100 rounded-full h-2">
                           <div className="bg-green-500 h-2 rounded-full w-full" />
                         </div>
@@ -539,15 +282,15 @@ export default function DashboardPage() {
                         <>
                           <div className="w-full bg-gray-100 rounded-full h-2">
                             <div
-                              className={`${getProgressColor(token.percentage)} h-2 rounded-full transition-all duration-500`}
-                              style={{ width: `${Math.min(token.percentage, 100)}%` }}
+                              className={`${getProgressColor(tokenItem.percentage)} h-2 rounded-full transition-all duration-500`}
+                              style={{ width: `${Math.min(tokenItem.percentage, 100)}%` }}
                             />
                           </div>
                           <div className="flex items-center justify-between mt-2">
                             <span className="text-xs text-gray-500">
-                              {token.remaining} restant{(token.remaining ?? 0) > 1 ? "s" : ""}
+                              {tokenItem.remaining} restant{(tokenItem.remaining ?? 0) > 1 ? "s" : ""}
                             </span>
-                            {token.percentage >= 90 && (
+                            {tokenItem.percentage >= 90 && (
                               <span className="text-xs text-red-600 font-medium flex items-center gap-1">
                                 <Zap className="h-3 w-3" />
                                 Presque epuise
@@ -568,7 +311,7 @@ export default function DashboardPage() {
                     Passez a Premium pour debloquer des tokens illimites
                   </p>
                   <a
-                    href="https://afrikalytics.com/premium"
+                    href={ROUTES.PREMIUM}
                     className="text-sm font-semibold text-blue-600 hover:text-blue-700 whitespace-nowrap ml-4"
                   >
                     Voir les offres
@@ -584,7 +327,7 @@ export default function DashboardPage() {
           <div className="p-4 lg:p-6 border-b border-gray-100">
             <div className="flex justify-between items-center">
               <h2 className="text-lg lg:text-xl font-bold text-gray-900">Dernières Études</h2>
-              <a href="/dashboard/etudes" className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center">
+              <a href={ROUTES.ETUDES} className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center">
                 Voir tout <ChevronRight className="h-4 w-4 ml-1" />
               </a>
             </div>

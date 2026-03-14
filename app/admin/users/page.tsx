@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Users,
@@ -10,8 +10,6 @@ import {
   Search,
   X,
   Shield,
-  ShieldCheck,
-  ShieldAlert,
   UserCheck,
   UserX,
   ArrowLeft,
@@ -20,70 +18,106 @@ import {
   FileText,
   Lightbulb,
   Download,
-  Crown
+  Crown,
+  type LucideIcon,
 } from "lucide-react";
+import { ADMIN_ROLES } from "@/lib/constants";
+import { api, ApiRequestError } from "@/lib/api";
+import type { User } from "@/lib/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://web-production-ef657.up.railway.app";
+// Icon mapping for admin roles (not in shared constants since Lucide components are UI-specific)
+const ROLE_ICONS: Record<string, LucideIcon> = {
+  super_admin: Crown,
+  admin_content: FileText,
+  admin_studies: FileText,
+  admin_insights: Lightbulb,
+  admin_reports: Download,
+};
 
-// Définition des rôles admin
-const ADMIN_ROLES = [
-  {
-    code: "super_admin",
-    label: "Super Admin",
-    description: "Accès complet à tout",
-    color: "bg-red-100 text-red-800",
-    icon: Crown,
-    permissions: { studies: true, insights: true, reports: true, users: true }
-  },
-  {
-    code: "admin_content",
-    label: "Admin Contenu",
-    description: "Études, Insights, Rapports",
-    color: "bg-purple-100 text-purple-800",
-    icon: FileText,
-    permissions: { studies: true, insights: true, reports: true, users: false }
-  },
-  {
-    code: "admin_studies",
-    label: "Admin Études",
-    description: "Études uniquement",
-    color: "bg-blue-100 text-blue-800",
-    icon: FileText,
-    permissions: { studies: true, insights: false, reports: false, users: false }
-  },
-  {
-    code: "admin_insights",
-    label: "Admin Insights",
-    description: "Insights uniquement",
-    color: "bg-yellow-100 text-yellow-800",
-    icon: Lightbulb,
-    permissions: { studies: false, insights: true, reports: false, users: false }
-  },
-  {
-    code: "admin_reports",
-    label: "Admin Rapports",
-    description: "Rapports uniquement",
-    color: "bg-green-100 text-green-800",
-    icon: Download,
-    permissions: { studies: false, insights: false, reports: true, users: false }
-  }
-];
+// Skeleton component for loading states (Issue #18)
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse bg-gray-200 rounded ${className || ''}`} />
+);
 
-interface User {
-  id: number;
-  email: string;
-  full_name: string;
-  plan: string;
-  is_active: boolean;
-  is_admin: boolean;
-  admin_role: string | null;
-  created_at: string;
+function DeleteUserModal({ userName, onClose, onConfirm }: { userName: string; onClose: () => void; onConfirm: () => void }) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+
+    // Focus first button in modal
+    const firstFocusable = modalRef.current?.querySelector('button') as HTMLElement;
+    firstFocusable?.focus();
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      previousFocusRef.current?.focus();
+    };
+  }, [onClose]);
+
+  const handleTabTrap = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab') return;
+    const focusableEls = modalRef.current?.querySelectorAll('button') as NodeListOf<HTMLElement>;
+    if (!focusableEls || focusableEls.length === 0) return;
+    const firstEl = focusableEls[0];
+    const lastEl = focusableEls[focusableEls.length - 1];
+    if (e.shiftKey && document.activeElement === firstEl) {
+      e.preventDefault();
+      lastEl.focus();
+    } else if (!e.shiftKey && document.activeElement === lastEl) {
+      e.preventDefault();
+      firstEl.focus();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={onClose}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-user-modal-title"
+        className="bg-white rounded-xl max-w-md w-full p-6"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleTabTrap}
+      >
+        <div className="text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Trash2 className="w-8 h-8 text-red-600" aria-hidden="true" />
+          </div>
+          <h2 id="delete-user-modal-title" className="text-xl font-bold mb-2">Supprimer l&apos;utilisateur ?</h2>
+          <p className="text-gray-600 mb-6">
+            Êtes-vous sûr de vouloir supprimer <strong>{userName}</strong> ?
+            Cette action est irréversible.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={onConfirm}
+              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            >
+              Supprimer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function AdminUsersPage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPlan, setFilterPlan] = useState("all");
@@ -110,55 +144,22 @@ export default function AdminUsersPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    fetchUsers();
+    const controller = new AbortController();
+    fetchUsers(controller);
+    return () => controller.abort();
   }, []);
 
-  useEffect(() => {
-    filterUsers();
-  }, [users, searchTerm, filterPlan, filterAdmin]);
-
-  const fetchUsers = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-
-      const response = await fetch(`${API_URL}/api/admin/users`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (response.status === 403) {
-        setError("Vous n'avez pas la permission de gérer les utilisateurs");
-        setLoading(false);
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error("Erreur lors du chargement des utilisateurs");
-      }
-
-      const data = await response.json();
-      setUsers(data);
-    } catch (err) {
-      setError("Erreur lors du chargement des utilisateurs");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterUsers = () => {
+  // Memoized filtered users (Issue #19) — replaces useEffect + setFilteredUsers
+  const filteredUsers = useMemo(() => {
     let filtered = [...users];
 
     // Recherche
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (user) =>
-          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.full_name.toLowerCase().includes(searchTerm.toLowerCase())
+          user.email.toLowerCase().includes(term) ||
+          user.full_name.toLowerCase().includes(term)
       );
     }
 
@@ -174,7 +175,26 @@ export default function AdminUsersPage() {
       filtered = filtered.filter((user) => !user.is_admin);
     }
 
-    setFilteredUsers(filtered);
+    return filtered;
+  }, [users, searchTerm, filterPlan, filterAdmin]);
+
+  const fetchUsers = async (controller?: AbortController) => {
+    try {
+      const data = await api.get<User[]>("/api/admin/users");
+      if (controller?.signal.aborted) return;
+      setUsers(data);
+    } catch (err: unknown) {
+      if (controller?.signal.aborted) return;
+      if (err instanceof ApiRequestError && err.status === 403) {
+        setError("Vous n'avez pas la permission de gérer les utilisateurs");
+      } else {
+        setError("Erreur lors du chargement des utilisateurs");
+      }
+    } finally {
+      if (!controller?.signal.aborted) {
+        setLoading(false);
+      }
+    }
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -182,30 +202,17 @@ export default function AdminUsersPage() {
     setError("");
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/api/admin/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...formData,
-          admin_role: formData.is_admin ? formData.admin_role || "super_admin" : null
-        })
+      await api.post("/api/admin/users", {
+        ...formData,
+        admin_role: formData.is_admin ? formData.admin_role || "super_admin" : null
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || "Erreur lors de la création");
-      }
 
       setSuccess("Utilisateur créé avec succès");
       setShowCreateModal(false);
       resetForm();
       fetchUsers();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur lors de la création");
     }
   };
 
@@ -215,8 +222,7 @@ export default function AdminUsersPage() {
     setError("");
 
     try {
-      const token = localStorage.getItem("token");
-      const updateData: any = {
+      const updateData: Record<string, unknown> = {
         email: formData.email,
         full_name: formData.full_name,
         plan: formData.plan,
@@ -229,78 +235,42 @@ export default function AdminUsersPage() {
         updateData.new_password = formData.password;
       }
 
-      const response = await fetch(`${API_URL}/api/admin/users/${selectedUser.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(updateData)
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || "Erreur lors de la modification");
-      }
+      await api.put(`/api/admin/users/${selectedUser.id}`, updateData);
 
       setSuccess("Utilisateur modifié avec succès");
       setShowEditModal(false);
       resetForm();
       fetchUsers();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur lors de la modification");
     }
   };
 
-  const handleDeleteUser = async () => {
+  const handleDeleteUser = useCallback(async () => {
     if (!selectedUser) return;
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/api/admin/users/${selectedUser.id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || "Erreur lors de la suppression");
-      }
+      await api.delete(`/api/admin/users/${selectedUser.id}`);
 
       setSuccess("Utilisateur supprimé avec succès");
       setShowDeleteModal(false);
       setSelectedUser(null);
       fetchUsers();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Erreur lors de la suppression");
     }
-  };
+  }, [selectedUser]);
 
-  const handleToggleActive = async (user: User) => {
+  const handleToggleActive = useCallback(async (user: User) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API_URL}/api/admin/users/${user.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ is_active: !user.is_active })
-      });
-
-      if (!response.ok) {
-        throw new Error("Erreur lors de la modification");
-      }
-
+      await api.put(`/api/admin/users/${user.id}`, { is_active: !user.is_active });
       fetchUsers();
-    } catch (err) {
+    } catch (err: unknown) {
       setError("Erreur lors de la modification du statut");
     }
-  };
+  }, []);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setFormData({
       email: "",
       full_name: "",
@@ -311,9 +281,9 @@ export default function AdminUsersPage() {
       admin_role: ""
     });
     setShowPassword(false);
-  };
+  }, []);
 
-  const openEditModal = (user: User) => {
+  const openEditModal = useCallback((user: User) => {
     setSelectedUser(user);
     setFormData({
       email: user.email,
@@ -325,22 +295,55 @@ export default function AdminUsersPage() {
       admin_role: user.admin_role || "super_admin"
     });
     setShowEditModal(true);
-  };
+  }, []);
 
-  const getRoleInfo = (roleCode: string | null) => {
+  const getRoleInfo = useCallback((roleCode: string | null) => {
     return ADMIN_ROLES.find((r) => r.code === roleCode) || ADMIN_ROLES[0];
-  };
+  }, []);
 
+  // Loading skeleton (Issue #18)
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-10 w-10 rounded-lg" />
+              <div>
+                <Skeleton className="h-7 w-64 mb-2" />
+                <Skeleton className="h-5 w-40" />
+              </div>
+            </div>
+            <Skeleton className="h-10 w-44 rounded-lg" />
+          </div>
+          {/* Filters skeleton */}
+          <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
+            <div className="flex flex-wrap gap-4">
+              <Skeleton className="h-10 flex-1 min-w-[200px]" />
+              <Skeleton className="h-10 w-40" />
+              <Skeleton className="h-10 w-40" />
+            </div>
+          </div>
+          {/* Roles skeleton */}
+          <Skeleton className="h-16 rounded-xl mb-6" />
+          {/* Table skeleton */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div id="main-content" className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
@@ -669,7 +672,7 @@ export default function AdminUsersPage() {
                   </label>
                   <div className="space-y-2">
                     {ADMIN_ROLES.map((role) => {
-                      const RoleIcon = role.icon;
+                      const RoleIcon = ROLE_ICONS[role.code] || FileText;
                       return (
                         <label
                           key={role.code}
@@ -843,7 +846,7 @@ export default function AdminUsersPage() {
                   </label>
                   <div className="space-y-2">
                     {ADMIN_ROLES.map((role) => {
-                      const RoleIcon = role.icon;
+                      const RoleIcon = ROLE_ICONS[role.code] || FileText;
                       return (
                         <label
                           key={role.code}
@@ -912,34 +915,11 @@ export default function AdminUsersPage() {
 
       {/* Modal Supprimer */}
       {showDeleteModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-8 h-8 text-red-600" />
-              </div>
-              <h2 className="text-xl font-bold mb-2">Supprimer l'utilisateur ?</h2>
-              <p className="text-gray-600 mb-6">
-                Êtes-vous sûr de vouloir supprimer <strong>{selectedUser.full_name}</strong> ?
-                Cette action est irréversible.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={handleDeleteUser}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  Supprimer
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <DeleteUserModal
+          userName={selectedUser.full_name}
+          onClose={() => setShowDeleteModal(false)}
+          onConfirm={handleDeleteUser}
+        />
       )}
     </div>
   );

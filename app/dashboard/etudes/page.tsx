@@ -1,16 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   BarChart3,
-  FileText,
-  TrendingUp,
-  User,
-  Settings,
-  LogOut,
-  Menu,
-  X,
   Clock,
   Calendar,
   ChevronRight,
@@ -20,106 +12,51 @@ import {
   Download,
   Lock,
 } from "lucide-react";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { Sidebar } from "@/components/Sidebar";
+import { API_URL } from "@/lib/constants";
+import type { Study, Insight, Report } from "@/lib/types";
 
-const API_URL = "https://web-production-ef657.up.railway.app";
-
-interface Study {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  duration: string;
-  deadline: string;
-  status: string;
-  icon: string;
-  is_active: boolean;
-}
-
-interface Insight {
-  id: number;
-  study_id: number;
-  title: string;
-  is_published: boolean;
-}
-
-interface Report {
-  id: number;
-  study_id: number;
-  title: string;
-  file_url: string;
-  file_size: string;
-  is_available: boolean;
-}
-
-interface UserData {
-  id: number;
-  email: string;
-  full_name: string;
-  plan: string;
-  is_admin?: boolean;
-}
+// Skeleton component for loading states
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse bg-gray-200 rounded ${className || ''}`} />
+);
 
 export default function EtudesListPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<UserData | null>(null);
+  const { user, token, isLoading: authLoading, logout } = useAuth();
   const [studies, setStudies] = useState<Study[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
-  const [filteredStudies, setFilteredStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("Tous");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
+    if (authLoading || !token) return;
+    fetchData(token);
+  }, [authLoading, token]);
 
-    if (!token || !userData) {
-      router.push("/login");
-      return;
-    }
+  const fetchData = async (authToken: string) => {
+    const headers = { Authorization: `Bearer ${authToken}` };
 
     try {
-      setUser(JSON.parse(userData));
-      fetchData(token);
-    } catch {
-      router.push("/login");
-    }
-  }, [router]);
+      // Parallel fetch — all three API calls at once (Issue #17)
+      const [studiesRes, insightsRes, reportsRes] = await Promise.all([
+        fetch(`${API_URL}/api/studies`, { headers }).catch(() => null),
+        fetch(`${API_URL}/api/insights`, { headers }).catch(() => null),
+        fetch(`${API_URL}/api/reports`, { headers }).catch(() => null),
+      ]);
 
-  useEffect(() => {
-    filterStudies();
-  }, [studies, searchTerm, filterStatus]);
+      // Parse responses in parallel
+      const [studiesData, insightsData, reportsData] = await Promise.all([
+        studiesRes?.ok ? studiesRes.json().catch(() => null) : null,
+        insightsRes?.ok ? insightsRes.json().catch(() => null) : null,
+        reportsRes?.ok ? reportsRes.json().catch(() => null) : null,
+      ]);
 
-  const fetchData = async (token: string) => {
-    try {
-      // Fetch studies
-      const studiesRes = await fetch(`${API_URL}/api/studies`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (studiesRes.ok) {
-        const data = await studiesRes.json();
-        setStudies(data);
-      }
-
-      // Fetch insights
-      const insightsRes = await fetch(`${API_URL}/api/insights`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (insightsRes.ok) {
-        const data = await insightsRes.json();
-        setInsights(data);
-      }
-
-      // Fetch reports
-      const reportsRes = await fetch(`${API_URL}/api/reports`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (reportsRes.ok) {
-        const data = await reportsRes.json();
-        setReports(data);
-      }
+      if (studiesData) setStudies(studiesData);
+      if (insightsData) setInsights(insightsData);
+      if (reportsData) setReports(reportsData);
     } catch (error) {
       console.error("Erreur:", error);
     } finally {
@@ -127,15 +64,17 @@ export default function EtudesListPage() {
     }
   };
 
-  const filterStudies = () => {
+  // Memoized filtered studies (Issue #19) — replaces useEffect + setFilteredStudies
+  const filteredStudies = useMemo(() => {
     let filtered = studies;
 
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (study) =>
-          study.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          study.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          study.category.toLowerCase().includes(searchTerm.toLowerCase())
+          study.title.toLowerCase().includes(term) ||
+          study.description.toLowerCase().includes(term) ||
+          study.category.toLowerCase().includes(term)
       );
     }
 
@@ -143,144 +82,70 @@ export default function EtudesListPage() {
       filtered = filtered.filter((study) => study.status === filterStatus);
     }
 
-    setFilteredStudies(filtered);
-  };
+    return filtered;
+  }, [studies, searchTerm, filterStatus]);
 
-  const getInsightForStudy = (studyId: number) => {
+  const getInsightForStudy = useCallback((studyId: number) => {
     return insights.find((i) => i.study_id === studyId && i.is_published);
-  };
+  }, [insights]);
 
-  const getReportForStudy = (studyId: number) => {
+  const getReportForStudy = useCallback((studyId: number) => {
     return reports.find((r) => r.study_id === studyId && r.is_available);
-  };
+  }, [reports]);
 
-  const handleDownloadReport = async (report: Report) => {
-    const token = localStorage.getItem("token");
+  const handleDownloadReport = useCallback(async (report: Report) => {
+    const storedToken = localStorage.getItem("token");
     try {
       await fetch(`${API_URL}/api/reports/${report.id}/download`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${storedToken}` },
       });
       window.open(report.file_url, "_blank");
     } catch (error) {
       console.error("Erreur:", error);
       window.open(report.file_url, "_blank");
     }
-  };
+  }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
-  };
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
 
-  if (loading) {
+  const handleFilterChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFilterStatus(e.target.value);
+  }, []);
+
+  // Loading skeleton (Issue #18)
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
+          <div className="mb-8">
+            <Skeleton className="h-8 w-64 mb-2" />
+            <Skeleton className="h-5 w-80" />
+          </div>
+          {/* Filter skeleton */}
+          <div className="bg-white rounded-xl shadow-sm p-4 lg:p-6 mb-6">
+            <div className="flex flex-col lg:flex-row gap-4">
+              <Skeleton className="h-10 flex-1" />
+              <Skeleton className="h-10 w-48" />
+            </div>
+          </div>
+          {/* Studies grid skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Skeleton className="h-72 rounded-xl" />
+            <Skeleton className="h-72 rounded-xl" />
+            <Skeleton className="h-72 rounded-xl" />
+            <Skeleton className="h-72 rounded-xl" />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white p-2 rounded-lg shadow-lg"
-      >
-        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
-
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed h-full bg-gray-900 text-white z-40 transition-transform duration-300
-          w-64
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-        `}
-      >
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <BarChart3 className="h-6 w-6" />
-            </div>
-            <span className="font-bold text-lg">Afrikalytics</span>
-          </div>
-        </div>
-
-        <nav className="p-4 space-y-2">
-          <a
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <BarChart3 className="h-5 w-5" />
-            Dashboard
-          </a>
-          <a
-            href="/dashboard/etudes"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 text-white"
-          >
-            <FileText className="h-5 w-5" />
-            Études
-          </a>
-          <a
-            href="/dashboard/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <TrendingUp className="h-5 w-5" />
-            Insights
-          </a>
-          <a
-            href="/profile"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <User className="h-5 w-5" />
-            Profil
-          </a>
-
-          {user?.is_admin && (
-            <>
-              <div className="border-t border-gray-800 my-4"></div>
-              <a
-                href="/admin"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-              >
-                <Settings className="h-5 w-5" />
-                Admin
-              </a>
-            </>
-          )}
-        </nav>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-gray-700 p-2 rounded-full">
-              <User className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{user?.full_name}</p>
-              <p className="text-gray-400 text-sm truncate">{user?.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition w-full px-4 py-2 rounded-lg hover:bg-gray-800"
-          >
-            <LogOut className="h-5 w-5" />
-            Déconnexion
-          </button>
-        </div>
-      </aside>
+    <div id="main-content" className="min-h-screen bg-gray-50">
+      <Sidebar currentPath="/dashboard/etudes" user={user} onLogout={logout} />
 
       {/* Main Content */}
       <main className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
@@ -300,7 +165,7 @@ export default function EtudesListPage() {
                 type="text"
                 placeholder="Rechercher une étude..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={handleSearchChange}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -310,7 +175,7 @@ export default function EtudesListPage() {
               <Filter className="h-5 w-5 text-gray-400" />
               <select
                 value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
+                onChange={handleFilterChange}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="Tous">Tous les statuts</option>

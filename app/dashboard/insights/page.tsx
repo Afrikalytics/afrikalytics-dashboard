@@ -1,91 +1,51 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
-  BarChart3,
-  FileText,
-  TrendingUp,
-  User,
-  Settings,
-  LogOut,
-  Menu,
-  X,
   Lightbulb,
   ChevronRight,
   Calendar,
   UserCircle,
 } from "lucide-react";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { Sidebar } from "@/components/Sidebar";
+import { API_URL } from "@/lib/constants";
+import type { Insight, Study } from "@/lib/types";
 
-const API_URL = "https://web-production-ef657.up.railway.app";
-
-interface Insight {
-  id: number;
-  study_id: number;
-  title: string;
-  summary: string;
-  author: string;
-  created_at: string;
-}
-
-interface Study {
-  id: number;
-  title: string;
-  category: string;
-}
-
-interface UserData {
-  id: number;
-  email: string;
-  full_name: string;
-  plan: string;
-  is_admin?: boolean;
-}
+// Skeleton component for loading states
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse bg-gray-200 rounded ${className || ''}`} />
+);
 
 export default function InsightsListPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<UserData | null>(null);
+  const { user, token, isLoading: authLoading, logout } = useAuth();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [studies, setStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
+    if (authLoading || !token) return;
+    fetchData(token);
+  }, [authLoading, token]);
 
-    if (!token || !userData) {
-      router.push("/login");
-      return;
-    }
+  const fetchData = async (authToken: string) => {
+    const headers = { Authorization: `Bearer ${authToken}` };
 
     try {
-      setUser(JSON.parse(userData));
-      fetchData(token);
-    } catch {
-      router.push("/login");
-    }
-  }, [router]);
+      // Parallel fetch — both API calls at once (Issue #17)
+      const [insightsRes, studiesRes] = await Promise.all([
+        fetch(`${API_URL}/api/insights`, { headers }).catch(() => null),
+        fetch(`${API_URL}/api/studies`, { headers }).catch(() => null),
+      ]);
 
-  const fetchData = async (token: string) => {
-    try {
-      // Fetch insights
-      const insightsRes = await fetch(`${API_URL}/api/insights`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (insightsRes.ok) {
-        const data = await insightsRes.json();
-        setInsights(data);
-      }
+      // Parse responses in parallel
+      const [insightsData, studiesData] = await Promise.all([
+        insightsRes?.ok ? insightsRes.json().catch(() => null) : null,
+        studiesRes?.ok ? studiesRes.json().catch(() => null) : null,
+      ]);
 
-      // Fetch studies
-      const studiesRes = await fetch(`${API_URL}/api/studies`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (studiesRes.ok) {
-        const data = await studiesRes.json();
-        setStudies(data);
-      }
+      if (insightsData) setInsights(insightsData);
+      if (studiesData) setStudies(studiesData);
     } catch (error) {
       console.error("Erreur:", error);
     } finally {
@@ -93,132 +53,53 @@ export default function InsightsListPage() {
     }
   };
 
-  const getStudyForInsight = (studyId: number) => {
-    return studies.find((s) => s.id === studyId);
-  };
+  // Memoized study lookup map for O(1) access (Issue #19)
+  const studyMap = useMemo(() => {
+    const map = new Map<number, Study>();
+    studies.forEach((s) => map.set(s.id, s));
+    return map;
+  }, [studies]);
 
-  const formatDate = (dateString: string) => {
+  const getStudyForInsight = useCallback((studyId: number) => {
+    return studyMap.get(studyId);
+  }, [studyMap]);
+
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("fr-FR", {
       day: "numeric",
       month: "long",
       year: "numeric",
     });
-  };
+  }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
-  };
-
-  if (loading) {
+  // Loading skeleton (Issue #18)
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-2">
+              <Skeleton className="h-10 w-10 rounded-lg" />
+              <Skeleton className="h-8 w-40" />
+            </div>
+            <Skeleton className="h-5 w-72" />
+          </div>
+          {/* Insights grid skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Skeleton className="h-56 rounded-xl" />
+            <Skeleton className="h-56 rounded-xl" />
+            <Skeleton className="h-56 rounded-xl" />
+            <Skeleton className="h-56 rounded-xl" />
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white p-2 rounded-lg shadow-lg"
-      >
-        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
-
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed h-full bg-gray-900 text-white z-40 transition-transform duration-300
-          w-64
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-        `}
-      >
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <BarChart3 className="h-6 w-6" />
-            </div>
-            <span className="font-bold text-lg">Afrikalytics</span>
-          </div>
-        </div>
-
-        <nav className="p-4 space-y-2">
-          <a
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <BarChart3 className="h-5 w-5" />
-            Dashboard
-          </a>
-          <a
-            href="/dashboard/etudes"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <FileText className="h-5 w-5" />
-            Études
-          </a>
-          <a
-            href="/dashboard/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 text-white"
-          >
-            <TrendingUp className="h-5 w-5" />
-            Insights
-          </a>
-          <a
-            href="/profile"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <User className="h-5 w-5" />
-            Profil
-          </a>
-
-          {user?.is_admin && (
-            <>
-              <div className="border-t border-gray-800 my-4"></div>
-              <a
-                href="/admin"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-              >
-                <Settings className="h-5 w-5" />
-                Admin
-              </a>
-            </>
-          )}
-        </nav>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-gray-700 p-2 rounded-full">
-              <User className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{user?.full_name}</p>
-              <p className="text-gray-400 text-sm truncate">{user?.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition w-full px-4 py-2 rounded-lg hover:bg-gray-800"
-          >
-            <LogOut className="h-5 w-5" />
-            Déconnexion
-          </button>
-        </div>
-      </aside>
+    <div id="main-content" className="min-h-screen bg-gray-50">
+      <Sidebar currentPath="/dashboard/insights" user={user} onLogout={logout} />
 
       {/* Main Content */}
       <main className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
@@ -273,7 +154,7 @@ export default function InsightsListPage() {
                   <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500 pt-4 border-t border-gray-100">
                     <div className="flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
-                      <span>{formatDate(insight.created_at)}</span>
+                      <span>{formatDate(insight.created_at || "")}</span>
                     </div>
                     {insight.author && (
                       <div className="flex items-center gap-1">

@@ -1,17 +1,14 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Shield, Loader2, ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { Suspense } from "react";
-
-const API_URL = "https://web-production-ef657.up.railway.app";
+import { API_URL } from "@/lib/constants";
 
 function VerifyCodeForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const email = searchParams.get("email") || "";
+  const [email, setEmail] = useState("");
 
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -29,8 +26,12 @@ function VerifyCodeForm() {
     }
   }, [countdown]);
 
-  // Focus sur le premier input au chargement
+  // Récupérer l'email depuis sessionStorage au chargement
   useEffect(() => {
+    const storedEmail = sessionStorage.getItem('verify_email');
+    if (storedEmail) {
+      setEmail(storedEmail);
+    }
     inputRefs.current[0]?.focus();
   }, []);
 
@@ -110,10 +111,13 @@ function VerifyCodeForm() {
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
+      // Nettoyer l'email de sessionStorage
+      sessionStorage.removeItem('verify_email');
+
       // Rediriger vers le dashboard
       router.push("/dashboard");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue");
       setCode(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } finally {
@@ -141,7 +145,7 @@ function VerifyCodeForm() {
       }
 
       setCountdown(60); // 60 secondes avant de pouvoir renvoyer
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError("Erreur lors de l'envoi du code");
     } finally {
       setResending(false);
@@ -178,7 +182,7 @@ function VerifyCodeForm() {
       <div className="bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-            <Shield className="h-8 w-8 text-blue-600" />
+            <Shield className="h-8 w-8 text-blue-600" aria-hidden="true" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900">Vérification</h2>
           <p className="text-gray-600 mt-2">
@@ -188,7 +192,7 @@ function VerifyCodeForm() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6 text-center">
+          <div role="alert" aria-live="polite" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm mb-6 text-center">
             {error}
           </div>
         )}
@@ -207,7 +211,8 @@ function VerifyCodeForm() {
               onKeyDown={(e) => handleKeyDown(index, e)}
               onPaste={handlePaste}
               disabled={loading}
-              className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition disabled:opacity-50"
+              aria-label={`Chiffre ${index + 1} sur 6`}
+              className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-primary-600 focus-visible:outline-offset-2 transition disabled:opacity-50"
             />
           ))}
         </div>
@@ -275,20 +280,9 @@ function VerifyCodeForm() {
   );
 }
 
-function LoadingFallback() {
-  return (
-    <div className="w-full max-w-md">
-      <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-        <p className="text-gray-600">Chargement...</p>
-      </div>
-    </div>
-  );
-}
-
 export default function VerifyCodePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-purple-900 flex items-center justify-center p-4">
+    <div id="main-content" className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-purple-900 flex items-center justify-center p-4">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div
@@ -300,9 +294,7 @@ export default function VerifyCodePage() {
       </div>
 
       <div className="relative">
-        <Suspense fallback={<LoadingFallback />}>
           <VerifyCodeForm />
-        </Suspense>
       </div>
     </div>
   );

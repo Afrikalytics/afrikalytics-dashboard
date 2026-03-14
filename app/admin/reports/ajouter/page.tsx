@@ -3,25 +3,19 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BarChart3,
   Save,
   ArrowLeft,
-  Menu,
-  X,
-  FileText,
-  TrendingUp,
-  User,
-  Settings,
-  LogOut,
   Download,
-  Lightbulb,
+  FileText,
   Crown,
   Users,
+  ShieldX,
 } from "lucide-react";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { Sidebar } from "@/components/Sidebar";
+import { api } from "@/lib/api";
 
-const API_URL = "https://web-production-ef657.up.railway.app";
-
-interface Study {
+interface StudyFull {
   id: number;
   title: string;
   description: string;
@@ -38,60 +32,26 @@ interface Study {
   is_active: boolean;
 }
 
-interface UserData {
-  id: number;
-  email: string;
-  full_name: string;
-  plan: string;
-  is_admin?: boolean;
-}
-
 export default function AjouterReportPage() {
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, token, isLoading: authLoading, accessDenied, logout } = useAuth({ requireAdmin: "reports" });
   const [loading, setLoading] = useState(false);
-  const [studies, setStudies] = useState<Study[]>([]);
-  const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
-  const [user, setUser] = useState<UserData | null>(null);
+  const [studies, setStudies] = useState<StudyFull[]>([]);
+  const [selectedStudy, setSelectedStudy] = useState<StudyFull | null>(null);
   const [formData, setFormData] = useState({
     report_url_basic: "",
     report_url_premium: "",
   });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
+    if (authLoading || !token || accessDenied) return;
+    const controller = new AbortController();
 
-    if (!token || !userData) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-
-      // Vérifier si l'utilisateur est admin
-      if (!parsedUser.is_admin) {
-        router.push("/dashboard");
-        return;
-      }
-    } catch {
-      router.push("/login");
-      return;
-    }
-
-    fetchClosedStudies(token);
-  }, [router]);
-
-  const fetchClosedStudies = async (token: string) => {
-    try {
-      const response = await fetch(`${API_URL}/api/studies`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const closedStudies = data.filter((s: Study) => s.status === "Fermé");
+    const fetchClosedStudies = async () => {
+      try {
+        const data = await api.get<StudyFull[]>("/api/studies");
+        if (controller.signal.aborted) return;
+        const closedStudies = data.filter((s) => s.status === "Fermé");
         setStudies(closedStudies);
         if (closedStudies.length > 0) {
           setSelectedStudy(closedStudies[0]);
@@ -100,11 +60,16 @@ export default function AjouterReportPage() {
             report_url_premium: closedStudies[0].report_url_premium || "",
           });
         }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("Erreur:", error);
+        }
       }
-    } catch (error) {
-      console.error("Erreur:", error);
-    }
-  };
+    };
+
+    fetchClosedStudies();
+    return () => controller.abort();
+  }, [authLoading, token, accessDenied]);
 
   const handleStudyChange = (studyId: number) => {
     const study = studies.find((s) => s.id === studyId);
@@ -123,110 +88,92 @@ export default function AjouterReportPage() {
 
     setLoading(true);
 
-    const token = localStorage.getItem("token");
     try {
-      // 1. Mettre à jour l'étude avec les URLs des rapports
-      const studyResponse = await fetch(`${API_URL}/api/studies/${selectedStudy.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          title: selectedStudy.title,
-          description: selectedStudy.description,
-          category: selectedStudy.category,
-          duration: selectedStudy.duration,
-          deadline: selectedStudy.deadline,
-          status: selectedStudy.status,
-          icon: selectedStudy.icon,
-          embed_url_particulier: selectedStudy.embed_url_particulier,
-          embed_url_entreprise: selectedStudy.embed_url_entreprise,
-          embed_url_results: selectedStudy.embed_url_results,
-          report_url_basic: formData.report_url_basic,
-          report_url_premium: formData.report_url_premium,
-          is_active: selectedStudy.is_active,
-        }),
+      // 1. Mettre a jour l'etude avec les URLs des rapports
+      await api.put(`/api/studies/${selectedStudy.id}`, {
+        title: selectedStudy.title,
+        description: selectedStudy.description,
+        category: selectedStudy.category,
+        duration: selectedStudy.duration,
+        deadline: selectedStudy.deadline,
+        status: selectedStudy.status,
+        icon: selectedStudy.icon,
+        embed_url_particulier: selectedStudy.embed_url_particulier,
+        embed_url_entreprise: selectedStudy.embed_url_entreprise,
+        embed_url_results: selectedStudy.embed_url_results,
+        report_url_basic: formData.report_url_basic,
+        report_url_premium: formData.report_url_premium,
+        is_active: selectedStudy.is_active,
       });
 
-      if (!studyResponse.ok) {
-        throw new Error("Erreur lors de la mise à jour de l'étude");
-      }
+      // 2. Creer les records dans la table reports pour le tracking
+      const reportPromises: Promise<unknown>[] = [];
 
-      // 2. Créer/Mettre à jour les records dans la table reports pour le tracking
-      
-      // Rapport Basic
       if (formData.report_url_basic) {
-        await fetch(`${API_URL}/api/reports`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            study_id: selectedStudy.id,
-            title: `Rapport Basic - ${selectedStudy.title}`,
-            description: "Version résumée du rapport",
-            file_url: formData.report_url_basic,
-            file_name: "rapport-basic.pdf",
-            file_size: "",
-            report_type: "basic",
-            is_available: true,
-          }),
-        });
+        reportPromises.push(api.post("/api/reports", {
+          study_id: selectedStudy.id,
+          title: `Rapport Basic - ${selectedStudy.title}`,
+          description: "Version résumée du rapport",
+          file_url: formData.report_url_basic,
+          file_name: "rapport-basic.pdf",
+          file_size: "",
+          report_type: "basic",
+          is_available: true,
+        }));
       }
 
-      // Rapport Premium
       if (formData.report_url_premium) {
-        await fetch(`${API_URL}/api/reports`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            study_id: selectedStudy.id,
-            title: `Rapport Premium - ${selectedStudy.title}`,
-            description: "Version complète du rapport",
-            file_url: formData.report_url_premium,
-            file_name: "rapport-premium.pdf",
-            file_size: "",
-            report_type: "premium",
-            is_available: true,
-          }),
-        });
+        reportPromises.push(api.post("/api/reports", {
+          study_id: selectedStudy.id,
+          title: `Rapport Premium - ${selectedStudy.title}`,
+          description: "Version complète du rapport",
+          file_url: formData.report_url_premium,
+          file_name: "rapport-premium.pdf",
+          file_size: "",
+          report_type: "premium",
+          is_available: true,
+        }));
       }
+
+      await Promise.all(reportPromises);
 
       alert("Rapports enregistrés avec succès !");
       router.push("/admin/reports");
     } catch (error) {
       console.error("Erreur:", error);
-      alert("Erreur lors de l'enregistrement");
+      alert(error instanceof Error ? error.message : "Erreur lors de l'enregistrement");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
-  };
-
-  // Vérification admin
-  if (user && !user.is_admin) {
+  // Access Denied screen
+  if (accessDenied) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="bg-red-100 p-4 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-            <X className="h-8 w-8 text-red-600" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="bg-red-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+            <ShieldX className="h-10 w-10 text-red-600" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Accès refusé</h1>
-          <p className="text-gray-600 mb-4">Cette page est réservée aux administrateurs.</p>
-          <a href="/dashboard" className="text-blue-600 hover:text-blue-700">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Accès refusé</h1>
+          <p className="text-gray-600 mb-6">
+            Cette page est réservée aux administrateurs. Vous n&apos;avez pas les permissions nécessaires pour y accéder.
+          </p>
+          <a
+            href="/dashboard"
+            className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+          >
             Retour au dashboard
           </a>
         </div>
+      </div>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -254,105 +201,8 @@ export default function AjouterReportPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white p-2 rounded-lg shadow-lg"
-      >
-        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
-
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed h-full bg-gray-900 text-white z-40 transition-transform duration-300
-          w-64
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-        `}
-      >
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <BarChart3 className="h-6 w-6" />
-            </div>
-            <span className="font-bold text-lg">Afrikalytics</span>
-          </div>
-        </div>
-
-        <nav className="p-4 space-y-2">
-          <a
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <BarChart3 className="h-5 w-5" />
-            Dashboard
-          </a>
-          <a
-            href="/dashboard/etudes"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <FileText className="h-5 w-5" />
-            Études
-          </a>
-          <a
-            href="/dashboard/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <TrendingUp className="h-5 w-5" />
-            Insights
-          </a>
-          <a
-            href="/profile"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <User className="h-5 w-5" />
-            Profil
-          </a>
-
-          <div className="border-t border-gray-800 my-4"></div>
-          <a
-            href="/admin"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <Settings className="h-5 w-5" />
-            Admin Études
-          </a>
-          <a
-            href="/admin/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <Lightbulb className="h-5 w-5" />
-            Admin Insights
-          </a>
-          <a
-            href="/admin/reports"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 text-white"
-          >
-            <Download className="h-5 w-5" />
-            Admin Rapports
-          </a>
-        </nav>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition w-full px-4 py-2 rounded-lg hover:bg-gray-800"
-          >
-            <LogOut className="h-5 w-5" />
-            Déconnexion
-          </button>
-        </div>
-      </aside>
+    <div id="main-content" className="min-h-screen bg-gray-50">
+      <Sidebar currentPath="/admin/reports" user={user} onLogout={logout} />
 
       {/* Main Content */}
       <main className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
@@ -374,7 +224,7 @@ export default function AjouterReportPage() {
           {/* Info Box */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
             <p className="text-blue-800 text-sm">
-              <strong>📌 Important :</strong> Uploadez vos PDFs sur Cloudinary, puis collez les URLs ci-dessous. Les téléchargements seront comptabilisés.
+              <strong>Important :</strong> Uploadez vos PDFs sur Cloudinary, puis collez les URLs ci-dessous. Les téléchargements seront comptabilisés.
             </p>
           </div>
 
@@ -383,7 +233,7 @@ export default function AjouterReportPage() {
             {/* Sélection de l'étude */}
             <div className="bg-white rounded-xl shadow-sm p-4 lg:p-6">
               <h2 className="text-lg font-bold text-gray-900 mb-4">Sélectionner l&apos;étude</h2>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Étude *
@@ -418,7 +268,7 @@ export default function AjouterReportPage() {
               <p className="text-sm text-gray-500 mb-4">
                 Version résumée du rapport, accessible aux utilisateurs Basic (gratuit)
               </p>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   URL du rapport Basic (PDF)
@@ -445,7 +295,7 @@ export default function AjouterReportPage() {
               <p className="text-sm text-gray-500 mb-4">
                 Version complète du rapport, accessible aux utilisateurs Premium (payant)
               </p>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   URL du rapport Premium (PDF)

@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { 
-  ArrowLeft, 
-  Lightbulb, 
-  User as UserIcon, 
+import {
+  ArrowLeft,
+  Lightbulb,
+  User as UserIcon,
   Calendar,
   Lock,
   Crown,
@@ -15,10 +15,10 @@ import {
   Download,
   BarChart3
 } from "lucide-react";
+import { API_URL } from "@/lib/constants";
+import type { User } from "@/lib/types";
 
-const API_URL = "https://web-production-ef657.up.railway.app";
-
-interface Insight {
+interface InsightDetail {
   id: number;
   study_id: number;
   title: string;
@@ -29,24 +29,17 @@ interface Insight {
   created_at: string;
 }
 
-interface Study {
+interface StudyDetail {
   id: number;
   title: string;
   report_url_basic: string;
   report_url_premium: string;
 }
 
-interface User {
-  id: number;
-  email: string;
-  full_name: string;
-  plan: string;
-}
-
 export default function InsightDetailPage() {
   const params = useParams();
-  const [insight, setInsight] = useState<Insight | null>(null);
-  const [study, setStudy] = useState<Study | null>(null);
+  const [insight, setInsight] = useState<InsightDetail | null>(null);
+  const [study, setStudy] = useState<StudyDetail | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -60,13 +53,22 @@ export default function InsightDetailPage() {
     // Récupérer l'insight
     const fetchInsight = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/insights/${params.id}`);
+        const token = localStorage.getItem("token");
+        const authHeaders: HeadersInit = {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        };
+        const response = await fetch(`${API_URL}/api/insights/${params.id}`, {
+          headers: authHeaders,
+        });
         if (response.ok) {
           const data = await response.json();
           setInsight(data);
           
           // Récupérer l'étude associée
-          const studyResponse = await fetch(`${API_URL}/api/studies/${data.study_id}`);
+          const studyResponse = await fetch(`${API_URL}/api/studies/${data.study_id}`, {
+            headers: authHeaders,
+          });
           if (studyResponse.ok) {
             const studyData = await studyResponse.json();
             setStudy(studyData);
@@ -121,7 +123,7 @@ export default function InsightDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div id="main-content" className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

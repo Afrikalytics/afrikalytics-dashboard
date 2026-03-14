@@ -3,25 +3,18 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  BarChart3,
   Save,
   ArrowLeft,
-  Menu,
-  X,
-  FileText,
-  TrendingUp,
-  User,
-  Settings,
-  LogOut,
   Lightbulb,
   Image,
   Plus,
   Trash2,
 } from "lucide-react";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { Sidebar } from "@/components/Sidebar";
+import { api } from "@/lib/api";
 
-const API_URL = "https://web-production-ef657.up.railway.app";
-
-interface Study {
+interface StudyOption {
   id: number;
   title: string;
   status: string;
@@ -29,9 +22,9 @@ interface Study {
 
 export default function CreerInsightPage() {
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, token, isLoading: authLoading, logout } = useAuth({ requireAdmin: "insights" });
   const [loading, setLoading] = useState(false);
-  const [studies, setStudies] = useState<Study[]>([]);
+  const [studies, setStudies] = useState<StudyOption[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([""]);
   const [formData, setFormData] = useState({
     study_id: 0,
@@ -43,32 +36,28 @@ export default function CreerInsightPage() {
   });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+    if (authLoading || !token) return;
+    const controller = new AbortController();
 
-    fetchClosedStudies(token);
-  }, [router]);
-
-  const fetchClosedStudies = async (token: string) => {
-    try {
-      const response = await fetch(`${API_URL}/api/studies`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        const closedStudies = data.filter((s: Study) => s.status === "Fermé");
+    const fetchClosedStudies = async () => {
+      try {
+        const data = await api.get<StudyOption[]>("/api/studies");
+        if (controller.signal.aborted) return;
+        const closedStudies = data.filter((s) => s.status === "Fermé");
         setStudies(closedStudies);
         if (closedStudies.length > 0) {
-          setFormData({ ...formData, study_id: closedStudies[0].id });
+          setFormData((prev) => ({ ...prev, study_id: closedStudies[0].id }));
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("Erreur:", error);
         }
       }
-    } catch (error) {
-      console.error("Erreur:", error);
-    }
-  };
+    };
+
+    fetchClosedStudies();
+    return () => controller.abort();
+  }, [authLoading, token]);
 
   const addImageField = () => {
     setImageUrls([...imageUrls, ""]);
@@ -95,38 +84,27 @@ export default function CreerInsightPage() {
     // Filtrer les URLs vides
     const validImages = imageUrls.filter((url) => url.trim() !== "");
 
-    const token = localStorage.getItem("token");
     try {
-      const response = await fetch(`${API_URL}/api/insights`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ...formData,
-          images: validImages.length > 0 ? validImages : null,
-        }),
+      await api.post("/api/insights", {
+        ...formData,
+        images: validImages.length > 0 ? validImages : null,
       });
-
-      if (response.ok) {
-        router.push("/admin/insights");
-      } else {
-        alert("Erreur lors de la création");
-      }
+      router.push("/admin/insights");
     } catch (error) {
       console.error("Erreur:", error);
-      alert("Erreur de connexion");
+      alert(error instanceof Error ? error.message : "Erreur lors de la création");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
-  };
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   if (studies.length === 0) {
     return (
@@ -151,98 +129,8 @@ export default function CreerInsightPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white p-2 rounded-lg shadow-lg"
-      >
-        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
-
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed h-full bg-gray-900 text-white z-40 transition-transform duration-300
-          w-64
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-        `}
-      >
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <BarChart3 className="h-6 w-6" />
-            </div>
-            <span className="font-bold text-lg">Afrikalytics</span>
-          </div>
-        </div>
-
-        <nav className="p-4 space-y-2">
-          <a
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <BarChart3 className="h-5 w-5" />
-            Dashboard
-          </a>
-          <a
-            href="/dashboard/etudes"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <FileText className="h-5 w-5" />
-            Études
-          </a>
-          <a
-            href="/dashboard/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <TrendingUp className="h-5 w-5" />
-            Insights
-          </a>
-          <a
-            href="/profile"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <User className="h-5 w-5" />
-            Profil
-          </a>
-
-          <div className="border-t border-gray-800 my-4"></div>
-          <a
-            href="/admin"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <Settings className="h-5 w-5" />
-            Admin Études
-          </a>
-          <a
-            href="/admin/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 text-white"
-          >
-            <Lightbulb className="h-5 w-5" />
-            Admin Insights
-          </a>
-        </nav>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition w-full px-4 py-2 rounded-lg hover:bg-gray-800"
-          >
-            <LogOut className="h-5 w-5" />
-            Déconnexion
-          </button>
-        </div>
-      </aside>
+    <div id="main-content" className="min-h-screen bg-gray-50">
+      <Sidebar currentPath="/admin/insights" user={user} onLogout={logout} />
 
       {/* Main Content */}
       <main className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">

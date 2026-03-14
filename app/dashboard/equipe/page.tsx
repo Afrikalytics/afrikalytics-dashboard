@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -18,7 +18,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 
-const API_URL = "https://web-production-ef657.up.railway.app";
+import { API_URL } from "@/lib/constants";
 
 interface TeamMember {
   id: number;
@@ -37,6 +37,84 @@ interface TeamData {
   team_members: TeamMember[];
   max_members: number;
   current_count: number;
+}
+
+function DeleteMemberModal({ memberName, actionLoading, onClose, onConfirm }: { memberName: string; actionLoading: boolean; onClose: () => void; onConfirm: () => void }) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement as HTMLElement;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+
+    const firstFocusable = modalRef.current?.querySelector('button') as HTMLElement;
+    firstFocusable?.focus();
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      previousFocusRef.current?.focus();
+    };
+  }, [onClose]);
+
+  const handleTabTrap = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab') return;
+    const focusableEls = modalRef.current?.querySelectorAll('button:not([disabled])') as NodeListOf<HTMLElement>;
+    if (!focusableEls || focusableEls.length === 0) return;
+    const firstEl = focusableEls[0];
+    const lastEl = focusableEls[focusableEls.length - 1];
+    if (e.shiftKey && document.activeElement === firstEl) {
+      e.preventDefault();
+      lastEl.focus();
+    } else if (!e.shiftKey && document.activeElement === lastEl) {
+      e.preventDefault();
+      firstEl.focus();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-member-modal-title"
+        className="bg-white rounded-xl w-full max-w-md"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={handleTabTrap}
+      >
+        <div className="p-6 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Trash2 className="h-8 w-8 text-red-600" aria-hidden="true" />
+          </div>
+          <h2 id="delete-member-modal-title" className="text-xl font-semibold text-gray-900 mb-2">Retirer ce membre ?</h2>
+          <p className="text-gray-600 mb-2">
+            Êtes-vous sûr de vouloir retirer <strong>{memberName}</strong> de votre équipe ?
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Cette personne n&apos;aura plus accès au plan Entreprise.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={actionLoading}
+              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {actionLoading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : "Retirer"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function EntrepriseTeamPage() {
@@ -137,8 +215,8 @@ export default function EntrepriseTeamPage() {
       setShowAddModal(false);
       setFormData({ email: "", full_name: "" });
       fetchTeam();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue");
     } finally {
       setActionLoading(false);
     }
@@ -165,8 +243,8 @@ export default function EntrepriseTeamPage() {
       setShowDeleteModal(false);
       setSelectedMember(null);
       fetchTeam();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue");
     } finally {
       setActionLoading(false);
     }
@@ -220,7 +298,7 @@ export default function EntrepriseTeamPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div id="main-content" className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4">
@@ -450,40 +528,15 @@ export default function EntrepriseTeamPage() {
 
       {/* Modal Supprimer */}
       {showDeleteModal && selectedMember && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md">
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="h-8 w-8 text-red-600" />
-              </div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Retirer ce membre ?</h2>
-              <p className="text-gray-600 mb-2">
-                Êtes-vous sûr de vouloir retirer <strong>{selectedMember.full_name}</strong> de votre équipe ?
-              </p>
-              <p className="text-sm text-gray-500 mb-6">
-                Cette personne n&apos;aura plus accès au plan Entreprise.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    setShowDeleteModal(false);
-                    setSelectedMember(null);
-                  }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Annuler
-                </button>
-                <button
-                  onClick={handleDeleteMember}
-                  disabled={actionLoading}
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {actionLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Retirer"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <DeleteMemberModal
+          memberName={selectedMember.full_name}
+          actionLoading={actionLoading}
+          onClose={() => {
+            setShowDeleteModal(false);
+            setSelectedMember(null);
+          }}
+          onConfirm={handleDeleteMember}
+        />
       )}
     </div>
   );

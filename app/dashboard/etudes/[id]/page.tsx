@@ -3,21 +3,37 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  ArrowLeft, 
-  BarChart3, 
-  Clock, 
-  Calendar, 
+import {
+  ArrowLeft,
+  BarChart3,
+  Clock,
+  Calendar,
   Lock,
   Crown,
   Download,
   FileText,
   Lightbulb
 } from "lucide-react";
+import { API_URL } from "@/lib/constants";
+import type { User, Insight } from "@/lib/types";
 
-const API_URL = "https://web-production-ef657.up.railway.app";
+const ALLOWED_EMBED_ORIGINS = [
+  'https://lookerstudio.google.com',
+  'https://app.powerbi.com',
+  'https://public.tableau.com',
+  'https://datastudio.google.com',
+];
 
-interface Study {
+function isValidEmbedUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return ALLOWED_EMBED_ORIGINS.some(origin => parsed.origin === origin);
+  } catch {
+    return false;
+  }
+}
+
+interface StudyDetail {
   id: number;
   title: string;
   description: string;
@@ -30,41 +46,34 @@ interface Study {
   report_url_premium: string;
 }
 
-interface User {
-  id: number;
-  email: string;
-  full_name: string;
-  plan: string;
-}
-
-interface Insight {
-  id: number;
-  study_id: number;
-  title: string;
-  summary: string;
-  is_published: boolean;
-}
-
 export default function StudyResultsPage() {
   const params = useParams();
   const router = useRouter();
-  const [study, setStudy] = useState<Study | null>(null);
+  const [study, setStudy] = useState<StudyDetail | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [insight, setInsight] = useState<Insight | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    // Récupérer l'utilisateur depuis localStorage
+    // Récupérer l'utilisateur et le token depuis localStorage
     const storedUser = localStorage.getItem("user");
+    const token = localStorage.getItem("token");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
 
+    const authHeaders: HeadersInit = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+
     // Récupérer l'étude
     const fetchStudy = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/studies/${params.id}`);
+        const response = await fetch(`${API_URL}/api/studies/${params.id}`, {
+          headers: authHeaders,
+        });
         if (response.ok) {
           const data = await response.json();
           setStudy(data);
@@ -77,7 +86,9 @@ export default function StudyResultsPage() {
     // Récupérer l'insight
     const fetchInsight = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/insights/study/${params.id}`);
+        const response = await fetch(`${API_URL}/api/insights/study/${params.id}`, {
+          headers: authHeaders,
+        });
         if (response.ok) {
           const data = await response.json();
           setInsight(data);
@@ -118,9 +129,14 @@ export default function StudyResultsPage() {
     setDownloading(true);
 
     try {
+      const token = localStorage.getItem("token");
       // Tracker le téléchargement
       await fetch(`${API_URL}/api/reports/study/${study.id}/type/${getReportType()}/download`, {
         method: "POST",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
       });
     } catch (error) {
       console.error("Erreur tracking:", error);
@@ -153,7 +169,7 @@ export default function StudyResultsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div id="main-content" className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -282,11 +298,22 @@ export default function StudyResultsPage() {
             /* Premium: Show iframe */
             <div className="p-6">
               {study.embed_url_results ? (
-                <iframe
-                  src={study.embed_url_results}
-                  className="w-full h-[800px] border-0 rounded-lg"
-                  title="Résultats de l'étude"
-                />
+                isValidEmbedUrl(study.embed_url_results) ? (
+                  <iframe
+                    src={study.embed_url_results}
+                    sandbox="allow-scripts allow-popups"
+                    className="w-full h-[800px] border-0 rounded-lg"
+                    title="Résultats de l'étude"
+                  />
+                ) : (
+                  <div className="text-center py-12">
+                    <div className="bg-red-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                      <BarChart3 className="h-8 w-8 text-red-400" />
+                    </div>
+                    <p className="text-red-600 font-medium">URL d&apos;intégration non autorisée</p>
+                    <p className="text-gray-500 text-sm mt-1">L&apos;origine de cette URL n&apos;est pas dans la liste des sources approuvées.</p>
+                  </div>
+                )
               ) : (
                 <div className="text-center py-12">
                   <BarChart3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />

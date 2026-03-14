@@ -1,126 +1,73 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
 import {
-  BarChart3,
-  FileText,
-  TrendingUp,
-  LogOut,
-  User,
-  Settings,
-  Menu,
-  X,
   Plus,
   Pencil,
   Trash2,
   Eye,
   EyeOff,
   ShieldX,
-  Download,
-  Lightbulb,
-  Users,
 } from "lucide-react";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { Sidebar } from "@/components/Sidebar";
+import { api, ApiRequestError } from "@/lib/api";
+import type { Study } from "@/lib/types";
 
-interface Study {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  status: string;
-  is_active: boolean;
-}
-
-interface UserData {
-  id: number;
-  email: string;
-  full_name: string;
-  plan: string;
-  is_admin?: boolean;
-}
-
-const API_URL = "https://web-production-ef657.up.railway.app";
+// Skeleton component for loading states (Issue #18)
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse bg-gray-200 rounded ${className || ''}`} />
+);
 
 export default function AdminPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<UserData | null>(null);
+  const { user, token, isLoading: authLoading, accessDenied, logout } = useAuth({ requireAdmin: "studies" });
   const [studies, setStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
+    if (authLoading || !token || accessDenied) return;
+    const controller = new AbortController();
 
-    if (!token || !userData) {
-      router.push("/login");
-      return;
-    }
-
-    try {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-
-      // Vérifier si l'utilisateur est admin
-      if (!parsedUser.is_admin) {
-        setAccessDenied(true);
-        setLoading(false);
-        return;
+    const fetchStudies = async () => {
+      try {
+        const data = await api.get<Study[]>("/api/studies");
+        if (!controller.signal.aborted) {
+          setStudies(data);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("Erreur:", error);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
+    };
 
-      fetchStudies(token);
-    } catch {
-      router.push("/login");
-    }
-  }, [router]);
+    fetchStudies();
+    return () => controller.abort();
+  }, [authLoading, token, accessDenied]);
 
-  const fetchStudies = async (token: string) => {
-    try {
-      const response = await fetch(`${API_URL}/api/studies`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setStudies(data);
-      }
-    } catch (error) {
-      console.error("Erreur:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async (id: number) => {
+  // useCallback + functional state update (Issue #19)
+  const handleDelete = useCallback(async (id: number) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cette étude ?")) return;
 
-    const token = localStorage.getItem("token");
     try {
-      const response = await fetch(`${API_URL}/api/studies/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (response.ok) {
-        setStudies(studies.filter((s) => s.id !== id));
-      }
+      await api.delete(`/api/studies/${id}`);
+      setStudies((prev) => prev.filter((s) => s.id !== id));
     } catch (error) {
       console.error("Erreur:", error);
     }
-  };
+  }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    router.push("/login");
-  };
-
-  // Écran Accès Refusé
+  // Access Denied screen
   if (accessDenied) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="text-center max-w-md">
           <div className="bg-red-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-            <ShieldX className="h-10 w-10 text-red-600" />
+            <ShieldX className="h-10 w-10 text-red-600" aria-hidden="true" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Accès refusé</h1>
           <p className="text-gray-600 mb-6">
@@ -137,135 +84,39 @@ export default function AdminPage() {
     );
   }
 
-  if (loading) {
+  // Loading skeleton (Issue #18)
+  if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50">
+        <div className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div>
+              <Skeleton className="h-8 w-64 mb-2" />
+              <Skeleton className="h-5 w-80" />
+            </div>
+            <Skeleton className="h-10 w-40 rounded-lg" />
+          </div>
+          {/* Table skeleton */}
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Menu Button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white p-2 rounded-lg shadow-lg"
-      >
-        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
-
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed h-full bg-gray-900 text-white z-40 transition-transform duration-300
-          w-64
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-        `}
-      >
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <BarChart3 className="h-6 w-6" />
-            </div>
-            <span className="font-bold text-lg">Afrikalytics</span>
-          </div>
-        </div>
-
-        <nav className="p-4 space-y-2">
-          <a
-            href="/dashboard"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <BarChart3 className="h-5 w-5" />
-            Dashboard
-          </a>
-          <a
-            href="/dashboard/etudes"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <FileText className="h-5 w-5" />
-            Études
-          </a>
-          <a
-            href="/dashboard/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <TrendingUp className="h-5 w-5" />
-            Insights
-          </a>
-          <a
-            href="/profile"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <User className="h-5 w-5" />
-            Profil
-          </a>
-
-          <div className="border-t border-gray-800 my-4"></div>
-          <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Administration</p>
-          
-          <a
-            href="/admin"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg bg-gray-800 text-white"
-          >
-            <Settings className="h-5 w-5" />
-            Admin Études
-          </a>
-          <a
-            href="/admin/insights"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <Lightbulb className="h-5 w-5" />
-            Admin Insights
-          </a>
-          <a
-            href="/admin/reports"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <Download className="h-5 w-5" />
-            Admin Rapports
-          </a>
-          <a
-            href="/admin/users"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-          >
-            <Users className="h-5 w-5" />
-            Admin Utilisateurs
-          </a>
-        </nav>
-
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-gray-700 p-2 rounded-full">
-              <User className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{user?.full_name}</p>
-              <p className="text-gray-400 text-sm truncate">{user?.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition w-full px-4 py-2 rounded-lg hover:bg-gray-800"
-          >
-            <LogOut className="h-5 w-5" />
-            Déconnexion
-          </button>
-        </div>
-      </aside>
+      <Sidebar currentPath="/admin" user={user} onLogout={logout} />
 
       {/* Main Content */}
-      <main className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
+      <main id="main-content" tabIndex={-1} className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Gestion des Études</h1>
@@ -275,14 +126,14 @@ export default function AdminPage() {
             href="/admin/ajouter"
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition w-full sm:w-auto justify-center"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-5 w-5" aria-hidden="true" />
             Nouvelle Étude
           </a>
         </div>
 
         {/* Studies Table - Desktop */}
         <div className="hidden lg:block bg-white rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full">
+          <table className="w-full" aria-label="Liste des études">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Titre</th>
@@ -324,24 +175,26 @@ export default function AdminPage() {
                     </td>
                     <td className="px-6 py-4">
                       {study.is_active ? (
-                        <Eye className="h-5 w-5 text-green-600" />
+                        <Eye className="h-5 w-5 text-green-600" aria-hidden="true" />
                       ) : (
-                        <EyeOff className="h-5 w-5 text-gray-400" />
+                        <EyeOff className="h-5 w-5 text-gray-400" aria-hidden="true" />
                       )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
                         <a
                           href={`/admin/modifier/${study.id}`}
+                          aria-label={`Modifier ${study.title}`}
                           className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
                         </a>
                         <button
                           onClick={() => handleDelete(study.id)}
+                          aria-label={`Supprimer ${study.title}`}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                       </div>
                     </td>
@@ -367,9 +220,9 @@ export default function AdminPage() {
                     <p className="text-sm text-gray-500 line-clamp-2 mt-1">{study.description}</p>
                   </div>
                   {study.is_active ? (
-                    <Eye className="h-5 w-5 text-green-600 ml-2" />
+                    <Eye className="h-5 w-5 text-green-600 ml-2" aria-hidden="true" />
                   ) : (
-                    <EyeOff className="h-5 w-5 text-gray-400 ml-2" />
+                    <EyeOff className="h-5 w-5 text-gray-400 ml-2" aria-hidden="true" />
                   )}
                 </div>
                 <div className="flex items-center justify-between">
@@ -390,15 +243,17 @@ export default function AdminPage() {
                   <div className="flex gap-2">
                     <a
                       href={`/admin/modifier/${study.id}`}
+                      aria-label={`Modifier ${study.title}`}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" aria-hidden="true" />
                     </a>
                     <button
                       onClick={() => handleDelete(study.id)}
+                      aria-label={`Supprimer ${study.title}`}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
