@@ -20,7 +20,7 @@ export type AdminRole =
 /** User plan tiers */
 export type UserPlan = "basic" | "professionnel" | "entreprise";
 
-/** Core user object returned by the API and stored in localStorage */
+/** Core user object returned by the API */
 export interface User {
   id: number;
   email: string;

@@ -38,8 +38,8 @@ Thumbs.db
 *.tsbuildinfo
 next-env.d.ts
 
-# MCP config (contains credentials)
-.mcp.json
+# MCP config (credentials use ${input:...} placeholders — safe to version)
+# .mcp.json
 
 # Playwright E2E
 /test-results/

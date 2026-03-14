@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { API_URL } from "@/lib/constants";
+import { saveSession } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,11 +43,8 @@ export default function LoginPage() {
         return;
       }
 
-      // Sinon (fallback), stocker le token directement
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      // Mirror token to cookie for middleware auth
-      document.cookie = `auth-token=${data.access_token}; path=/; max-age=${7 * 24 * 60 * 60}; SameSite=Lax`;
+      // Store auth in httpOnly cookies (XSS-safe)
+      await saveSession(data.access_token, data.user);
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");

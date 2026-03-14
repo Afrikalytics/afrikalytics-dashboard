@@ -140,8 +140,5 @@ export const TOKEN_LABELS: Record<string, { label: string; icon: string }> = {
 };
 
 // -----------------------------------------------------------------------------
-// Auth
+// Auth — tokens are stored in httpOnly cookies, managed by /api/auth/session
 // -----------------------------------------------------------------------------
-
-export const AUTH_TOKEN_KEY = "token";
-export const AUTH_USER_KEY = "user";

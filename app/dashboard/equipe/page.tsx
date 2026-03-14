@@ -139,19 +139,17 @@ export default function EntrepriseTeamPage() {
     checkAccessAndFetchTeam();
   }, []);
 
-  const getToken = () => localStorage.getItem("token");
-
   const checkAccessAndFetchTeam = async () => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-
-    if (!token || !userData) {
-      router.push("/login");
-      return;
-    }
-
     try {
-      const parsedUser = JSON.parse(userData);
+      const res = await fetch("/api/auth/session");
+      const session = await res.json();
+
+      if (!session.authenticated || !session.user) {
+        router.push("/login");
+        return;
+      }
+
+      const parsedUser = session.user;
       // Vérifier : plan entreprise ET propriétaire (pas de parent_user_id)
       if (parsedUser.plan !== "entreprise" || parsedUser.parent_user_id) {
         setAccessDenied(true);
@@ -168,11 +166,7 @@ export default function EntrepriseTeamPage() {
 
   const fetchTeam = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/enterprise/team`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
+      const response = await fetch("/api/proxy/api/enterprise/team");
 
       if (response.status === 403) {
         setAccessDenied(true);
@@ -196,13 +190,9 @@ export default function EntrepriseTeamPage() {
     setError("");
 
     try {
-      const response = await fetch(`${API_URL}/api/enterprise/team/add`, {
+      const response = await fetch("/api/proxy/api/enterprise/team/add", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest", // CSRF protection
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
@@ -228,12 +218,8 @@ export default function EntrepriseTeamPage() {
     setActionLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/enterprise/team/${selectedMember.id}`, {
+      const response = await fetch(`/api/proxy/api/enterprise/team/${selectedMember.id}`, {
         method: "DELETE",
-        headers: {
-          "X-Requested-With": "XMLHttpRequest", // CSRF protection
-          Authorization: `Bearer ${getToken()}`,
-        },
       });
 
       if (!response.ok) {

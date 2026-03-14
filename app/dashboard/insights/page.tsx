@@ -25,17 +25,15 @@ export default function InsightsListPage() {
 
   useEffect(() => {
     if (authLoading || !token) return;
-    fetchData(token);
+    fetchData();
   }, [authLoading, token]);
 
-  const fetchData = async (authToken: string) => {
-    const headers = { Authorization: `Bearer ${authToken}` };
-
+  const fetchData = async () => {
     try {
-      // Parallel fetch — both API calls at once (Issue #17)
+      // Parallel fetch through proxy — auth injected server-side
       const [insightsRes, studiesRes] = await Promise.all([
-        fetch(`${API_URL}/api/insights`, { headers }).catch(() => null),
-        fetch(`${API_URL}/api/studies`, { headers }).catch(() => null),
+        fetch("/api/proxy/api/insights").catch(() => null),
+        fetch("/api/proxy/api/studies").catch(() => null),
       ]);
 
       // Parse responses in parallel

@@ -33,18 +33,16 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (authLoading || !token) return;
-    fetchAllData(token);
+    fetchAllData();
   }, [authLoading, token]);
 
-  const fetchAllData = async (authToken: string) => {
-    const headers = { Authorization: `Bearer ${authToken}` };
-
+  const fetchAllData = async () => {
     try {
-      // Parallel fetch — all three API calls at once (Issue #17)
+      // Parallel fetch through proxy — auth injected server-side
       const [studiesRes, statsRes, quotaRes] = await Promise.all([
-        fetch(`${API_URL}/api/studies/active`, { headers }).catch(() => null),
-        fetch(`${API_URL}/api/dashboard/stats`, { headers }).catch(() => null),
-        fetch(`${API_URL}/api/users/quota`, { headers }).catch(() => null),
+        fetch("/api/proxy/api/studies/active").catch(() => null),
+        fetch("/api/proxy/api/dashboard/stats").catch(() => null),
+        fetch("/api/proxy/api/users/quota").catch(() => null),
       ]);
 
       // Parse responses in parallel
