@@ -104,7 +104,7 @@ describe('LoginPage', () => {
       expect.stringContaining('/api/auth/login'),
       expect.objectContaining({
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
         body: JSON.stringify({ email: 'test@example.com', password: 'Password123!' }),
       }),
     );
@@ -152,9 +152,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: /se connecter/i }));
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith(
-        '/verify-code?email=twofa%40example.com',
-      );
+      expect(mockPush).toHaveBeenCalledWith('/verify-code');
     });
   });
 });
