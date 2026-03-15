@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, Crown, ArrowRight, Mail } from "lucide-react";
 import { getSession } from "@/lib/api";
@@ -21,13 +21,13 @@ const itemVariants = {
 
 export default function PaymentSuccessPage() {
   const [countdown, setCountdown] = useState(10);
+  const redirectUrlRef = useRef("/login");
 
   useEffect(() => {
     // Check auth to redirect to the right page
-    let redirectUrl = "/login";
     getSession().then((session) => {
       if (session.authenticated) {
-        redirectUrl = "/dashboard";
+        redirectUrlRef.current = "/dashboard";
       }
     });
 
@@ -35,7 +35,7 @@ export default function PaymentSuccessPage() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          window.location.href = redirectUrl;
+          window.location.href = redirectUrlRef.current;
           return 0;
         }
         return prev - 1;

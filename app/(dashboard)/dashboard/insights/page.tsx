@@ -62,24 +62,28 @@ export default function InsightsListPage() {
 
   useEffect(() => {
     if (authLoading || !user) return;
+    const controller = new AbortController();
+
+    const fetchData = async () => {
+      try {
+        const [insightsData, studiesData] = await Promise.all([
+          api.get<Insight[]>("/api/insights").catch(() => null),
+          api.get<Study[]>("/api/studies").catch(() => null),
+        ]);
+
+        if (controller.signal.aborted) return;
+        if (insightsData) setInsights(insightsData);
+        if (studiesData) setStudies(studiesData);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+
     fetchData();
+    return () => controller.abort();
   }, [authLoading, user]);
-
-  const fetchData = async () => {
-    try {
-      const [insightsData, studiesData] = await Promise.all([
-        api.get<Insight[]>("/api/insights").catch(() => null),
-        api.get<Study[]>("/api/studies").catch(() => null),
-      ]);
-
-      if (insightsData) setInsights(insightsData);
-      if (studiesData) setStudies(studiesData);
-    } catch (error) {
-      // Erreur silencieuse — état loading/empty gère l'affichage
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const studyMap = useMemo(() => {
     const map = new Map<number, Study>();

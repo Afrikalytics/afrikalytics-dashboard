@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Download, Eye, EyeOff, Save, LayoutDashboard, LayoutTemplate } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -252,9 +252,23 @@ export default function DashboardBuilderPage() {
     // Future: open widget config panel
   }, [isEditing]);
 
+  const [saveMessage, setSaveMessage] = useState("");
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+
   const handleSave = useCallback(() => {
+    // Export as JSON download until backend endpoint is implemented
     const json = JSON.stringify(layout, null, 2);
-    alert("Layout sauvegardé (export à implémenter).");
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dashboard-${layout.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    setSaveMessage("Layout exporté en JSON. La sauvegarde serveur sera disponible prochainement.");
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(() => setSaveMessage(""), 5000);
   }, [layout]);
 
   const handleRemoveLastWidget = useCallback(() => {
@@ -339,6 +353,12 @@ export default function DashboardBuilderPage() {
           </button>
         </div>
       </div>
+
+      {saveMessage && (
+        <div className="bg-success-50 text-success-700 px-4 py-3 rounded-lg text-sm font-medium border border-success-200">
+          {saveMessage}
+        </div>
+      )}
 
       {/* Main content */}
       <div className="flex gap-6">

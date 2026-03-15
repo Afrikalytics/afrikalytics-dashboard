@@ -79,26 +79,30 @@ export default function EtudesListPage() {
 
   useEffect(() => {
     if (authLoading || !user) return;
+    const controller = new AbortController();
+
+    const fetchData = async () => {
+      try {
+        const [studiesData, insightsData, reportsData] = await Promise.all([
+          api.get<Study[]>("/api/studies").catch(() => null),
+          api.get<Insight[]>("/api/insights").catch(() => null),
+          api.get<Report[]>("/api/reports").catch(() => null),
+        ]);
+
+        if (controller.signal.aborted) return;
+        if (studiesData) setStudies(studiesData);
+        if (insightsData) setInsights(insightsData);
+        if (reportsData) setReports(reportsData);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+
     fetchData();
+    return () => controller.abort();
   }, [authLoading, user]);
-
-  const fetchData = async () => {
-    try {
-      const [studiesData, insightsData, reportsData] = await Promise.all([
-        api.get<Study[]>("/api/studies").catch(() => null),
-        api.get<Insight[]>("/api/insights").catch(() => null),
-        api.get<Report[]>("/api/reports").catch(() => null),
-      ]);
-
-      if (studiesData) setStudies(studiesData);
-      if (insightsData) setInsights(insightsData);
-      if (reportsData) setReports(reportsData);
-    } catch (error) {
-      // Erreur silencieuse — état loading/empty gère l'affichage
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredStudies = useMemo(() => {
     let filtered = studies;
