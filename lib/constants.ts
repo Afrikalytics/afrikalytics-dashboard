@@ -38,7 +38,9 @@ export const ROUTES = {
   INSIGHTS: "/dashboard/insights",
   INSIGHT_DETAIL: (id: number | string) => `/dashboard/insights/${id}`,
   EQUIPE: "/dashboard/equipe",
+  NOTIFICATIONS: "/dashboard/notifications",
   PROFILE: "/profile",
+  FACTURATION: "/dashboard/facturation",
   PAYMENT_SUCCESS: "/payment-success",
 
   // Admin

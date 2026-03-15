@@ -10,12 +10,14 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }));
 
-// Mock clearSession and getSession from api module
+// Mock clearSession, getSession, and api from api module
 const mockGetSession = jest.fn();
 const mockClearSession = jest.fn();
+const mockApiGet = jest.fn();
 jest.mock('../../api', () => ({
   getSession: (...args: unknown[]) => mockGetSession(...args),
   clearSession: (...args: unknown[]) => mockClearSession(...args),
+  api: { get: (...args: unknown[]) => mockApiGet(...args) },
 }));
 
 // Import after mocks are set up
@@ -37,6 +39,8 @@ describe('useAuth', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockClearSession.mockResolvedValue(undefined);
+    // Default: api.get resolves with the user (for admin verification)
+    mockApiGet.mockImplementation(() => Promise.reject(new Error('not mocked')));
   });
 
   // -------------------------------------------------------------------------
@@ -49,7 +53,6 @@ describe('useAuth', () => {
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.user).toBeNull();
-    expect(result.current.token).toBeNull();
   });
 
   // -------------------------------------------------------------------------
@@ -60,7 +63,6 @@ describe('useAuth', () => {
     mockGetSession.mockResolvedValueOnce({
       authenticated: true,
       user: regularUser,
-      token: 'jwt-123',
     });
 
     const { result } = renderHook(() => useAuth());
@@ -80,7 +82,6 @@ describe('useAuth', () => {
     mockGetSession.mockResolvedValueOnce({
       authenticated: true,
       user: regularUser,
-      token: 'jwt-123',
     });
 
     const { result } = renderHook(() => useAuth());
@@ -90,7 +91,6 @@ describe('useAuth', () => {
     });
 
     expect(result.current.user).toEqual(regularUser);
-    expect(result.current.token).toBe('jwt-123');
     expect(result.current.isAdmin).toBe(false);
     expect(mockPush).not.toHaveBeenCalled();
   });
@@ -103,7 +103,6 @@ describe('useAuth', () => {
     mockGetSession.mockResolvedValueOnce({
       authenticated: false,
       user: null,
-      token: null,
     });
 
     const { result } = renderHook(() => useAuth());
@@ -132,7 +131,6 @@ describe('useAuth', () => {
     mockGetSession.mockResolvedValueOnce({
       authenticated: false,
       user: null,
-      token: null,
     });
 
     const { result } = renderHook(() => useAuth({ optional: true }));
@@ -152,8 +150,8 @@ describe('useAuth', () => {
     mockGetSession.mockResolvedValueOnce({
       authenticated: true,
       user: regularUser,
-      token: 'jwt-123',
     });
+    mockApiGet.mockResolvedValueOnce(regularUser);
 
     const { result } = renderHook(() => useAuth({ requireAdmin: true }));
 
@@ -169,8 +167,8 @@ describe('useAuth', () => {
     mockGetSession.mockResolvedValueOnce({
       authenticated: true,
       user: adminUser,
-      token: 'jwt-admin',
     });
+    mockApiGet.mockResolvedValueOnce(adminUser);
 
     const { result } = renderHook(() => useAuth({ requireAdmin: true }));
 
@@ -187,8 +185,8 @@ describe('useAuth', () => {
     mockGetSession.mockResolvedValueOnce({
       authenticated: true,
       user: studiesAdmin,
-      token: 'jwt-studies',
     });
+    mockApiGet.mockResolvedValueOnce(studiesAdmin);
 
     const { result } = renderHook(() =>
       useAuth({ requireAdmin: 'insights' })
@@ -205,8 +203,8 @@ describe('useAuth', () => {
     mockGetSession.mockResolvedValueOnce({
       authenticated: true,
       user: studiesAdmin,
-      token: 'jwt-studies',
     });
+    mockApiGet.mockResolvedValueOnce(studiesAdmin);
 
     const { result } = renderHook(() =>
       useAuth({ requireAdmin: 'studies' })
@@ -227,7 +225,6 @@ describe('useAuth', () => {
     mockGetSession.mockResolvedValueOnce({
       authenticated: true,
       user: adminUser,
-      token: 'jwt-admin',
     });
 
     const { result } = renderHook(() => useAuth());
@@ -244,7 +241,6 @@ describe('useAuth', () => {
     mockGetSession.mockResolvedValueOnce({
       authenticated: true,
       user: studiesAdmin,
-      token: 'jwt-studies',
     });
 
     const { result } = renderHook(() => useAuth());
@@ -262,7 +258,6 @@ describe('useAuth', () => {
     mockGetSession.mockResolvedValueOnce({
       authenticated: true,
       user: regularUser,
-      token: 'jwt-regular',
     });
 
     const { result } = renderHook(() => useAuth());
@@ -282,7 +277,6 @@ describe('useAuth', () => {
     mockGetSession.mockResolvedValueOnce({
       authenticated: true,
       user: regularUser,
-      token: 'jwt-123',
     });
 
     const { result } = renderHook(() => useAuth());
@@ -298,6 +292,5 @@ describe('useAuth', () => {
     expect(mockClearSession).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledWith('/login');
     expect(result.current.user).toBeNull();
-    expect(result.current.token).toBeNull();
   });
 });

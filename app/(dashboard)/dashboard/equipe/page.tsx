@@ -203,7 +203,7 @@ export default function EntrepriseTeamPage() {
       if (err instanceof ApiRequestError && err.status === 403) {
         setAccessDenied(true);
       } else {
-        console.error(err);
+        // Erreur silencieuse — état loading gère l'affichage
       }
     } finally {
       setLoading(false);

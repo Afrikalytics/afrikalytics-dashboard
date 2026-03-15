@@ -69,7 +69,7 @@ function EtudesPageSkeleton() {
 // -----------------------------------------------------------------------------
 
 export default function EtudesListPage() {
-  const { user, token, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [studies, setStudies] = useState<Study[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
@@ -78,9 +78,9 @@ export default function EtudesListPage() {
   const [filterStatus, setFilterStatus] = useState("Tous");
 
   useEffect(() => {
-    if (authLoading || !token) return;
+    if (authLoading || !user) return;
     fetchData();
-  }, [authLoading, token]);
+  }, [authLoading, user]);
 
   const fetchData = async () => {
     try {
@@ -94,7 +94,7 @@ export default function EtudesListPage() {
       if (insightsData) setInsights(insightsData);
       if (reportsData) setReports(reportsData);
     } catch (error) {
-      console.error("Erreur:", error);
+      // Erreur silencieuse — état loading/empty gère l'affichage
     } finally {
       setLoading(false);
     }
@@ -133,7 +133,7 @@ export default function EtudesListPage() {
       await api.post(`/api/reports/${report.id}/download`);
       window.open(report.file_url, "_blank");
     } catch (error) {
-      console.error("Erreur:", error);
+      // Erreur tracking silencieuse — le téléchargement continue
       window.open(report.file_url, "_blank");
     }
   }, []);

@@ -12,6 +12,8 @@ import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3,
+  Bell,
+  CreditCard,
   FileText,
   TrendingUp,
   LogOut,
@@ -110,6 +112,8 @@ function SidebarContent({
     { href: ROUTES.DASHBOARD, label: "Dashboard", icon: BarChart3 },
     { href: ROUTES.ETUDES, label: "Études", icon: FileText },
     { href: ROUTES.INSIGHTS, label: "Insights", icon: TrendingUp },
+    { href: ROUTES.NOTIFICATIONS, label: "Notifications", icon: Bell },
+    { href: ROUTES.FACTURATION, label: "Facturation", icon: CreditCard },
     { href: ROUTES.PROFILE, label: "Profil", icon: UserIcon },
     {
       href: ROUTES.EQUIPE,

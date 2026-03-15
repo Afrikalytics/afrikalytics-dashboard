@@ -90,7 +90,7 @@ export default function StudyResultsPage() {
         const data = await api.get<StudyDetail>(`/api/studies/${params.id}`);
         setStudy(data);
       } catch (error) {
-        console.error("Erreur:", error);
+        // Erreur silencieuse — état loading/empty gère l'affichage
       }
     };
 
@@ -135,7 +135,7 @@ export default function StudyResultsPage() {
     try {
       await api.post(`/api/reports/study/${study.id}/type/${getReportType()}/download`);
     } catch (error) {
-      console.error("Erreur tracking:", error);
+      // Erreur tracking silencieuse — le téléchargement continue
     }
 
     window.open(reportUrl, "_blank");

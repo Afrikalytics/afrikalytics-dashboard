@@ -22,14 +22,16 @@ export async function GET() {
   const userRaw = cookieStore.get(USER_COOKIE)?.value;
 
   if (!token || !userRaw) {
-    return NextResponse.json({ authenticated: false, user: null, token: null });
+    return NextResponse.json({ authenticated: false, user: null });
   }
 
   try {
     const user = JSON.parse(decodeURIComponent(userRaw));
-    return NextResponse.json({ authenticated: true, user, token });
+    // Token is NOT returned to client JS — it stays in the httpOnly cookie
+    // and is only accessed server-side by the proxy route
+    return NextResponse.json({ authenticated: true, user });
   } catch {
-    return NextResponse.json({ authenticated: false, user: null, token: null });
+    return NextResponse.json({ authenticated: false, user: null });
   }
 }
 
@@ -45,6 +47,8 @@ export async function POST(request: NextRequest) {
   const response = NextResponse.json({ success: true });
 
   response.cookies.set(COOKIE_NAME, token, setCookieOptions(MAX_AGE));
+  // User cookie is also httpOnly to prevent XSS access to admin roles (VUL-02)
+  // Client reads user data via GET /api/auth/session (server-side cookie parsing)
   response.cookies.set(
     USER_COOKIE,
     encodeURIComponent(JSON.stringify(user)),

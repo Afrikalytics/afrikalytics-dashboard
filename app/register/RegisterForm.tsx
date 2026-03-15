@@ -10,6 +10,7 @@ import { saveSession } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
+import SSOButtons from "@/components/SSOButtons";
 
 const fadeIn = {
   hidden: { opacity: 0 },
@@ -251,6 +252,11 @@ export default function RegisterForm() {
               </Button>
             </motion.div>
           </form>
+
+          {/* SSO Buttons */}
+          <motion.div variants={fadeInUp}>
+            <SSOButtons mode="register" />
+          </motion.div>
 
           {/* Login Link */}
           <motion.p variants={fadeInUp} className="mt-10 text-center text-sm text-surface-400">

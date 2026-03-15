@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Save, LayoutDashboard, LayoutTemplate } from "lucide-react";
+import { Download, Eye, EyeOff, Save, LayoutDashboard, LayoutTemplate } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import type { ChartType, DashboardLayout, DashboardWidget } from "@/lib/types";
 import { DashboardGrid, WidgetPalette } from "@/components/dashboard-builder";
@@ -250,13 +250,11 @@ export default function DashboardBuilderPage() {
   const handleWidgetClick = useCallback((widget: DashboardWidget) => {
     if (!isEditing) return;
     // Future: open widget config panel
-    console.log("Widget sélectionné :", widget.id, widget.title);
   }, [isEditing]);
 
   const handleSave = useCallback(() => {
     const json = JSON.stringify(layout, null, 2);
-    console.log("Layout sauvegardé :", json);
-    alert("Layout sauvegardé dans la console (voir DevTools).");
+    alert("Layout sauvegardé (export à implémenter).");
   }, [layout]);
 
   const handleRemoveLastWidget = useCallback(() => {
@@ -286,6 +284,15 @@ export default function DashboardBuilderPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            Exporter en PDF
+          </button>
+
           <a
             href="/dashboard/templates"
             className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-primary-200 text-primary-700 hover:bg-primary-50 transition-colors"

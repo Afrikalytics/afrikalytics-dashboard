@@ -55,15 +55,15 @@ function InsightsPageSkeleton() {
 // -----------------------------------------------------------------------------
 
 export default function InsightsListPage() {
-  const { token, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [studies, setStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading || !token) return;
+    if (authLoading || !user) return;
     fetchData();
-  }, [authLoading, token]);
+  }, [authLoading, user]);
 
   const fetchData = async () => {
     try {
@@ -75,7 +75,7 @@ export default function InsightsListPage() {
       if (insightsData) setInsights(insightsData);
       if (studiesData) setStudies(studiesData);
     } catch (error) {
-      console.error("Erreur:", error);
+      // Erreur silencieuse — état loading/empty gère l'affichage
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   Save,
   ArrowLeft,
@@ -10,7 +11,6 @@ import {
   FileText,
   Crown,
   Users,
-  ShieldX,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { api } from "@/lib/api";
@@ -25,6 +25,7 @@ import {
   EmptyState,
   PageSkeleton,
 } from "@/components/ui";
+import { AccessDeniedScreen } from "@/components/AccessDeniedScreen";
 
 interface StudyFull {
   id: number;
@@ -59,7 +60,7 @@ const sectionVariants = {
 
 export default function AjouterReportPage() {
   const router = useRouter();
-  const { token, isLoading: authLoading, accessDenied } = useAuth({ requireAdmin: "reports" });
+  const { user, isLoading: authLoading, accessDenied } = useAuth({ requireAdmin: "reports" });
   const [loading, setLoading] = useState(false);
   const [studies, setStudies] = useState<StudyFull[]>([]);
   const [selectedStudy, setSelectedStudy] = useState<StudyFull | null>(null);
@@ -69,7 +70,7 @@ export default function AjouterReportPage() {
   });
 
   useEffect(() => {
-    if (authLoading || !token || accessDenied) return;
+    if (authLoading || !user || accessDenied) return;
     const controller = new AbortController();
 
     const fetchClosedStudies = async () => {
@@ -87,14 +88,14 @@ export default function AjouterReportPage() {
         }
       } catch (error) {
         if (!controller.signal.aborted) {
-          console.error("Erreur:", error);
+          // Erreur silencieuse
         }
       }
     };
 
     fetchClosedStudies();
     return () => controller.abort();
-  }, [authLoading, token, accessDenied]);
+  }, [authLoading, user, accessDenied]);
 
   const handleStudyChange = (studyId: number) => {
     const study = studies.find((s) => s.id === studyId);
@@ -165,36 +166,13 @@ export default function AjouterReportPage() {
       alert("Rapports enregistrés avec succès !");
       router.push("/admin/reports");
     } catch (error) {
-      console.error("Erreur:", error);
       alert(error instanceof Error ? error.message : "Erreur lors de l'enregistrement");
     } finally {
       setLoading(false);
     }
   };
 
-  // Access Denied screen
-  if (accessDenied) {
-    return (
-      <div className="flex items-center justify-center p-4 min-h-[60vh]">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center max-w-md"
-        >
-          <div className="bg-danger-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-            <ShieldX className="h-10 w-10 text-danger-600" aria-hidden="true" />
-          </div>
-          <h1 className="font-heading text-2xl font-bold text-surface-900 mb-2">Accès refusé</h1>
-          <p className="text-surface-500 mb-6">
-            Cette page est réservée aux administrateurs. Vous n&apos;avez pas les permissions nécessaires pour y accéder.
-          </p>
-          <Button variant="primary" size="lg" onClick={() => window.location.href = "/dashboard"}>
-            Retour au dashboard
-          </Button>
-        </motion.div>
-      </div>
-    );
-  }
+  if (accessDenied) return <AccessDeniedScreen />;
 
   if (authLoading) {
     return <PageSkeleton />;

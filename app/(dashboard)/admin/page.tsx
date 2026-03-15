@@ -2,13 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import {
   Plus,
   Pencil,
   Trash2,
   Eye,
   EyeOff,
-  ShieldX,
   Search,
   BookOpen,
 } from "lucide-react";
@@ -23,31 +23,18 @@ import {
   EmptyState,
   SkeletonTable,
 } from "@/components/ui";
-
-// Animation variants
-const pageVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
-};
-
-const listVariants = {
-  visible: { transition: { staggerChildren: 0.04 } },
-};
-
-const rowVariants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
-};
+import { AccessDeniedScreen } from "@/components/AccessDeniedScreen";
+import { pageVariants, listVariants, rowVariants } from "./_constants";
 
 export default function AdminPage() {
-  const { token, isLoading: authLoading, accessDenied } = useAuth({ requireAdmin: "studies" });
+  const { user, isLoading: authLoading, accessDenied } = useAuth({ requireAdmin: "studies" });
   const [studies, setStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
   useEffect(() => {
-    if (authLoading || !token || accessDenied) return;
+    if (authLoading || !user || accessDenied) return;
     const controller = new AbortController();
 
     const fetchStudies = async () => {
@@ -58,7 +45,7 @@ export default function AdminPage() {
         }
       } catch (error) {
         if (!controller.signal.aborted) {
-          console.error("Erreur:", error);
+          // Erreur silencieuse — état loading gère l'affichage
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -69,7 +56,7 @@ export default function AdminPage() {
 
     fetchStudies();
     return () => controller.abort();
-  }, [authLoading, token, accessDenied]);
+  }, [authLoading, user, accessDenied]);
 
   // useCallback + functional state update (Issue #19)
   const handleDelete = useCallback(async (id: number) => {
@@ -79,7 +66,7 @@ export default function AdminPage() {
       await api.delete(`/api/studies/${id}`);
       setStudies((prev) => prev.filter((s) => s.id !== id));
     } catch (error) {
-      console.error("Erreur:", error);
+      // Erreur silencieuse
     }
   }, []);
 
@@ -92,29 +79,7 @@ export default function AdminPage() {
     return matchesSearch && matchesStatus;
   });
 
-  // Access Denied screen
-  if (accessDenied) {
-    return (
-      <div className="flex items-center justify-center p-4 min-h-[60vh]">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center max-w-md"
-        >
-          <div className="bg-danger-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-            <ShieldX className="h-10 w-10 text-danger-600" aria-hidden="true" />
-          </div>
-          <h1 className="font-heading text-2xl font-bold text-surface-900 mb-2">Accès refusé</h1>
-          <p className="text-surface-500 mb-6">
-            Cette page est réservée aux administrateurs. Vous n&apos;avez pas les permissions nécessaires pour y accéder.
-          </p>
-          <Button variant="primary" size="lg" onClick={() => window.location.href = "/dashboard"}>
-            Retour au dashboard
-          </Button>
-        </motion.div>
-      </div>
-    );
-  }
+  if (accessDenied) return <AccessDeniedScreen />;
 
   // Loading skeleton
   if (authLoading || loading) {
@@ -160,13 +125,14 @@ export default function AdminPage() {
             {studies.length} étude{studies.length !== 1 ? "s" : ""} au total
           </p>
         </div>
-        <Button
-          variant="primary"
-          icon={<Plus className="h-4 w-4" />}
-          onClick={() => window.location.href = "/admin/ajouter"}
-        >
-          Nouvelle Étude
-        </Button>
+        <Link href="/admin/ajouter">
+          <Button
+            variant="primary"
+            icon={<Plus className="h-4 w-4" />}
+          >
+            Nouvelle Étude
+          </Button>
+        </Link>
       </div>
 
       {/* Filters */}
@@ -216,14 +182,15 @@ export default function AdminPage() {
                       description={searchTerm ? "Essayez de modifier vos critères de recherche." : "Créez votre première étude pour commencer."}
                       action={
                         !searchTerm ? (
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            icon={<Plus className="h-4 w-4" />}
-                            onClick={() => window.location.href = "/admin/ajouter"}
-                          >
-                            Créer une étude
-                          </Button>
+                          <Link href="/admin/ajouter">
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              icon={<Plus className="h-4 w-4" />}
+                            >
+                              Créer une étude
+                            </Button>
+                          </Link>
                         ) : undefined
                       }
                     />

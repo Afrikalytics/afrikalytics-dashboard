@@ -12,7 +12,7 @@ import { useRouter } from "next/navigation";
 import type { User } from "../types";
 import { ROUTES, ADMIN_PERMISSIONS } from "../constants";
 import type { AdminRolePermissions } from "../types";
-import { clearSession, getSession } from "../api";
+import { clearSession, getSession, api } from "../api";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -30,8 +30,6 @@ export interface UseAuthOptions {
 export interface UseAuthReturn {
   /** The authenticated user, or null while loading / not logged in */
   user: User | null;
-  /** The JWT token, or null */
-  token: string | null;
   /** True while checking auth state */
   isLoading: boolean;
   /** True if the user has admin privileges */
@@ -57,7 +55,6 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthReturn {
 
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
 
@@ -65,7 +62,6 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthReturn {
   const logout = useCallback(async () => {
     await clearSession();
     setUser(null);
-    setToken(null);
     router.push(ROUTES.LOGIN);
   }, [router]);
 
@@ -97,33 +93,42 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthReturn {
           return;
         }
 
-        const parsedUser = session.user;
+        let verifiedUser = session.user;
 
-        // Admin check
+        // For admin pages, verify admin status via backend API call
+        // to prevent privilege escalation via cookie tampering
         if (requireAdmin) {
-          if (!parsedUser.is_admin) {
+          try {
+            const backendUser = await api.get<User>("/api/users/me");
+            verifiedUser = backendUser;
+          } catch {
+            // If backend validation fails, deny access
             setAccessDenied(true);
-            setUser(parsedUser);
-            setToken(session.token);
+            setUser(session.user);
+            setIsLoading(false);
+            return;
+          }
+
+          if (!verifiedUser.is_admin) {
+            setAccessDenied(true);
+            setUser(verifiedUser);
             setIsLoading(false);
             return;
           }
 
           if (typeof requireAdmin === "string") {
-            const role = parsedUser.admin_role || "super_admin";
+            const role = verifiedUser.admin_role || "super_admin";
             const perms = ADMIN_PERMISSIONS[role];
             if (!perms?.[requireAdmin]) {
               setAccessDenied(true);
-              setUser(parsedUser);
-              setToken(session.token);
+              setUser(verifiedUser);
               setIsLoading(false);
               return;
             }
           }
         }
 
-        setUser(parsedUser);
-        setToken(session.token);
+        setUser(verifiedUser);
         setIsLoading(false);
       } catch {
         if (!cancelled) {
@@ -144,7 +149,6 @@ export function useAuth(options: UseAuthOptions = {}): UseAuthReturn {
 
   return {
     user,
-    token,
     isLoading,
     isAdmin: user?.is_admin ?? false,
     accessDenied,

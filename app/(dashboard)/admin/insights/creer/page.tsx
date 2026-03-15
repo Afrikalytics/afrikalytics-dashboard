@@ -46,7 +46,7 @@ const sectionVariants = {
 
 export default function CreerInsightPage() {
   const router = useRouter();
-  const { token, isLoading: authLoading } = useAuth({ requireAdmin: "insights" });
+  const { user, isLoading: authLoading } = useAuth({ requireAdmin: "insights" });
   const [loading, setLoading] = useState(false);
   const [studies, setStudies] = useState<StudyOption[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([""]);
@@ -60,7 +60,7 @@ export default function CreerInsightPage() {
   });
 
   useEffect(() => {
-    if (authLoading || !token) return;
+    if (authLoading || !user) return;
     const controller = new AbortController();
 
     const fetchClosedStudies = async () => {
@@ -74,14 +74,14 @@ export default function CreerInsightPage() {
         }
       } catch (error) {
         if (!controller.signal.aborted) {
-          console.error("Erreur:", error);
+          // Erreur silencieuse
         }
       }
     };
 
     fetchClosedStudies();
     return () => controller.abort();
-  }, [authLoading, token]);
+  }, [authLoading, user]);
 
   const addImageField = () => {
     setImageUrls([...imageUrls, ""]);
@@ -115,7 +115,6 @@ export default function CreerInsightPage() {
       });
       router.push("/admin/insights");
     } catch (error) {
-      console.error("Erreur:", error);
       alert(error instanceof Error ? error.message : "Erreur lors de la création");
     } finally {
       setLoading(false);

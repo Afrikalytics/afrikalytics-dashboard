@@ -177,6 +177,37 @@ export interface NewsletterSubscriber {
 }
 
 // -----------------------------------------------------------------------------
+// Notifications
+// -----------------------------------------------------------------------------
+
+/** Notification types matching backend enum */
+export type NotificationType =
+  | 'study_created'
+  | 'insight_generated'
+  | 'payment_confirmed'
+  | 'anomaly_detected'
+  | 'system';
+
+/** In-app notification object returned by the API */
+export interface Notification {
+  id: number;
+  type: NotificationType;
+  title: string;
+  message: string;
+  is_read: boolean;
+  metadata?: Record<string, unknown>;
+  created_at: string;
+  read_at?: string;
+}
+
+/** Paginated notification list response */
+export interface NotificationListResponse {
+  notifications: Notification[];
+  unread_count: number;
+  total: number;
+}
+
+// -----------------------------------------------------------------------------
 // Contact
 // -----------------------------------------------------------------------------
 
@@ -187,6 +218,50 @@ export interface Contact {
   subject: string;
   message: string;
   created_at: string;
+}
+
+// -----------------------------------------------------------------------------
+// Payments / Billing
+// -----------------------------------------------------------------------------
+
+export interface PaymentHistoryItem {
+  id: number;
+  amount: number;
+  currency: string;
+  status: "completed" | "pending" | "failed" | "refunded";
+  plan: string;
+  payment_method: string;
+  created_at: string;
+  reference: string | null;
+}
+
+export interface PaymentHistoryResponse {
+  payments: PaymentHistoryItem[];
+  total: number;
+  current_page: number;
+}
+
+export interface PlanFeatures {
+  max_studies: number;
+  max_team_members: number;
+  export_pdf: boolean;
+  api_access: boolean;
+  custom_branding: boolean;
+  price_monthly: number;
+  price_label: string;
+}
+
+export interface CurrentPlanResponse {
+  plan: string;
+  is_active: boolean;
+  expires_at: string | null;
+  features: PlanFeatures;
+}
+
+export interface PlanInfo {
+  name: string;
+  key: string;
+  features: PlanFeatures;
 }
 
 // -----------------------------------------------------------------------------

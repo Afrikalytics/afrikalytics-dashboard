@@ -42,11 +42,10 @@ export async function clearSession(): Promise<void> {
   await fetch("/api/auth/session", { method: "DELETE" });
 }
 
-/** Get current session from httpOnly cookies */
+/** Get current session from httpOnly cookies (token is never exposed to client JS) */
 export async function getSession(): Promise<{
   authenticated: boolean;
   user: User | null;
-  token: string | null;
 }> {
   const res = await fetch("/api/auth/session");
   return res.json();

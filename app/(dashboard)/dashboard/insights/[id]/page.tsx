@@ -83,7 +83,7 @@ export default function InsightDetailPage() {
           setStudy(studyData);
         } catch {}
       } catch (error) {
-        console.error("Erreur:", error);
+        // Erreur silencieuse — état loading/empty gère l'affichage
       } finally {
         setLoading(false);
       }

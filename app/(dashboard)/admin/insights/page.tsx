@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   Plus,
   Pencil,
   Trash2,
   Eye,
   EyeOff,
-  ShieldX,
   Lightbulb,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -23,29 +23,17 @@ import {
   EmptyState,
   SkeletonTable,
 } from "@/components/ui";
-
-const pageVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
-};
-
-const listVariants = {
-  visible: { transition: { staggerChildren: 0.04 } },
-};
-
-const rowVariants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
-};
+import { AccessDeniedScreen } from "@/components/AccessDeniedScreen";
+import { pageVariants, listVariants, rowVariants } from "../_constants";
 
 export default function AdminInsightsPage() {
-  const { token, isLoading: authLoading, accessDenied } = useAuth({ requireAdmin: "insights" });
+  const { user, isLoading: authLoading, accessDenied } = useAuth({ requireAdmin: "insights" });
   const [insights, setInsights] = useState<Insight[]>([]);
   const [studies, setStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading || !token || accessDenied) return;
+    if (authLoading || !user || accessDenied) return;
     const controller = new AbortController();
 
     const fetchData = async () => {
@@ -59,7 +47,7 @@ export default function AdminInsightsPage() {
         setStudies(studiesData);
       } catch (error) {
         if (!controller.signal.aborted) {
-          console.error("Erreur:", error);
+          // Erreur silencieuse — état loading gère l'affichage
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -70,7 +58,7 @@ export default function AdminInsightsPage() {
 
     fetchData();
     return () => controller.abort();
-  }, [authLoading, token, accessDenied]);
+  }, [authLoading, user, accessDenied]);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cet insight ?")) return;
@@ -79,7 +67,7 @@ export default function AdminInsightsPage() {
       await api.delete(`/api/insights/${id}`);
       setInsights(insights.filter((i) => i.id !== id));
     } catch (error) {
-      console.error("Erreur:", error);
+      // Erreur silencieuse
     }
   };
 
@@ -87,29 +75,7 @@ export default function AdminInsightsPage() {
     return studies.filter((s) => s.status === "Fermé");
   };
 
-  // Access Denied screen
-  if (accessDenied) {
-    return (
-      <div className="flex items-center justify-center p-4 min-h-[60vh]">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center max-w-md"
-        >
-          <div className="bg-danger-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-            <ShieldX className="h-10 w-10 text-danger-600" aria-hidden="true" />
-          </div>
-          <h1 className="font-heading text-2xl font-bold text-surface-900 mb-2">Accès refusé</h1>
-          <p className="text-surface-500 mb-6">
-            Cette page est réservée aux administrateurs. Vous n&apos;avez pas les permissions nécessaires pour y accéder.
-          </p>
-          <Button variant="primary" size="lg" onClick={() => window.location.href = "/dashboard"}>
-            Retour au dashboard
-          </Button>
-        </motion.div>
-      </div>
-    );
-  }
+  if (accessDenied) return <AccessDeniedScreen />;
 
   if (authLoading || loading) {
     return (
@@ -149,13 +115,14 @@ export default function AdminInsightsPage() {
           </h1>
           <p className="text-surface-500 mt-1">Rédigez des analyses pour les études fermées</p>
         </div>
-        <Button
-          variant="primary"
-          icon={<Plus className="h-4 w-4" />}
-          onClick={() => window.location.href = "/admin/insights/creer"}
-        >
-          Nouvel Insight
-        </Button>
+        <Link href="/admin/insights/creer">
+          <Button
+            variant="primary"
+            icon={<Plus className="h-4 w-4" />}
+          >
+            Nouvel Insight
+          </Button>
+        </Link>
       </div>
 
       {/* Info Box */}
@@ -187,14 +154,15 @@ export default function AdminInsightsPage() {
                       title="Aucun insight"
                       description="Créez votre premier insight pour une étude fermée."
                       action={
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          icon={<Plus className="h-4 w-4" />}
-                          onClick={() => window.location.href = "/admin/insights/creer"}
-                        >
-                          Créer un insight
-                        </Button>
+                        <Link href="/admin/insights/creer">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            icon={<Plus className="h-4 w-4" />}
+                          >
+                            Créer un insight
+                          </Button>
+                        </Link>
                       }
                     />
                   </td>

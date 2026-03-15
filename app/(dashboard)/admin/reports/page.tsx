@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import {
   Plus,
   Trash2,
   Eye,
   EyeOff,
   Download,
-  ShieldX,
   FileText,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -23,6 +23,8 @@ import {
   EmptyState,
   SkeletonTable,
 } from "@/components/ui";
+import { AccessDeniedScreen } from "@/components/AccessDeniedScreen";
+import { pageVariants, listVariants, rowVariants } from "../_constants";
 
 interface ReportAdmin {
   id: number;
@@ -35,28 +37,14 @@ interface ReportAdmin {
   is_available: boolean;
 }
 
-const pageVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
-};
-
-const listVariants = {
-  visible: { transition: { staggerChildren: 0.04 } },
-};
-
-const rowVariants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
-};
-
 export default function AdminReportsPage() {
-  const { token, isLoading: authLoading, accessDenied } = useAuth({ requireAdmin: "reports" });
+  const { user, isLoading: authLoading, accessDenied } = useAuth({ requireAdmin: "reports" });
   const [reports, setReports] = useState<ReportAdmin[]>([]);
   const [studies, setStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading || !token || accessDenied) return;
+    if (authLoading || !user || accessDenied) return;
     const controller = new AbortController();
 
     const fetchData = async () => {
@@ -70,7 +58,7 @@ export default function AdminReportsPage() {
         setStudies(studiesData);
       } catch (error) {
         if (!controller.signal.aborted) {
-          console.error("Erreur:", error);
+          // Erreur silencieuse — état loading gère l'affichage
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -81,7 +69,7 @@ export default function AdminReportsPage() {
 
     fetchData();
     return () => controller.abort();
-  }, [authLoading, token, accessDenied]);
+  }, [authLoading, user, accessDenied]);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce rapport ?")) return;
@@ -90,7 +78,7 @@ export default function AdminReportsPage() {
       await api.delete(`/api/reports/${id}`);
       setReports(reports.filter((r) => r.id !== id));
     } catch (error) {
-      console.error("Erreur:", error);
+      // Erreur silencieuse
     }
   };
 
@@ -98,29 +86,7 @@ export default function AdminReportsPage() {
     return studies.filter((s) => s.status === "Fermé");
   };
 
-  // Access Denied screen
-  if (accessDenied) {
-    return (
-      <div className="flex items-center justify-center p-4 min-h-[60vh]">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center max-w-md"
-        >
-          <div className="bg-danger-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-            <ShieldX className="h-10 w-10 text-danger-600" aria-hidden="true" />
-          </div>
-          <h1 className="font-heading text-2xl font-bold text-surface-900 mb-2">Accès refusé</h1>
-          <p className="text-surface-500 mb-6">
-            Cette page est réservée aux administrateurs. Vous n&apos;avez pas les permissions nécessaires pour y accéder.
-          </p>
-          <Button variant="primary" size="lg" onClick={() => window.location.href = "/dashboard"}>
-            Retour au dashboard
-          </Button>
-        </motion.div>
-      </div>
-    );
-  }
+  if (accessDenied) return <AccessDeniedScreen />;
 
   if (authLoading || loading) {
     return (
@@ -160,13 +126,14 @@ export default function AdminReportsPage() {
           </h1>
           <p className="text-surface-500 mt-1">Uploadez des rapports PDF pour les études fermées</p>
         </div>
-        <Button
-          variant="primary"
-          icon={<Plus className="h-4 w-4" />}
-          onClick={() => window.location.href = "/admin/reports/ajouter"}
-        >
-          Nouveau Rapport
-        </Button>
+        <Link href="/admin/reports/ajouter">
+          <Button
+            variant="primary"
+            icon={<Plus className="h-4 w-4" />}
+          >
+            Nouveau Rapport
+          </Button>
+        </Link>
       </div>
 
       {/* Info Box */}
@@ -199,14 +166,15 @@ export default function AdminReportsPage() {
                       title="Aucun rapport"
                       description="Ajoutez votre premier rapport pour une étude fermée."
                       action={
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          icon={<Plus className="h-4 w-4" />}
-                          onClick={() => window.location.href = "/admin/reports/ajouter"}
-                        >
-                          Ajouter un rapport
-                        </Button>
+                        <Link href="/admin/reports/ajouter">
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            icon={<Plus className="h-4 w-4" />}
+                          >
+                            Ajouter un rapport
+                          </Button>
+                        </Link>
                       }
                     />
                   </td>

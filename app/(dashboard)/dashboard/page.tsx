@@ -76,7 +76,7 @@ function getActivityData() {
 // -----------------------------------------------------------------------------
 
 export default function DashboardPage() {
-  const { user, token, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [studies, setStudies] = useState<any[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [quota, setQuota] = useState<QuotaData | null>(null);
@@ -84,7 +84,7 @@ export default function DashboardPage() {
   const [activityData] = useState(getActivityData);
 
   useEffect(() => {
-    if (authLoading || !token) return;
+    if (authLoading || !user) return;
 
     const fetchAllData = async () => {
       try {
@@ -98,14 +98,14 @@ export default function DashboardPage() {
         if (statsData) setStats(statsData);
         if (quotaData) setQuota(quotaData);
       } catch (error) {
-        console.error("Erreur chargement données:", error);
+        // Erreur silencieuse — les états loading/empty gèrent l'affichage
       } finally {
         setLoading(false);
       }
     };
 
     fetchAllData();
-  }, [authLoading, token]);
+  }, [authLoading, user]);
 
   if (authLoading || loading) return <DashboardPageSkeleton />;
 

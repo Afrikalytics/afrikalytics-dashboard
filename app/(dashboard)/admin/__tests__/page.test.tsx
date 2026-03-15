@@ -40,13 +40,29 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 
-jest.mock('lucide-react', () => ({
-  Plus:    (props: Record<string, unknown>) => <span data-testid="icon-plus" {...props} />,
-  Pencil:  (props: Record<string, unknown>) => <span data-testid="icon-pencil" {...props} />,
-  Trash2:  (props: Record<string, unknown>) => <span data-testid="icon-trash2" {...props} />,
-  Eye:     (props: Record<string, unknown>) => <span data-testid="icon-eye" {...props} />,
-  EyeOff:  (props: Record<string, unknown>) => <span data-testid="icon-eyeoff" {...props} />,
-  ShieldX: (props: Record<string, unknown>) => <span data-testid="icon-shieldx" {...props} />,
+// Mock all lucide-react icons with a Proxy to handle any icon import
+jest.mock('lucide-react', () => {
+  const icons: Record<string, unknown> = {};
+  return new Proxy(icons, {
+    get: (_target, prop: string) => {
+      if (prop === '__esModule') return true;
+      return (props: Record<string, unknown>) => (
+        <span data-testid={`icon-${prop.toLowerCase()}`} {...props} />
+      );
+    },
+  });
+});
+
+// Mock next/link
+jest.mock('next/link', () => {
+  return ({ children, href, ...rest }: { children: React.ReactNode; href: string; [key: string]: unknown }) => (
+    <a href={href} {...rest}>{children}</a>
+  );
+});
+
+// Mock AccessDeniedScreen
+jest.mock('@/components/AccessDeniedScreen', () => ({
+  AccessDeniedScreen: () => <div data-testid="access-denied">Accès refusé</div>,
 }));
 
 // ---------------------------------------------------------------------------
@@ -96,7 +112,6 @@ const sampleStudies = [
 function setupAuthOk() {
   mockUseAuth.mockReturnValue({
     user: adminUser,
-    token: 'fake-token',
     isLoading: false,
     accessDenied: false,
     logout: jest.fn(),
@@ -115,7 +130,6 @@ describe('AdminPage', () => {
   it('should show access denied screen when user lacks admin permission', () => {
     mockUseAuth.mockReturnValue({
       user: { ...adminUser, is_admin: false },
-      token: 'fake-token',
       isLoading: false,
       accessDenied: true,
       logout: jest.fn(),
