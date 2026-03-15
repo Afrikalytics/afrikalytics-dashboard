@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React 18">
     <img src="https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript" alt="TypeScript">
     <img src="https://img.shields.io/badge/Tailwind_CSS-3.4-06B6D4?logo=tailwindcss" alt="Tailwind CSS">
-    <img src="https://img.shields.io/badge/Tests-87_unit_+_53_E2E-green" alt="Tests">
+    <img src="https://img.shields.io/badge/Tests-3_E2E_specs-green" alt="Tests">
     <img src="https://img.shields.io/badge/Deploy-Vercel-000?logo=vercel" alt="Vercel">
     <img src="https://img.shields.io/badge/Langue-Fran%C3%A7ais-blue" alt="Langue: Francais">
   </p>
@@ -113,32 +113,22 @@ docker compose up
 | `npm run build` | Build production + validation TypeScript |
 | `npm run start` | Serveur de production |
 | `npm run lint` | Analyse ESLint |
-| `npm test` | Tests unitaires Jest |
+| `npm test` | Tests unitaires Jest (framework configure, specs a ecrire) |
 | `npm run test:coverage` | Tests avec rapport de couverture |
 | `npm run test:e2e` | Tests E2E Playwright |
 | `npm run test:e2e:ui` | Tests E2E avec interface visuelle |
 
 ## Tests
 
-### Tests unitaires — 87 tests
+### Tests unitaires
 
 ```bash
 npm test
 ```
 
-| Page | Tests |
-|------|-------|
-| Login | 7 |
-| Register | 8 |
-| Verify Code | 6 |
-| Forgot Password | 6 |
-| Dashboard | 11 |
-| Etudes | 9 |
-| Admin | 8 |
-| Admin Users | 10 |
-| Profile | 11 |
+Le framework Jest + React Testing Library est configure (`jest.config.ts`). Les utilitaires de test partages (`__tests__/helpers.ts`) fournissent des mocks pour le router, fetch, localStorage et les icones Lucide. Les specs de test unitaires sont a ecrire (couverture actuelle : 0%).
 
-### Tests E2E — 53 specs Playwright
+### Tests E2E — 3 specs Playwright
 
 ```bash
 npm run test:e2e
@@ -150,31 +140,33 @@ Executes sur 3 viewports : Desktop Chrome, Mobile Safari, Tablet.
 
 ```
 afrikalytics-dashboard/
-├── app/                            # 22 pages (App Router, toutes "use client")
+├── app/                            # Pages (App Router, toutes "use client")
 │   ├── login/                      # Connexion
 │   ├── register/                   # Inscription
 │   ├── verify-code/                # Verification 2FA
 │   ├── forgot-password/            # Mot de passe oublie
 │   ├── reset-password/             # Reinitialisation mot de passe
-│   ├── dashboard/                  # Dashboard principal
-│   │   ├── etudes/                 # Liste + detail des etudes
-│   │   ├── insights/               # Liste + detail des insights
-│   │   └── equipe/                 # Gestion equipe (plan Entreprise)
-│   ├── profile/                    # Profil utilisateur
-│   ├── admin/                      # Administration
-│   │   ├── ajouter/                # Ajouter une etude
-│   │   ├── modifier/[id]/          # Modifier une etude
-│   │   ├── insights/               # Gestion insights
-│   │   ├── reports/                # Gestion rapports
-│   │   └── users/                  # Gestion utilisateurs (super_admin)
-│   └── payment-success/            # Confirmation post-paiement
+│   ├── payment-success/            # Confirmation post-paiement
+│   └── (dashboard)/                # Route group (layout partage avec sidebar)
+│       ├── layout.tsx              # Layout partage pour les pages authentifiees
+│       ├── dashboard/              # Dashboard principal
+│       │   ├── etudes/             # Liste + detail des etudes
+│       │   ├── insights/           # Liste + detail des insights
+│       │   └── equipe/             # Gestion equipe (plan Entreprise)
+│       ├── profile/                # Profil utilisateur
+│       └── admin/                  # Administration
+│           ├── ajouter/            # Ajouter une etude
+│           ├── modifier/[id]/      # Modifier une etude
+│           ├── insights/           # Gestion insights
+│           ├── reports/            # Gestion rapports
+│           └── users/              # Gestion utilisateurs (super_admin)
 ├── lib/
 │   ├── api.ts                      # Client API centralise (fetch + auth headers)
 │   ├── hooks/useAuth.ts            # Hook d'authentification
 │   └── types.ts                    # Types TypeScript partages
 ├── middleware.ts                    # Auth middleware Next.js (cookie-based)
-├── __tests__/                       # 87 tests unitaires Jest
-├── e2e/                             # 53 specs Playwright
+├── __tests__/                       # Utilitaires de test Jest (helpers.ts)
+├── e2e/                             # 3 specs Playwright (auth, admin, dashboard)
 ├── .github/workflows/
 │   ├── ci.yml                      # Pipeline CI (lint, test, build, security)
 │   └── claude-code.yml             # Integration Claude Code

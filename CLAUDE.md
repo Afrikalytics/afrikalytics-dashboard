@@ -17,7 +17,7 @@ npm run start    # Start production server
 npm run lint     # ESLint via next lint
 ```
 
-No test framework is configured yet. Part of the Afrikalytics monorepo workspace (see parent `CLAUDE.md`).
+Jest + React Testing Library configured (`jest.config.ts`), with shared test helpers in `__tests__/helpers.ts`. Playwright for E2E (3 specs in `e2e/`). Test specs to write (0% coverage). Part of the Afrikalytics monorepo workspace (see parent `CLAUDE.md`).
 
 ## Architecture
 
@@ -29,11 +29,11 @@ No test framework is configured yet. Part of the Afrikalytics monorepo workspace
 
 **State management:** Plain React `useState` + `useEffect` — no Redux, Zustand, or other state libraries. Data fetching uses native `fetch()` with manual loading/error handling.
 
-**Components:** No shared component library — each page is self-contained with all UI inline. No `lib/`, `utils/`, or `components/` directories. The root layout (`app/layout.tsx`) uses Inter font via `next/font/google`.
+**Components:** Shared code exists in `lib/` (`api.ts`, `hooks/useAuth.ts`, `types.ts`). The root layout (`app/layout.tsx`) uses Inter font via `next/font/google`.
 
-**Routing:** Next.js App Router. Every page is a client component (`"use client"`). The root `/` redirects to `/login`.
+**Routing:** Next.js App Router with route group `app/(dashboard)/` for authenticated pages (shared layout with sidebar). Public pages (`login`, `register`, etc.) remain at `app/` root. Every page is a client component (`"use client"`). The root `/` redirects to `/login`.
 
-**Recurring page pattern:** Most authenticated pages repeat the same boilerplate: (1) read `token`/`user` from `localStorage` in `useEffect`, (2) redirect to `/login` if missing, (3) render inline sidebar + main content. The sidebar and auth logic are copy-pasted across ~15 pages (known tech debt).
+**Remaining tech debt:** Some pages still use inline auth checks (localStorage) instead of the `useAuth` hook, and inline fetch instead of `lib/api.ts`.
 
 ### Key Routes
 
@@ -55,7 +55,7 @@ No test framework is configured yet. Part of the Afrikalytics monorepo workspace
 
 ### RBAC (Admin Roles)
 
-Admin permissions are defined in `app/dashboard/page.tsx` via `ADMIN_PERMISSIONS`:
+Admin permissions are defined in `app/(dashboard)/dashboard/page.tsx` via `ADMIN_PERMISSIONS`:
 
 - `super_admin` — full access (studies, insights, reports, users)
 - `admin_content` — studies, insights, reports

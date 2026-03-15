@@ -34,11 +34,11 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.up.railway.app https://*.vercel.app https://*.ingest.sentry.io; frame-src https://lookerstudio.google.com https://app.powerbi.com https://public.tableau.com https://datastudio.google.com;",
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.up.railway.app https://*.vercel.app https://*.ingest.sentry.io; frame-src https://lookerstudio.google.com https://app.powerbi.com https://public.tableau.com https://datastudio.google.com;",
           },
           {
             key: 'Content-Security-Policy-Report-Only',
-            value: "script-src 'self'; report-uri /api/csp-report",
+            value: "script-src 'self'",
           },
         ],
       },

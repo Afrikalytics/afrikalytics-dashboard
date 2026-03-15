@@ -8,9 +8,16 @@ import type { AdminRole, AdminRoleInfo, AdminRolePermissions } from "./types";
 // API
 // -----------------------------------------------------------------------------
 
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://web-production-ef657.up.railway.app";
+export const API_URL = (() => {
+  const url = process.env.NEXT_PUBLIC_API_URL;
+  if (!url) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('NEXT_PUBLIC_API_URL environment variable is required in production');
+    }
+    return 'http://localhost:8000';
+  }
+  return url;
+})();
 
 // -----------------------------------------------------------------------------
 // Routes
