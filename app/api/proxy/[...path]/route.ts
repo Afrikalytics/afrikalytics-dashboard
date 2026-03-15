@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL = (() => {
+function getApiUrl(): string {
   const url = process.env.NEXT_PUBLIC_API_URL;
   if (!url) {
     if (process.env.NODE_ENV === 'production') {
@@ -9,7 +9,7 @@ const API_URL = (() => {
     return 'http://localhost:8000';
   }
   return url;
-})();
+}
 
 const COOKIE_NAME = "auth-token";
 
@@ -21,7 +21,7 @@ async function proxyRequest(request: NextRequest, method: string) {
   // Extract the path after /api/proxy/
   const url = new URL(request.url);
   const proxyPath = url.pathname.replace(/^\/api\/proxy/, "");
-  const targetUrl = `${API_URL}${proxyPath}${url.search}`;
+  const targetUrl = `${getApiUrl()}${proxyPath}${url.search}`;
 
   // Build headers
   const headers: Record<string, string> = {

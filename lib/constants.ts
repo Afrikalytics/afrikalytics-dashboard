@@ -8,16 +8,25 @@ import type { AdminRole, AdminRoleInfo, AdminRolePermissions } from "./types";
 // API
 // -----------------------------------------------------------------------------
 
-export const API_URL = (() => {
-  const url = process.env.NEXT_PUBLIC_API_URL;
-  if (!url) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('NEXT_PUBLIC_API_URL environment variable is required in production');
+// Lazy-evaluated to avoid build-time errors during Next.js page data collection
+let _apiUrl: string | undefined;
+export function getApiUrl(): string {
+  if (!_apiUrl) {
+    const url = process.env.NEXT_PUBLIC_API_URL;
+    if (!url) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('NEXT_PUBLIC_API_URL environment variable is required in production');
+      }
+      return 'http://localhost:8000';
     }
-    return 'http://localhost:8000';
+    _apiUrl = url;
   }
-  return url;
-})();
+  return _apiUrl;
+}
+// Backward-compatible export — evaluated at first access in client components
+export const API_URL = typeof window !== 'undefined'
+  ? getApiUrl()
+  : 'http://localhost:8000';
 
 // -----------------------------------------------------------------------------
 // Routes
