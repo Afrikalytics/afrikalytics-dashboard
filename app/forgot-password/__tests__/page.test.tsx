@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import ForgotPasswordPage from '../page';
+import ForgotPasswordPage from '../ForgotPasswordForm';
 
 // ---------------------------------------------------------------------------
 // Mocks

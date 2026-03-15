@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { api, ApiRequestError } from "@/lib/api";
 import { PLAN_DETAILS, ROUTES } from "@/lib/constants";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -71,27 +72,18 @@ export default function ProfilePage() {
     setPasswordLoading(true);
 
     try {
-      const response = await fetch("/api/proxy/api/users/change-password", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          current_password: currentPassword,
-          new_password: newPassword,
-        }),
+      await api.put("/api/users/change-password", {
+        current_password: currentPassword,
+        new_password: newPassword,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Erreur lors du changement de mot de passe");
-      }
 
       setPasswordSuccess(true);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch (err: unknown) {
-      setPasswordError(err instanceof Error ? err.message : "Une erreur est survenue");
+      const message = err instanceof ApiRequestError ? err.detail : (err instanceof Error ? err.message : "Une erreur est survenue");
+      setPasswordError(message);
     } finally {
       setPasswordLoading(false);
     }

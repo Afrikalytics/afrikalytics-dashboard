@@ -49,7 +49,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             id={selectId}
             aria-invalid={error ? "true" : undefined}
-            aria-describedby={error ? errorId : undefined}
+            aria-describedby={error ? errorId : helper ? `${selectId}-helper` : undefined}
             className={`
               w-full rounded-lg border bg-white appearance-none cursor-pointer
               pl-4 pr-10 transition-all duration-150
@@ -86,7 +86,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           </p>
         )}
         {!error && helper && (
-          <p className="text-xs text-surface-500">{helper}</p>
+          <p id={`${selectId}-helper`} className="text-xs text-surface-500">{helper}</p>
         )}
       </div>
     );

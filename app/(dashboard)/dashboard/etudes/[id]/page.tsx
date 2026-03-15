@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   BarChart3,
@@ -16,7 +16,9 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import type { User, Insight } from "@/lib/types";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { api } from "@/lib/api";
+import type { Insight } from "@/lib/types";
 import { ROUTES } from "@/lib/constants";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -76,32 +78,17 @@ const fadeInUp = {
 
 export default function StudyResultsPage() {
   const params = useParams();
-  const router = useRouter();
+  const { user } = useAuth();
   const [study, setStudy] = useState<StudyDetail | null>(null);
-  const [user, setUser] = useState<User | null>(null);
   const [insight, setInsight] = useState<Insight | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await fetch("/api/auth/session");
-        const session = await res.json();
-        if (session.authenticated && session.user) {
-          setUser(session.user);
-        }
-      } catch {}
-    };
-    fetchUser();
-
     const fetchStudy = async () => {
       try {
-        const response = await fetch(`/api/proxy/api/studies/${params.id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setStudy(data);
-        }
+        const data = await api.get<StudyDetail>(`/api/studies/${params.id}`);
+        setStudy(data);
       } catch (error) {
         console.error("Erreur:", error);
       }
@@ -109,12 +96,9 @@ export default function StudyResultsPage() {
 
     const fetchInsight = async () => {
       try {
-        const response = await fetch(`/api/proxy/api/insights/study/${params.id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setInsight(data);
-        }
-      } catch (error) {
+        const data = await api.get<Insight>(`/api/insights/study/${params.id}`);
+        setInsight(data);
+      } catch {
         // Pas d'insight pour cette étude
       }
     };
@@ -149,9 +133,7 @@ export default function StudyResultsPage() {
     setDownloading(true);
 
     try {
-      await fetch(`/api/proxy/api/reports/study/${study.id}/type/${getReportType()}/download`, {
-        method: "POST",
-      });
+      await api.post(`/api/reports/study/${study.id}/type/${getReportType()}/download`);
     } catch (error) {
       console.error("Erreur tracking:", error);
     }

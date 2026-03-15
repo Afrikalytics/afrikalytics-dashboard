@@ -56,7 +56,7 @@ PRE_DEPLOY_SCRIPT="$ROOT_DIR/scripts/pre-deploy-check.sh"
 
 # Default URLs per environment
 API_URL_STAGING="${API_URL_STAGING:-https://afrikalytics-api-staging.up.railway.app}"
-API_URL_PRODUCTION="${API_URL_PRODUCTION:-https://web-production-ef657.up.railway.app}"
+API_URL_PRODUCTION="${API_URL_PRODUCTION:?ERROR: API_URL_PRODUCTION environment variable is required}"
 DASH_URL_STAGING="${DASH_URL_STAGING:-https://afrikalytics-staging.vercel.app}"
 DASH_URL_PRODUCTION="${DASH_URL_PRODUCTION:-https://afrikalytics.vercel.app}"
 

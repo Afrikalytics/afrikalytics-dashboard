@@ -79,6 +79,8 @@ export default function DashboardLayout({
 
       <main
         id="main-content"
+        role="main"
+        aria-label="Contenu principal"
         tabIndex={-1}
         className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8"
       >

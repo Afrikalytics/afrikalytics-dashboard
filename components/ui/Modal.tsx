@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useId } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 
@@ -43,6 +43,9 @@ export function Modal({
   footer,
   hideClose = false,
 }: ModalProps) {
+  const uniqueId = useId();
+  const titleId = `modal-title-${uniqueId}`;
+  const descriptionId = `modal-description-${uniqueId}`;
   const overlayRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -118,8 +121,8 @@ export function Modal({
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           role="dialog"
           aria-modal="true"
-          aria-labelledby={title ? "modal-title" : undefined}
-          aria-describedby={description ? "modal-description" : undefined}
+          aria-labelledby={title ? titleId : undefined}
+          aria-describedby={description ? descriptionId : undefined}
           onKeyDown={handleKeyDown}
         >
           {/* Overlay */}
@@ -153,12 +156,12 @@ export function Modal({
               <div className="flex items-start justify-between gap-4 p-6 pb-4 border-b border-surface-100">
                 <div>
                   {title && (
-                    <h2 id="modal-title" className="text-lg font-semibold text-surface-900 tracking-tight">
+                    <h2 id={titleId} className="text-lg font-semibold text-surface-900 tracking-tight">
                       {title}
                     </h2>
                   )}
                   {description && (
-                    <p id="modal-description" className="text-sm text-surface-500 mt-1">
+                    <p id={descriptionId} className="text-sm text-surface-500 mt-1">
                       {description}
                     </p>
                   )}

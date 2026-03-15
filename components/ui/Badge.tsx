@@ -19,6 +19,8 @@ interface BadgeProps {
   icon?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  /** Accessible label for screen readers when used as a status indicator */
+  "aria-label"?: string;
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
@@ -53,9 +55,12 @@ export function Badge({
   icon,
   children,
   className = "",
+  "aria-label": ariaLabel,
 }: BadgeProps) {
   return (
     <span
+      role={ariaLabel ? "status" : undefined}
+      aria-label={ariaLabel}
       className={`
         inline-flex items-center gap-1.5 font-medium rounded-md whitespace-nowrap
         ${variantStyles[variant]}

@@ -16,7 +16,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import type { User } from "@/lib/types";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { api } from "@/lib/api";
 import { ROUTES } from "@/lib/constants";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -66,36 +67,21 @@ const itemVariants = {
 
 export default function InsightDetailPage() {
   const params = useParams();
+  const { user } = useAuth();
   const [insight, setInsight] = useState<InsightDetail | null>(null);
   const [study, setStudy] = useState<StudyDetail | null>(null);
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await fetch("/api/auth/session");
-        const session = await res.json();
-        if (session.authenticated && session.user) {
-          setUser(session.user);
-        }
-      } catch {}
-    };
-    fetchUser();
-
     const fetchInsight = async () => {
       try {
-        const response = await fetch(`/api/proxy/api/insights/${params.id}`);
-        if (response.ok) {
-          const data = await response.json();
-          setInsight(data);
+        const data = await api.get<InsightDetail>(`/api/insights/${params.id}`);
+        setInsight(data);
 
-          const studyResponse = await fetch(`/api/proxy/api/studies/${data.study_id}`);
-          if (studyResponse.ok) {
-            const studyData = await studyResponse.json();
-            setStudy(studyData);
-          }
-        }
+        try {
+          const studyData = await api.get<StudyDetail>(`/api/studies/${data.study_id}`);
+          setStudy(studyData);
+        } catch {}
       } catch (error) {
         console.error("Erreur:", error);
       } finally {

@@ -10,7 +10,7 @@ Tu es un expert en intégration API spécialisé dans la communication entre un 
 ## Contexte projet
 - Frontend : Next.js (App Router) + React 18 + TypeScript
 - Backend : FastAPI sur Railway
-- Base URL : `https://web-production-ef657.up.railway.app` (hardcodé, devrait être `NEXT_PUBLIC_API_URL`)
+- Base URL : Centralized in `lib/constants.ts` as `API_URL` (from `NEXT_PUBLIC_API_URL` env var)
 - Auth : JWT Bearer token depuis localStorage
 - Tous les appels utilisent `fetch()` natif
 
@@ -54,18 +54,7 @@ Tu es un expert en intégration API spécialisé dans la communication entre un 
 |---------|----------|------|-------|
 | GET | `/api/dashboard/stats` | Oui | Statistiques |
 
-## Pattern d'appel API actuel (à remplacer)
-```tsx
-const API_URL = "https://web-production-ef657.up.railway.app";
-const token = localStorage.getItem("token");
-
-const res = await fetch(`${API_URL}/api/endpoint`, {
-  headers: { Authorization: `Bearer ${token}` },
-});
-const data = await res.json();
-```
-
-## Pattern cible (avec service centralisé)
+## Pattern d'appel API (service centralisé)
 ```tsx
 // lib/api.ts
 const API_URL = process.env.NEXT_PUBLIC_API_URL;

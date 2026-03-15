@@ -23,7 +23,7 @@ Jest + React Testing Library configured (`jest.config.ts`), with shared test hel
 
 **Stack:** Next.js 16 (App Router) + React 18 + TypeScript 5.7 + Tailwind CSS 3.4 + Lucide React icons. Note: `eslint-config-next` is pinned to 14.x for compatibility.
 
-**Backend:** External FastAPI API on Railway. Base URL hardcoded as `const API_URL = "https://web-production-ef657.up.railway.app"` in each page file (should eventually move to `NEXT_PUBLIC_API_URL` env var).
+**Backend:** External FastAPI API on Railway. Base URL is centralized in `lib/constants.ts` as `API_URL`, sourced from `NEXT_PUBLIC_API_URL` env var (falls back to `http://localhost:8000` in dev). All API calls go through `lib/api.ts` which imports this constant.
 
 **Auth:** JWT tokens stored in `localStorage` (`token` and `user` keys). All authenticated API calls use `Authorization: Bearer {token}` header. Login supports optional 2FA (6-digit code via `/verify-code`).
 

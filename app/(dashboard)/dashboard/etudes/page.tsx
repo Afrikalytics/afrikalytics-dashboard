@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { api } from "@/lib/api";
 import type { Study, Insight, Report } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -83,16 +84,10 @@ export default function EtudesListPage() {
 
   const fetchData = async () => {
     try {
-      const [studiesRes, insightsRes, reportsRes] = await Promise.all([
-        fetch("/api/proxy/api/studies").catch(() => null),
-        fetch("/api/proxy/api/insights").catch(() => null),
-        fetch("/api/proxy/api/reports").catch(() => null),
-      ]);
-
       const [studiesData, insightsData, reportsData] = await Promise.all([
-        studiesRes?.ok ? studiesRes.json().catch(() => null) : null,
-        insightsRes?.ok ? insightsRes.json().catch(() => null) : null,
-        reportsRes?.ok ? reportsRes.json().catch(() => null) : null,
+        api.get<Study[]>("/api/studies").catch(() => null),
+        api.get<Insight[]>("/api/insights").catch(() => null),
+        api.get<Report[]>("/api/reports").catch(() => null),
       ]);
 
       if (studiesData) setStudies(studiesData);
@@ -135,9 +130,7 @@ export default function EtudesListPage() {
 
   const handleDownloadReport = useCallback(async (report: Report) => {
     try {
-      await fetch(`/api/proxy/api/reports/${report.id}/download`, {
-        method: "POST",
-      });
+      await api.post(`/api/reports/${report.id}/download`);
       window.open(report.file_url, "_blank");
     } catch (error) {
       console.error("Erreur:", error);

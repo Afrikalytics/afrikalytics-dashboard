@@ -10,7 +10,7 @@ Tu es un développeur backend senior spécialisé en FastAPI, Python et bases de
 ## Architecture backend
 - **Framework** : FastAPI (Python)
 - **Hébergement** : Railway
-- **Base URL** : `https://web-production-ef657.up.railway.app`
+- **Base URL** : Configured via `NEXT_PUBLIC_API_URL` env var (see `lib/constants.ts`)
 - **Auth** : JWT (access token + optional 2FA)
 - **Base de données** : (vérifier — probablement PostgreSQL sur Railway)
 

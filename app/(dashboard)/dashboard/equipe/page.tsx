@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { api, ApiRequestError } from "@/lib/api";
 import {
   Users,
   Trash2,
@@ -166,7 +167,7 @@ function DeleteMemberModal({
 // -----------------------------------------------------------------------------
 
 export default function EntrepriseTeamPage() {
-  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
   const [teamData, setTeamData] = useState<TeamData | null>(null);
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
@@ -183,49 +184,27 @@ export default function EntrepriseTeamPage() {
   });
 
   useEffect(() => {
-    checkAccessAndFetchTeam();
-  }, []);
+    if (authLoading) return;
 
-  const checkAccessAndFetchTeam = async () => {
-    try {
-      const res = await fetch("/api/auth/session");
-      const session = await res.json();
-
-      if (!session.authenticated || !session.user) {
-        router.push("/login");
-        return;
-      }
-
-      const parsedUser = session.user;
-      if (parsedUser.plan !== "entreprise" || parsedUser.parent_user_id) {
-        setAccessDenied(true);
-        setLoading(false);
-        return;
-      }
-    } catch {
-      router.push("/login");
+    if (!user || user.plan !== "entreprise" || user.parent_user_id) {
+      setAccessDenied(true);
+      setLoading(false);
       return;
     }
 
     fetchTeam();
-  };
+  }, [authLoading, user]);
 
   const fetchTeam = async () => {
     try {
-      const response = await fetch("/api/proxy/api/enterprise/team");
-
-      if (response.status === 403) {
-        setAccessDenied(true);
-        setLoading(false);
-        return;
-      }
-
-      if (!response.ok) throw new Error("Erreur chargement");
-
-      const data = await response.json();
+      const data = await api.get<TeamData>("/api/enterprise/team");
       setTeamData(data);
     } catch (err) {
-      console.error(err);
+      if (err instanceof ApiRequestError && err.status === 403) {
+        setAccessDenied(true);
+      } else {
+        console.error(err);
+      }
     } finally {
       setLoading(false);
     }
@@ -236,18 +215,7 @@ export default function EntrepriseTeamPage() {
     setError("");
 
     try {
-      const response = await fetch("/api/proxy/api/enterprise/team/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Erreur lors de l'ajout");
-      }
-
+      await api.post("/api/enterprise/team/add", formData);
       setSuccess(
         `${formData.full_name} a été ajouté(e) à votre équipe. Un email lui a été envoyé.`
       );
@@ -255,7 +223,8 @@ export default function EntrepriseTeamPage() {
       setFormData({ email: "", full_name: "" });
       fetchTeam();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+      const message = err instanceof ApiRequestError ? err.detail : (err instanceof Error ? err.message : "Une erreur est survenue");
+      setError(message);
     } finally {
       setActionLoading(false);
     }
@@ -266,24 +235,14 @@ export default function EntrepriseTeamPage() {
     setActionLoading(true);
 
     try {
-      const response = await fetch(
-        `/api/proxy/api/enterprise/team/${selectedMember.id}`,
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || "Erreur suppression");
-      }
-
+      await api.delete(`/api/enterprise/team/${selectedMember.id}`);
       setSuccess(`${selectedMember.full_name} a été retiré(e) de votre équipe.`);
       setShowDeleteModal(false);
       setSelectedMember(null);
       fetchTeam();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+      const message = err instanceof ApiRequestError ? err.detail : (err instanceof Error ? err.message : "Une erreur est survenue");
+      setError(message);
     } finally {
       setActionLoading(false);
     }

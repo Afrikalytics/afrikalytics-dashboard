@@ -149,9 +149,9 @@ jobs:
         run: |
           ENV="${{ needs.pre-deploy.outputs.environment }}"
           if [[ "$ENV" == "production" ]]; then
-            echo "api_url=${{ secrets.API_URL_PRODUCTION || 'https://web-production-ef657.up.railway.app' }}" >> $GITHUB_OUTPUT
+            echo "api_url=${{ secrets.API_URL_PRODUCTION }}" >> $GITHUB_OUTPUT
           else
-            echo "api_url=${{ secrets.API_URL_STAGING || 'https://afrikalytics-api-staging.up.railway.app' }}" >> $GITHUB_OUTPUT
+            echo "api_url=${{ secrets.API_URL_STAGING }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Install Railway CLI
@@ -231,11 +231,11 @@ jobs:
           ENV="${{ needs.pre-deploy.outputs.environment }}"
           if [[ "$ENV" == "production" ]]; then
             echo "dash_url=${{ secrets.DASH_URL_PRODUCTION || 'https://afrikalytics.vercel.app' }}" >> $GITHUB_OUTPUT
-            echo "api_url=${{ secrets.API_URL_PRODUCTION || 'https://web-production-ef657.up.railway.app' }}" >> $GITHUB_OUTPUT
+            echo "api_url=${{ secrets.API_URL_PRODUCTION }}" >> $GITHUB_OUTPUT
             echo "vercel_flag=--prod" >> $GITHUB_OUTPUT
           else
             echo "dash_url=${{ secrets.DASH_URL_STAGING || 'https://afrikalytics-staging.vercel.app' }}" >> $GITHUB_OUTPUT
-            echo "api_url=${{ secrets.API_URL_STAGING || 'https://afrikalytics-api-staging.up.railway.app' }}" >> $GITHUB_OUTPUT
+            echo "api_url=${{ secrets.API_URL_STAGING }}" >> $GITHUB_OUTPUT
             echo "vercel_flag=" >> $GITHUB_OUTPUT
           fi
 
@@ -317,10 +317,10 @@ jobs:
         run: |
           ENV="${{ needs.pre-deploy.outputs.environment }}"
           if [[ "$ENV" == "production" ]]; then
-            echo "api_url=${{ secrets.API_URL_PRODUCTION || 'https://web-production-ef657.up.railway.app' }}" >> $GITHUB_OUTPUT
+            echo "api_url=${{ secrets.API_URL_PRODUCTION }}" >> $GITHUB_OUTPUT
             echo "dash_url=${{ secrets.DASH_URL_PRODUCTION || 'https://afrikalytics.vercel.app' }}" >> $GITHUB_OUTPUT
           else
-            echo "api_url=${{ secrets.API_URL_STAGING || 'https://afrikalytics-api-staging.up.railway.app' }}" >> $GITHUB_OUTPUT
+            echo "api_url=${{ secrets.API_URL_STAGING }}" >> $GITHUB_OUTPUT
             echo "dash_url=${{ secrets.DASH_URL_STAGING || 'https://afrikalytics-staging.vercel.app' }}" >> $GITHUB_OUTPUT
           fi
 

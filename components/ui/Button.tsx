@@ -72,7 +72,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <motion.button
         ref={ref}
+        type={props.type || "button"}
         disabled={isDisabled}
+        aria-busy={loading || undefined}
+        aria-disabled={isDisabled || undefined}
         whileHover={isDisabled ? undefined : { scale: 1.02 }}
         whileTap={isDisabled ? undefined : { scale: 0.98 }}
         transition={{ type: "spring", stiffness: 400, damping: 25 }}

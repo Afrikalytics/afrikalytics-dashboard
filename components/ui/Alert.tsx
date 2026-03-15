@@ -74,8 +74,8 @@ export function Alert({
         ${config.bg} ${config.border} ${config.text}
         ${className}
       `}
-      role="alert"
-      aria-live="polite"
+      role={variant === "error" ? "alert" : "status"}
+      aria-live={variant === "error" ? "assertive" : "polite"}
     >
       <Icon className="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
       <div className="flex-1 min-w-0">

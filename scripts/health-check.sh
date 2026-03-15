@@ -6,7 +6,7 @@
 #   ./scripts/health-check.sh [api|dashboard|all]
 #
 # Environment variables:
-#   API_URL         — API base URL (default: https://web-production-ef657.up.railway.app)
+#   API_URL         — API base URL (required)
 #   DASHBOARD_URL   — Dashboard base URL (default: https://afrikalytics.vercel.app)
 #   HEALTH_TIMEOUT  — curl timeout in seconds (default: 10)
 #
@@ -32,7 +32,7 @@ log_error()   { echo -e "${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} ${RED}FAIL${
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-API_URL="${API_URL:-https://web-production-ef657.up.railway.app}"
+API_URL="${API_URL:?ERROR: API_URL environment variable is required}"
 DASHBOARD_URL="${DASHBOARD_URL:-https://afrikalytics.vercel.app}"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-10}"
 TARGET="${1:-all}"

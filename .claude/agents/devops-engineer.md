@@ -19,7 +19,7 @@ Tu es un ingénieur DevOps senior spécialisé dans les déploiements d'applicat
 ### Backend — Railway
 - **Plateforme** : Railway
 - **Framework** : FastAPI (Python)
-- **URL** : `https://web-production-ef657.up.railway.app`
+- **URL** : Configured via `API_URL_PRODUCTION` env var (set in GitHub Secrets and Railway)
 - **État** : déployé, pas de monitoring connu
 
 ### État actuel (audit)
@@ -99,7 +99,7 @@ jobs:
 
 #### Vercel (Frontend)
 ```
-NEXT_PUBLIC_API_URL=https://web-production-ef657.up.railway.app
+NEXT_PUBLIC_API_URL=<set via secrets — do not hardcode>
 NEXT_PUBLIC_APP_ENV=production
 ```
 

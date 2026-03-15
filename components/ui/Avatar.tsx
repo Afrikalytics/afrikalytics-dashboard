@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 // =============================================================================
 // Avatar — Design System (Corporate Premium)
 // =============================================================================
@@ -8,6 +10,13 @@
 // =============================================================================
 
 type AvatarSize = "sm" | "md" | "lg" | "xl";
+
+const avatarPixelSize: Record<AvatarSize, number> = {
+  sm: 32,
+  md: 40,
+  lg: 48,
+  xl: 64,
+};
 
 interface AvatarProps {
   name?: string;
@@ -57,9 +66,11 @@ export function Avatar({ name = "", src, size = "md", status, className = "" }: 
   return (
     <div className={`relative inline-flex shrink-0 ${className}`}>
       {src ? (
-        <img
+        <Image
           src={src}
           alt={name}
+          width={avatarPixelSize[size]}
+          height={avatarPixelSize[size]}
           className={`${styles.container} rounded-full object-cover ring-2 ring-white shadow-sm`}
         />
       ) : (

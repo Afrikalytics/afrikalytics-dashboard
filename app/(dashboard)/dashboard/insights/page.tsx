@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { api } from "@/lib/api";
 import type { Insight, Study } from "@/lib/types";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -66,14 +67,9 @@ export default function InsightsListPage() {
 
   const fetchData = async () => {
     try {
-      const [insightsRes, studiesRes] = await Promise.all([
-        fetch("/api/proxy/api/insights").catch(() => null),
-        fetch("/api/proxy/api/studies").catch(() => null),
-      ]);
-
       const [insightsData, studiesData] = await Promise.all([
-        insightsRes?.ok ? insightsRes.json().catch(() => null) : null,
-        studiesRes?.ok ? studiesRes.json().catch(() => null) : null,
+        api.get<Insight[]>("/api/insights").catch(() => null),
+        api.get<Study[]>("/api/studies").catch(() => null),
       ]);
 
       if (insightsData) setInsights(insightsData);

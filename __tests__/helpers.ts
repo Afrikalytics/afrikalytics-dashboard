@@ -6,6 +6,7 @@
 // =============================================================================
 
 import React from "react";
+import type { AdminRole } from "@/lib/types";
 
 // -----------------------------------------------------------------------------
 // Router mock
@@ -178,7 +179,7 @@ export function makeUser(overrides: Partial<{
   plan: "basic" | "professionnel" | "entreprise";
   is_active: boolean;
   is_admin: boolean;
-  admin_role: string | null;
+  admin_role: AdminRole | null;
   parent_user_id: number | null;
   is_verified: boolean;
   created_at: string;

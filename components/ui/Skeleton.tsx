@@ -16,6 +16,7 @@ export function Skeleton({ className = "h-4 w-full" }: SkeletonProps) {
     <div
       className={`relative overflow-hidden rounded bg-surface-100 ${className}`}
       aria-hidden="true"
+      role="presentation"
     >
       <div className="absolute inset-0 -translate-x-full animate-[shimmer_2s_infinite] bg-gradient-to-r from-transparent via-surface-200/60 to-transparent" />
     </div>

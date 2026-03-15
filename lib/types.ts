@@ -188,3 +188,55 @@ export interface Contact {
   message: string;
   created_at: string;
 }
+
+// -----------------------------------------------------------------------------
+// Dashboard Builder
+// -----------------------------------------------------------------------------
+
+/** Chart/widget types available in the Dashboard Builder */
+export type ChartType =
+  | 'bar' | 'line' | 'area' | 'pie' | 'donut'
+  | 'scatter' | 'radar' | 'funnel'
+  | 'stat-card' | 'table' | 'kpi';
+
+/** Configuration options for a dashboard widget's visual rendering */
+export interface WidgetConfig {
+  colors?: string[];
+  showLegend?: boolean;
+  showGrid?: boolean;
+  xAxisKey?: string;
+  yAxisKeys?: string[];
+  valueKey?: string;
+  labelKey?: string;
+  unit?: string;
+  format?: 'number' | 'currency' | 'percent';
+}
+
+/** A single widget placed on a custom dashboard */
+export interface DashboardWidget {
+  id: string;
+  type: ChartType;
+  title: string;
+  description?: string;
+  position: { x: number; y: number; w: number; h: number };
+  config: WidgetConfig;
+  dataSource: {
+    studyId?: number;
+    columns: string[];
+    filters?: Record<string, unknown>;
+    aggregation?: 'sum' | 'avg' | 'count' | 'min' | 'max';
+  };
+}
+
+/** A complete dashboard layout containing positioned widgets */
+export interface DashboardLayout {
+  id: string;
+  name: string;
+  description?: string;
+  widgets: DashboardWidget[];
+  createdAt: string;
+  updatedAt: string;
+  userId: number;
+  isTemplate?: boolean;
+  templateCategory?: string;
+}

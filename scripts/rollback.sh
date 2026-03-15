@@ -45,7 +45,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 TARGET="${1:-all}"
 COMMIT_HASH="${2:-}"
 
-API_URL="${API_URL:-https://web-production-ef657.up.railway.app}"
+API_URL="${API_URL:?ERROR: API_URL environment variable is required}"
 DASHBOARD_URL="${DASHBOARD_URL:-https://afrikalytics.vercel.app}"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-15}"
 
