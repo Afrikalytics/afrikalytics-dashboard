@@ -3,6 +3,10 @@ const { withSentryConfig } = require("@sentry/nextjs");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Silence "webpack config without turbopack config" error in Next.js 16.
+  // We use --webpack for builds (Sentry SDK doesn't fully support Turbopack yet),
+  // but this empty key prevents the error if Turbopack is ever enabled.
+  turbopack: {},
   async headers() {
     return [
       {
