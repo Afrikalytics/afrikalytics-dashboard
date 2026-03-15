@@ -22,6 +22,7 @@ import {
   Select,
   EmptyState,
   PageSkeleton,
+  Alert,
 } from "@/components/ui";
 
 interface StudyOption {
@@ -48,6 +49,7 @@ export default function CreerInsightPage() {
   const router = useRouter();
   const { user, isLoading: authLoading } = useAuth({ requireAdmin: "insights" });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [studies, setStudies] = useState<StudyOption[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([""]);
   const [formData, setFormData] = useState({
@@ -104,6 +106,7 @@ export default function CreerInsightPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
     // Filtrer les URLs vides
     const validImages = imageUrls.filter((url) => url.trim() !== "");
@@ -114,8 +117,8 @@ export default function CreerInsightPage() {
         images: validImages.length > 0 ? validImages : null,
       });
       router.push("/admin/insights");
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Erreur lors de la création");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur lors de la création");
     } finally {
       setLoading(false);
     }
@@ -182,6 +185,8 @@ export default function CreerInsightPage() {
           <p className="text-surface-500 mt-1">Créez une analyse pour une étude fermée</p>
         </div>
       </div>
+
+      {error && <Alert variant="error" title="Erreur">{error}</Alert>}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">

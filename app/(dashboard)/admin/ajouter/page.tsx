@@ -6,13 +6,14 @@ import { motion } from "framer-motion";
 import { Save, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { api } from "@/lib/api";
-import { Breadcrumb, Button, Card, Input, Textarea, Select } from "@/components/ui";
+import { Breadcrumb, Button, Card, Input, Textarea, Select, Alert } from "@/components/ui";
 import { CATEGORIES, ICONS, pageVariants, sectionVariants } from "../_constants";
 
 export default function AjouterEtudePage() {
   const router = useRouter();
   useAuth({ requireAdmin: "studies" });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -30,12 +31,13 @@ export default function AjouterEtudePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
 
     try {
       await api.post("/api/studies", formData);
       router.push("/admin");
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Erreur lors de la création");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur lors de la création");
     } finally {
       setLoading(false);
     }
@@ -74,6 +76,8 @@ export default function AjouterEtudePage() {
           <p className="text-surface-500 mt-1">Créez une nouvelle étude de marché</p>
         </div>
       </div>
+
+      {error && <Alert variant="error" title="Erreur">{error}</Alert>}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">

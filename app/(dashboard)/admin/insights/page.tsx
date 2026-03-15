@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -60,16 +60,16 @@ export default function AdminInsightsPage() {
     return () => controller.abort();
   }, [authLoading, user, accessDenied]);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = useCallback(async (id: number) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cet insight ?")) return;
 
     try {
       await api.delete(`/api/insights/${id}`);
-      setInsights(insights.filter((i) => i.id !== id));
+      setInsights((prev) => prev.filter((i) => i.id !== id));
     } catch (error) {
       // Erreur silencieuse
     }
-  };
+  }, []);
 
   const getClosedStudies = () => {
     return studies.filter((s) => s.status === "Fermé");

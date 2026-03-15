@@ -62,6 +62,8 @@ export default function AjouterReportPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, accessDenied } = useAuth({ requireAdmin: "reports" });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [studies, setStudies] = useState<StudyFull[]>([]);
   const [selectedStudy, setSelectedStudy] = useState<StudyFull | null>(null);
   const [formData, setFormData] = useState({
@@ -163,10 +165,10 @@ export default function AjouterReportPage() {
 
       await Promise.all(reportPromises);
 
-      alert("Rapports enregistrés avec succès !");
-      router.push("/admin/reports");
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Erreur lors de l'enregistrement");
+      setSuccess("Rapports enregistrés avec succès !");
+      setTimeout(() => router.push("/admin/reports"), 1500);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur lors de l'enregistrement");
     } finally {
       setLoading(false);
     }
@@ -235,6 +237,9 @@ export default function AjouterReportPage() {
           <p className="text-surface-500 mt-1">Ajoutez les rapports PDF (Basic et Premium) pour une étude</p>
         </div>
       </div>
+
+      {error && <Alert variant="error" title="Erreur">{error}</Alert>}
+      {success && <Alert variant="success" title="Succès">{success}</Alert>}
 
       {/* Info Box */}
       <Alert variant="info" title="Important">

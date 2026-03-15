@@ -227,11 +227,12 @@ export default function NotificationsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 mb-6">
+      <div role="group" aria-label="Filtrer les notifications" className="flex gap-2 mb-6">
         {FILTERS.map((f) => (
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
+            aria-pressed={filter === f.value}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               filter === f.value
                 ? "bg-primary-600 text-white"
@@ -316,18 +317,20 @@ export default function NotificationsPage() {
                   {!notification.is_read && (
                     <button
                       onClick={() => markAsRead(notification.id)}
+                      aria-label="Marquer comme lue"
                       title="Marquer comme lue"
                       className="p-1.5 rounded-lg text-surface-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
                     >
-                      <Check className="h-4 w-4" />
+                      <Check className="h-4 w-4" aria-hidden="true" />
                     </button>
                   )}
                   <button
                     onClick={() => deleteNotification(notification.id)}
+                    aria-label="Supprimer la notification"
                     title="Supprimer"
                     className="p-1.5 rounded-lg text-surface-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
               </div>

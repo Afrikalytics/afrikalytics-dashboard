@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -70,14 +70,14 @@ export default function AdminPage() {
     }
   }, []);
 
-  const filteredStudies = studies.filter((study) => {
+  const filteredStudies = useMemo(() => studies.filter((study) => {
     const matchesSearch =
       !searchTerm ||
       study.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       study.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === "all" || study.status === filterStatus;
     return matchesSearch && matchesStatus;
-  });
+  }), [studies, searchTerm, filterStatus]);
 
   if (accessDenied) return <AccessDeniedScreen />;
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { api } from "@/lib/api";
-import type { DashboardStats, QuotaData } from "@/lib/types";
+import type { DashboardStats, QuotaData, Study } from "@/lib/types";
 import dynamic from "next/dynamic";
 import {
   DashboardHeader,
@@ -56,20 +56,23 @@ const RecentStudies = dynamic(
 // Mock activity data for the chart
 // -----------------------------------------------------------------------------
 
-function getActivityData() {
-  const days = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-  const today = new Date();
-  return days.map((day, i) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() - (6 - i));
-    return {
-      day,
-      date: d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
-      études: Math.floor(Math.random() * 8) + 2,
-      insights: Math.floor(Math.random() * 5) + 1,
-    };
-  });
-}
+// Static placeholder data — will be replaced by real API data (GET /api/dashboard/activity)
+const PLACEHOLDER_ACTIVITY_DATA = [
+  { day: "Lun", date: "", études: 3, insights: 1 },
+  { day: "Mar", date: "", études: 5, insights: 2 },
+  { day: "Mer", date: "", études: 4, insights: 3 },
+  { day: "Jeu", date: "", études: 7, insights: 2 },
+  { day: "Ven", date: "", études: 6, insights: 4 },
+  { day: "Sam", date: "", études: 2, insights: 1 },
+  { day: "Dim", date: "", études: 3, insights: 2 },
+].map((item, i) => {
+  const d = new Date();
+  d.setDate(d.getDate() - (6 - i));
+  return {
+    ...item,
+    date: d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
+  };
+});
 
 // -----------------------------------------------------------------------------
 // Main
@@ -77,11 +80,11 @@ function getActivityData() {
 
 export default function DashboardPage() {
   const { user, isLoading: authLoading } = useAuth();
-  const [studies, setStudies] = useState<any[]>([]);
+  const [studies, setStudies] = useState<Study[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [quota, setQuota] = useState<QuotaData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activityData] = useState(getActivityData);
+  const [activityData] = useState(PLACEHOLDER_ACTIVITY_DATA);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -89,7 +92,7 @@ export default function DashboardPage() {
     const fetchAllData = async () => {
       try {
         const [studiesData, statsData, quotaData] = await Promise.all([
-          api.get<any[]>("/api/studies/active").catch(() => null),
+          api.get<Study[]>("/api/studies/active").catch(() => null),
           api.get<DashboardStats>("/api/dashboard/stats").catch(() => null),
           api.get<QuotaData>("/api/users/quota").catch(() => null),
         ]);

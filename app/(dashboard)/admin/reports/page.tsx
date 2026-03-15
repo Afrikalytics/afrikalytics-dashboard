@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import {
@@ -71,16 +71,16 @@ export default function AdminReportsPage() {
     return () => controller.abort();
   }, [authLoading, user, accessDenied]);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = useCallback(async (id: number) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer ce rapport ?")) return;
 
     try {
       await api.delete(`/api/reports/${id}`);
-      setReports(reports.filter((r) => r.id !== id));
+      setReports((prev) => prev.filter((r) => r.id !== id));
     } catch (error) {
       // Erreur silencieuse
     }
-  };
+  }, []);
 
   const getClosedStudies = () => {
     return studies.filter((s) => s.status === "Fermé");

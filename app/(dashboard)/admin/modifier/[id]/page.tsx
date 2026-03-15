@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { Save, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { api } from "@/lib/api";
-import { Breadcrumb, Button, Card, Input, Textarea, Select, PageSkeleton } from "@/components/ui";
+import { Breadcrumb, Button, Card, Input, Textarea, Select, PageSkeleton, Alert } from "@/components/ui";
 import { CATEGORIES, ICONS, pageVariants, sectionVariants } from "../../_constants";
 
 export default function ModifierEtudePage() {
@@ -16,6 +16,7 @@ export default function ModifierEtudePage() {
   useAuth({ requireAdmin: "studies" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -50,9 +51,9 @@ export default function ModifierEtudePage() {
           embed_url_entreprise: (data.embed_url_entreprise as string) || "",
           embed_url_results: (data.embed_url_results as string) || "",
         });
-      } catch (error) {
+      } catch (err) {
         if (controller.signal.aborted) return;
-        alert("Étude non trouvée");
+        setError("Étude non trouvée");
         router.push("/admin");
       } finally {
         if (!controller.signal.aborted) {
@@ -68,12 +69,13 @@ export default function ModifierEtudePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setError("");
 
     try {
       await api.put(`/api/studies/${studyId}`, formData);
       router.push("/admin");
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "Erreur lors de la modification");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur lors de la modification");
     } finally {
       setSaving(false);
     }
@@ -116,6 +118,8 @@ export default function ModifierEtudePage() {
           <p className="text-surface-500 mt-1">Modifiez les informations de cette étude</p>
         </div>
       </div>
+
+      {error && <Alert variant="error" title="Erreur">{error}</Alert>}
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
