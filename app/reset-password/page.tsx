@@ -2,9 +2,26 @@
 
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Lock, Eye, EyeOff, ArrowLeft, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Lock, ArrowLeft, CheckCircle, AlertCircle, BarChart3, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { API_URL } from "@/lib/constants";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Alert } from "@/components/ui/Alert";
+
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
+  },
+};
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -12,34 +29,38 @@ function ResetPasswordForm() {
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
-  // Vérifier si le token est présent
+  // Token manquant
   if (!token) {
     return (
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-6">
-            <AlertCircle className="h-8 w-8 text-red-600" aria-hidden="true" />
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={stagger}
+        className="w-full max-w-[400px] text-center"
+      >
+        <motion.div variants={fadeInUp}>
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-danger-50 rounded-full mb-6">
+            <AlertCircle className="h-7 w-7 text-danger-600" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          <h1 className="text-2xl font-semibold text-surface-900 mb-3">
             Lien invalide
           </h1>
-          <p className="text-gray-600 mb-6">
+          <p className="text-surface-500 text-sm mb-8">
             Ce lien de réinitialisation est invalide ou a expiré.
           </p>
-          <Link
-            href="/forgot-password"
-            className="inline-flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+          <Button
+            fullWidth
+            size="lg"
+            onClick={() => window.location.href = "/forgot-password"}
           >
             Demander un nouveau lien
-          </Link>
-        </div>
-      </div>
+          </Button>
+        </motion.div>
+      </motion.div>
     );
   }
 
@@ -47,7 +68,6 @@ function ResetPasswordForm() {
     e.preventDefault();
     setError("");
 
-    // Validation
     if (newPassword.length < 8) {
       setError("Le mot de passe doit contenir au moins 8 caractères");
       return;
@@ -65,7 +85,7 @@ function ResetPasswordForm() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest", // CSRF protection
+          "X-Requested-With": "XMLHttpRequest",
         },
         body: JSON.stringify({
           token: token,
@@ -89,185 +109,148 @@ function ResetPasswordForm() {
 
   if (success) {
     return (
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6">
-            <CheckCircle className="h-8 w-8 text-green-600" aria-hidden="true" />
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={stagger}
+        className="w-full max-w-[400px] text-center"
+      >
+        <motion.div variants={fadeInUp}>
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-success-50 rounded-full mb-6">
+            <CheckCircle className="h-7 w-7 text-success-600" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">
-            Mot de passe réinitialisé !
+          <h1 className="text-2xl font-semibold text-surface-900 mb-3">
+            Mot de passe réinitialisé
           </h1>
-          <p className="text-gray-600 mb-6">
+          <p className="text-surface-500 text-sm mb-8">
             Votre mot de passe a été modifié avec succès. Vous pouvez maintenant vous connecter.
           </p>
-          <Link
-            href="/login"
-            className="inline-flex items-center justify-center gap-2 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
-          >
-            Se connecter
+          <Link href="/login">
+            <Button fullWidth size="lg">
+              Se connecter
+            </Button>
           </Link>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="w-full max-w-md">
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={stagger}
+      className="w-full max-w-[400px]"
+    >
       {/* Logo */}
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-white">
-          Afrikalytics<span className="text-yellow-400">.</span>
-        </h1>
-      </div>
+      <motion.div variants={fadeInUp} className="flex items-center gap-3 mb-16">
+        <BarChart3 className="h-6 w-6 text-surface-900" />
+        <span className="text-xl font-semibold text-surface-900 tracking-tight">
+          Afrikalytics<span className="text-warning-500">.</span>
+        </span>
+      </motion.div>
 
-      {/* Card */}
-      <div className="bg-white rounded-2xl shadow-xl p-8">
-        <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
+      <motion.div variants={fadeInUp} className="mb-8">
+        <h1 className="text-2xl font-semibold text-surface-900 tracking-tight mb-2">
           Nouveau mot de passe
-        </h2>
-        <p className="text-gray-600 text-center mb-6">
+        </h1>
+        <p className="text-surface-500 text-sm">
           Définissez votre nouveau mot de passe
         </p>
+      </motion.div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div role="alert" aria-live="polite" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <motion.div variants={fadeInUp}>
+            <Alert
+              variant="error"
+              dismissible
+              onDismiss={() => setError("")}
+            >
               {error}
-            </div>
-          )}
+            </Alert>
+          </motion.div>
+        )}
 
-          {/* New Password */}
-          <div>
-            <label htmlFor="reset-new-password" className="block text-sm font-medium text-gray-700 mb-2">
-              Nouveau mot de passe
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
-              <input
-                id="reset-new-password"
-                type={showNewPassword ? "text" : "password"}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                aria-required="true"
-                aria-describedby="reset-password-hint"
-                minLength={8}
-                placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-primary-600 focus-visible:outline-offset-2 transition"
-              />
-              <button
-                type="button"
-                onClick={() => setShowNewPassword(!showNewPassword)}
-                aria-label={showNewPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showNewPassword ? (
-                  <EyeOff className="h-5 w-5" aria-hidden="true" />
-                ) : (
-                  <Eye className="h-5 w-5" aria-hidden="true" />
-                )}
-              </button>
-            </div>
-            <p id="reset-password-hint" className="text-xs text-gray-500 mt-1">Minimum 8 caractères</p>
-          </div>
+        <motion.div variants={fadeInUp}>
+          <Input
+            label="Nouveau mot de passe"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+            placeholder="••••••••"
+            icon={<Lock className="h-4 w-4" />}
+            size="lg"
+            helper="Minimum 8 caractères"
+          />
+        </motion.div>
 
-          {/* Confirm Password */}
-          <div>
-            <label htmlFor="reset-confirm-password" className="block text-sm font-medium text-gray-700 mb-2">
-              Confirmer le mot de passe
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
-              <input
-                id="reset-confirm-password"
-                type={showConfirmPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                aria-required="true"
-                minLength={8}
-                placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-primary-600 focus-visible:outline-offset-2 transition"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                aria-label={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                {showConfirmPassword ? (
-                  <EyeOff className="h-5 w-5" aria-hidden="true" />
-                ) : (
-                  <Eye className="h-5 w-5" aria-hidden="true" />
-                )}
-              </button>
-            </div>
-          </div>
+        <motion.div variants={fadeInUp}>
+          <Input
+            label="Confirmer le mot de passe"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            placeholder="••••••••"
+            icon={<Lock className="h-4 w-4" />}
+            size="lg"
+          />
+        </motion.div>
 
-          <button
-          type="submit"
-          disabled={loading || !newPassword || !confirmPassword}
-          aria-busy={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        <motion.div variants={fadeInUp}>
+          <Button
+            type="submit"
+            loading={loading}
+            disabled={!newPassword || !confirmPassword}
+            fullWidth
+            size="lg"
           >
-          {loading ? (
-          <>
-          <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-            Réinitialisation en cours...
-            </>
-          ) : (
-          <>
-          <Lock className="h-5 w-5" aria-hidden="true" />
-            Réinitialiser le mot de passe
-            </>
-            )}
-          </button>
-        </form>
+            {loading ? "Réinitialisation..." : "Réinitialiser le mot de passe"}
+          </Button>
+        </motion.div>
+      </form>
 
-        <div className="mt-6 text-center">
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Retour à la connexion
-          </Link>
-        </div>
-      </div>
-    </div>
+      <motion.div variants={fadeInUp} className="mt-8 text-center">
+        <Link
+          href="/login"
+          className="inline-flex items-center gap-2 text-sm text-surface-400 hover:text-surface-600 transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Retour à la connexion
+        </Link>
+      </motion.div>
+
+      {/* Footer */}
+      <motion.div variants={fadeInUp} className="mt-16 text-center">
+        <p className="text-xs text-surface-300">
+          © 2026 Afrikalytics by Marketym
+        </p>
+      </motion.div>
+    </motion.div>
   );
 }
 
 function LoadingFallback() {
   return (
-    <div className="w-full max-w-md">
-      <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-        <p className="text-gray-600">Chargement...</p>
-      </div>
+    <div className="w-full max-w-[400px] text-center">
+      <Loader2 className="h-8 w-8 animate-spin text-surface-400 mx-auto mb-4" />
+      <p className="text-surface-500 text-sm">Chargement...</p>
     </div>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <div id="main-content" className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-purple-900 flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
-      </div>
-
-      <div className="relative">
-        <Suspense fallback={<LoadingFallback />}>
-          <ResetPasswordForm />
-        </Suspense>
-      </div>
-    </div>
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="min-h-screen bg-white flex items-center justify-center p-6"
+    >
+      <Suspense fallback={<LoadingFallback />}>
+        <ResetPasswordForm />
+      </Suspense>
+    </main>
   );
 }

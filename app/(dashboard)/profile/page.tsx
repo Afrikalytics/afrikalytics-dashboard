@@ -9,15 +9,37 @@ import {
   Calendar,
   Crown,
   Lock,
-  Eye,
-  EyeOff,
   CheckCircle,
   AlertCircle,
-  ArrowLeft,
   Loader2,
+  ArrowUpRight,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { PLAN_DETAILS } from "@/lib/constants";
+import { PLAN_DETAILS, ROUTES } from "@/lib/constants";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
+
+// -----------------------------------------------------------------------------
+// Animation variants
+// -----------------------------------------------------------------------------
+
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
+
+// -----------------------------------------------------------------------------
+// Main
+// -----------------------------------------------------------------------------
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -27,9 +49,6 @@ export default function ProfilePage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState(false);
@@ -39,7 +58,6 @@ export default function ProfilePage() {
     setPasswordError("");
     setPasswordSuccess(false);
 
-    // Validation
     if (newPassword.length < 8) {
       setPasswordError("Le nouveau mot de passe doit contenir au moins 8 caractères");
       return;
@@ -97,11 +115,14 @@ export default function ProfilePage() {
     };
   };
 
-  // Auth loading is handled by the layout
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" role="status" aria-label="Chargement du profil" />
+        <Loader2
+          className="h-8 w-8 animate-spin text-surface-400"
+          role="status"
+          aria-label="Chargement du profil"
+        />
       </div>
     );
   }
@@ -112,233 +133,190 @@ export default function ProfilePage() {
   const isPremium = user.plan === "professionnel" || user.plan === "entreprise";
 
   return (
-    <div className="max-w-2xl mx-auto">
-        {/* Back Button */}
-        <button
-          onClick={() => router.push("/dashboard")}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition"
-        >
-          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
-          Retour au dashboard
-        </button>
+    <div className="page-container max-w-2xl mx-auto space-y-6">
+      {/* ── Breadcrumb ── */}
+      <Breadcrumb items={[{ label: "Profil" }]} />
 
-        {/* Profile Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8 text-white">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                <UserIcon className="h-8 w-8" aria-hidden="true" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">{user.full_name}</h1>
-                <p className="text-blue-100">{user.email}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 space-y-4">
-            {/* Plan */}
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <planDetails.icon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                <span className="text-gray-600">Plan</span>
-              </div>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${planDetails.color}`}>
-                {planDetails.name}
-              </span>
-            </div>
-
-            {/* Email */}
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <Mail className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                <span className="text-gray-600">Email</span>
-              </div>
-              <span className="text-gray-900">{user.email}</span>
-            </div>
-
-            {/* Status */}
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                <span className="text-gray-600">Statut</span>
-              </div>
-              <span className="text-green-600 flex items-center gap-1">
-                <CheckCircle className="h-4 w-4" aria-hidden="true" />
-                Actif
-              </span>
-            </div>
-
-            {/* Member Since */}
-            <div className="flex items-center justify-between py-3">
-              <div className="flex items-center gap-3">
-                <Calendar className="h-5 w-5 text-gray-400" aria-hidden="true" />
-                <span className="text-gray-600">Membre depuis</span>
-              </div>
-              <span className="text-gray-900">
-                {new Date(user.created_at).toLocaleDateString("fr-FR", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </span>
-            </div>
-          </div>
-
-          {/* Upgrade CTA for Basic users */}
-          {!isPremium && (
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 border-t">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-gray-900">Passez à Premium</h3>
-                  <p className="text-sm text-gray-600">
-                    Accédez aux résultats, insights complets et rapports
-                  </p>
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="space-y-6"
+      >
+        {/* ── Profile Header ── */}
+        <motion.div variants={itemVariants}>
+          <Card padding="none" className="overflow-hidden">
+            <div className="bg-surface-900 px-6 py-8">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center" aria-hidden="true">
+                  <UserIcon className="h-7 w-7 text-white" />
                 </div>
-                <a
-                  href="https://afrikalytics.com/premium"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-                >
-                  Voir les offres
-                </a>
+                <div>
+                  <h1 className="font-heading text-2xl font-bold text-white tracking-tight">
+                    {user.full_name}
+                  </h1>
+                  <p className="text-surface-400 text-sm">{user.email}</p>
+                </div>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Password Change Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Lock className="h-5 w-5 text-gray-400" aria-hidden="true" />
-              Changer le mot de passe
-            </h2>
-          </div>
+            <div className="p-6 space-y-0 divide-y divide-surface-100">
+              {/* Plan */}
+              <div className="flex items-center justify-between py-4 first:pt-0">
+                <div className="flex items-center gap-3">
+                  <planDetails.icon className="h-4 w-4 text-surface-400" aria-hidden="true" />
+                  <span className="text-sm text-surface-500">Plan</span>
+                </div>
+                <Badge
+                  variant={isPremium ? "primary" : "default"}
+                  size="md"
+                >
+                  {planDetails.name}
+                </Badge>
+              </div>
 
-          <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
-            {passwordError && (
-              <div role="alert" aria-live="polite" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" aria-hidden="true" />
-                {passwordError}
+              {/* Email */}
+              <div className="flex items-center justify-between py-4">
+                <div className="flex items-center gap-3">
+                  <Mail className="h-4 w-4 text-surface-400" aria-hidden="true" />
+                  <span className="text-sm text-surface-500">Email</span>
+                </div>
+                <span className="text-sm text-surface-900">{user.email}</span>
+              </div>
+
+              {/* Status */}
+              <div className="flex items-center justify-between py-4">
+                <div className="flex items-center gap-3">
+                  <Shield className="h-4 w-4 text-surface-400" aria-hidden="true" />
+                  <span className="text-sm text-surface-500">Statut</span>
+                </div>
+                <Badge variant="success" size="sm" dot>
+                  Actif
+                </Badge>
+              </div>
+
+              {/* Member Since */}
+              <div className="flex items-center justify-between py-4 last:pb-0">
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-4 w-4 text-surface-400" aria-hidden="true" />
+                  <span className="text-sm text-surface-500">Membre depuis</span>
+                </div>
+                <span className="text-sm text-surface-900">
+                  {new Date(user.created_at).toLocaleDateString("fr-FR", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </span>
+              </div>
+            </div>
+
+            {/* Upgrade CTA */}
+            {!isPremium && (
+              <div className="px-6 py-4 border-t border-surface-100 bg-surface-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-surface-900 text-sm">Passez à Premium</p>
+                    <p className="text-xs text-surface-500">
+                      Accédez aux résultats, insights complets et rapports
+                    </p>
+                  </div>
+                  <a href={ROUTES.PREMIUM}>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      iconRight={<ArrowUpRight className="h-3.5 w-3.5" />}
+                    >
+                      Voir les offres
+                    </Button>
+                  </a>
+                </div>
               </div>
             )}
+          </Card>
+        </motion.div>
 
-            {passwordSuccess && (
-              <div role="status" aria-live="polite" className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" aria-hidden="true" />
-                Mot de passe modifié avec succès ! Un email de confirmation a été envoyé.
-              </div>
-            )}
-
-            {/* Current Password */}
-            <div>
-              <label htmlFor="current-password" className="block text-sm font-medium text-gray-700 mb-2">
-                Mot de passe actuel
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
-                <input
-                  id="current-password"
-                  type={showCurrentPassword ? "text" : "password"}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                  aria-required="true"
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-primary-600 focus-visible:outline-offset-2 transition"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  aria-label={showCurrentPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showCurrentPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
-                </button>
-              </div>
-            </div>
-
-            {/* New Password */}
-            <div>
-              <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 mb-2">
-                Nouveau mot de passe
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
-                <input
-                  id="new-password"
-                  type={showNewPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  aria-required="true"
-                  aria-describedby="new-password-hint"
-                  minLength={8}
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-primary-600 focus-visible:outline-offset-2 transition"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  aria-label={showNewPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showNewPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
-                </button>
-              </div>
-              <p id="new-password-hint" className="text-xs text-gray-500 mt-1">Minimum 8 caractères</p>
-            </div>
-
-            {/* Confirm Password */}
-            <div>
-              <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirmer le nouveau mot de passe
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
-                <input
-                  id="confirm-password"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  aria-required="true"
-                  minLength={8}
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-primary-600 focus-visible:outline-offset-2 transition"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  aria-label={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
-              aria-busy={passwordLoading}
-              aria-disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {passwordLoading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-                  Modification en cours...
-                </>
-              ) : (
-                <>
-                  <Lock className="h-5 w-5" aria-hidden="true" />
+        {/* ── Password Change ── */}
+        <motion.div variants={itemVariants}>
+          <Card padding="none" className="overflow-hidden">
+            <div className="px-6 py-4 border-b border-surface-100">
+              <div className="flex items-center gap-3">
+                <Lock className="h-4 w-4 text-surface-400" aria-hidden="true" />
+                <h2 className="text-base font-semibold text-surface-900 tracking-tight">
                   Changer le mot de passe
-                </>
+                </h2>
+              </div>
+            </div>
+
+            <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
+              {passwordError && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="bg-danger-50 border border-danger-200 text-danger-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2"
+                >
+                  <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {passwordError}
+                </div>
               )}
-            </button>
-          </form>
-        </div>
+
+              {passwordSuccess && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="bg-success-50 border border-success-200 text-success-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2"
+                >
+                  <CheckCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  Mot de passe modifié avec succès ! Un email de confirmation a été envoyé.
+                </div>
+              )}
+
+              <Input
+                label="Mot de passe actuel"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+                icon={<Lock className="h-4 w-4" />}
+                placeholder="••••••••"
+              />
+
+              <Input
+                label="Nouveau mot de passe"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+                icon={<Lock className="h-4 w-4" />}
+                placeholder="••••••••"
+                helper="Minimum 8 caractères"
+              />
+
+              <Input
+                label="Confirmer le nouveau mot de passe"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                icon={<Lock className="h-4 w-4" />}
+                placeholder="••••••••"
+              />
+
+              <Button
+                type="submit"
+                variant="primary"
+                fullWidth
+                size="lg"
+                loading={passwordLoading}
+                disabled={!currentPassword || !newPassword || !confirmPassword}
+                icon={<Lock className="h-4 w-4" />}
+              >
+                Changer le mot de passe
+              </Button>
+            </form>
+          </Card>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

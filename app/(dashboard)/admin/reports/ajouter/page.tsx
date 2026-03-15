@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   Save,
   ArrowLeft,
@@ -13,6 +14,17 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { api } from "@/lib/api";
+import {
+  Breadcrumb,
+  Button,
+  Badge,
+  Card,
+  Input,
+  Select,
+  Alert,
+  EmptyState,
+  PageSkeleton,
+} from "@/components/ui";
 
 interface StudyFull {
   id: number;
@@ -30,6 +42,20 @@ interface StudyFull {
   report_url_premium: string;
   is_active: boolean;
 }
+
+const pageVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
+
+const sectionVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, duration: 0.35 },
+  }),
+};
 
 export default function AjouterReportPage() {
   const router = useRouter();
@@ -88,7 +114,7 @@ export default function AjouterReportPage() {
     setLoading(true);
 
     try {
-      // 1. Mettre a jour l'etude avec les URLs des rapports
+      // 1. Mettre à jour l'étude avec les URLs des rapports
       await api.put(`/api/studies/${selectedStudy.id}`, {
         title: selectedStudy.title,
         description: selectedStudy.description,
@@ -105,7 +131,7 @@ export default function AjouterReportPage() {
         is_active: selectedStudy.is_active,
       });
 
-      // 2. Creer les records dans la table reports pour le tracking
+      // 2. Créer les records dans la table reports pour le tracking
       const reportPromises: Promise<unknown>[] = [];
 
       if (formData.report_url_basic) {
@@ -146,213 +172,222 @@ export default function AjouterReportPage() {
     }
   };
 
-  // Access Denied screen — sidebar is rendered by the layout
+  // Access Denied screen
   if (accessDenied) {
     return (
       <div className="flex items-center justify-center p-4 min-h-[60vh]">
-        <div className="text-center max-w-md">
-          <div className="bg-red-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-            <ShieldX className="h-10 w-10 text-red-600" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center max-w-md"
+        >
+          <div className="bg-danger-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+            <ShieldX className="h-10 w-10 text-danger-600" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Acces refuse</h1>
-          <p className="text-gray-600 mb-6">
-            Cette page est reservee aux administrateurs. Vous n&apos;avez pas les permissions necessaires pour y acceder.
+          <h1 className="font-heading text-2xl font-bold text-surface-900 mb-2">Accès refusé</h1>
+          <p className="text-surface-500 mb-6">
+            Cette page est réservée aux administrateurs. Vous n&apos;avez pas les permissions nécessaires pour y accéder.
           </p>
-          <a
-            href="/dashboard"
-            className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
-          >
+          <Button variant="primary" size="lg" onClick={() => window.location.href = "/dashboard"}>
             Retour au dashboard
-          </a>
-        </div>
+          </Button>
+        </motion.div>
       </div>
     );
   }
 
   if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <PageSkeleton />;
   }
 
   if (studies.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center">
-          <Download className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg mb-4">
-            Aucune etude fermee disponible
-          </p>
-          <p className="text-gray-400 text-sm mb-6">
-            Les rapports ne peuvent etre ajoutes que pour des etudes avec le statut &quot;Ferme&quot;
-          </p>
-          <a
-            href="/admin/reports"
-            className="text-blue-600 hover:text-blue-700"
-          >
-            Retour
-          </a>
-        </div>
+      <div className="space-y-6">
+        <Breadcrumb
+          items={[
+            { label: "Administration", href: "/admin" },
+            { label: "Rapports", href: "/admin/reports" },
+            { label: "Ajouter" },
+          ]}
+        />
+        <EmptyState
+          icon={<Download className="h-8 w-8" />}
+          title="Aucune étude fermée disponible"
+          description="Les rapports ne peuvent être ajoutés que pour des études avec le statut « Fermé »."
+          action={
+            <Button variant="secondary" onClick={() => router.push("/admin/reports")}>
+              Retour aux rapports
+            </Button>
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl">
-          {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <a
-              href="/admin/reports"
-              className="p-2 hover:bg-gray-200 rounded-lg transition"
-            >
-              <ArrowLeft className="h-5 w-5 text-gray-600" />
-            </a>
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Gérer les Rapports</h1>
-              <p className="text-gray-600 mt-1">Ajoutez les rapports PDF (Basic et Premium) pour une étude</p>
-            </div>
-          </div>
+    <motion.div
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      className="max-w-3xl space-y-6"
+    >
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: "Administration", href: "/admin" },
+          { label: "Rapports", href: "/admin/reports" },
+          { label: "Ajouter" },
+        ]}
+        className="mb-2"
+      />
 
-          {/* Info Box */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
-            <p className="text-blue-800 text-sm">
-              <strong>Important :</strong> Uploadez vos PDFs sur Cloudinary, puis collez les URLs ci-dessous. Les téléchargements seront comptabilisés.
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <a
+          href="/admin/reports"
+          className="p-2 text-surface-400 hover:text-surface-700 hover:bg-surface-100 rounded-lg transition-colors"
+          aria-label="Retour"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </a>
+        <div>
+          <h1 className="font-heading text-2xl lg:text-3xl font-bold text-surface-900 tracking-tight">
+            Gérer les Rapports
+          </h1>
+          <p className="text-surface-500 mt-1">Ajoutez les rapports PDF (Basic et Premium) pour une étude</p>
+        </div>
+      </div>
+
+      {/* Info Box */}
+      <Alert variant="info" title="Important">
+        Uploadez vos PDFs sur Cloudinary, puis collez les URLs ci-dessous. Les téléchargements seront comptabilisés.
+      </Alert>
+
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Sélection de l'étude */}
+        <motion.div custom={0} variants={sectionVariants} initial="hidden" animate="visible">
+          <Card>
+            <h2 className="text-base font-semibold text-surface-900 tracking-tight mb-5">
+              Sélectionner l&apos;étude
+            </h2>
+
+            <Select
+              label="Étude"
+              required
+              value={String(selectedStudy?.id || 0)}
+              onChange={(e) => handleStudyChange(parseInt(e.target.value))}
+              options={studies.map((study) => ({
+                value: String(study.id),
+                label: study.title,
+              }))}
+              helper="Seules les études fermées sont disponibles"
+            />
+          </Card>
+        </motion.div>
+
+        {/* Rapport Basic */}
+        <motion.div custom={1} variants={sectionVariants} initial="hidden" animate="visible">
+          <Card className="border-l-4 border-l-surface-400">
+            <h2 className="text-base font-semibold text-surface-900 tracking-tight mb-1 flex items-center gap-2">
+              <Users className="h-4 w-4 text-surface-500" aria-hidden="true" />
+              Rapport Basic
+              <Badge variant="default" size="sm">Gratuit</Badge>
+            </h2>
+            <p className="text-sm text-surface-400 mb-5">
+              Version résumée du rapport, accessible aux utilisateurs Basic (gratuit)
             </p>
+
+            <Input
+              label="URL du rapport Basic (PDF)"
+              type="url"
+              value={formData.report_url_basic}
+              onChange={(e) => setFormData({ ...formData, report_url_basic: e.target.value })}
+              placeholder="https://res.cloudinary.com/your-cloud/rapport-basic.pdf"
+            />
+          </Card>
+        </motion.div>
+
+        {/* Rapport Premium */}
+        <motion.div custom={2} variants={sectionVariants} initial="hidden" animate="visible">
+          <Card className="border-l-4 border-l-warning-400">
+            <h2 className="text-base font-semibold text-surface-900 tracking-tight mb-1 flex items-center gap-2">
+              <Crown className="h-4 w-4 text-warning-600" aria-hidden="true" />
+              Rapport Premium
+              <Badge variant="warning" size="sm">Pro / Entreprise</Badge>
+            </h2>
+            <p className="text-sm text-surface-400 mb-5">
+              Version complète du rapport, accessible aux utilisateurs Premium (payant)
+            </p>
+
+            <Input
+              label="URL du rapport Premium (PDF)"
+              type="url"
+              value={formData.report_url_premium}
+              onChange={(e) => setFormData({ ...formData, report_url_premium: e.target.value })}
+              placeholder="https://res.cloudinary.com/your-cloud/rapport-premium.pdf"
+            />
+          </Card>
+        </motion.div>
+
+        {/* Aperçu */}
+        {(formData.report_url_basic || formData.report_url_premium) && (
+          <motion.div custom={3} variants={sectionVariants} initial="hidden" animate="visible">
+            <Card variant="bordered" className="bg-surface-50">
+              <h3 className="text-sm font-medium text-surface-700 mb-3">Aperçu des rapports</h3>
+              <div className="space-y-2">
+                {formData.report_url_basic && (
+                  <a
+                    href={formData.report_url_basic}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 transition-colors"
+                  >
+                    <FileText className="h-4 w-4" aria-hidden="true" />
+                    Voir le rapport Basic
+                  </a>
+                )}
+                {formData.report_url_premium && (
+                  <a
+                    href={formData.report_url_premium}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-warning-600 hover:text-warning-700 transition-colors"
+                  >
+                    <Crown className="h-4 w-4" aria-hidden="true" />
+                    Voir le rapport Premium
+                  </a>
+                )}
+              </div>
+            </Card>
+          </motion.div>
+        )}
+
+        {/* Buttons */}
+        <motion.div custom={4} variants={sectionVariants} initial="hidden" animate="visible">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Button
+              variant="secondary"
+              size="lg"
+              fullWidth
+              onClick={() => router.push("/admin/reports")}
+              type="button"
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="primary"
+              size="lg"
+              fullWidth
+              type="submit"
+              loading={loading}
+              icon={<Save className="h-4 w-4" />}
+            >
+              {loading ? "Enregistrement..." : "Enregistrer les rapports"}
+            </Button>
           </div>
-
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Sélection de l'étude */}
-            <div className="bg-white rounded-xl shadow-sm p-4 lg:p-6">
-              <h2 className="text-lg font-bold text-gray-900 mb-4">Sélectionner l&apos;étude</h2>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Étude *
-                </label>
-                <select
-                  required
-                  value={selectedStudy?.id || 0}
-                  onChange={(e) => handleStudyChange(parseInt(e.target.value))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {studies.map((study) => (
-                    <option key={study.id} value={study.id}>
-                      {study.title}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  Seules les études fermées sont disponibles
-                </p>
-              </div>
-            </div>
-
-            {/* Rapport Basic */}
-            <div className="bg-white rounded-xl shadow-sm p-4 lg:p-6 border-l-4 border-gray-400">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Users className="h-5 w-5 text-gray-600" />
-                Rapport Basic
-                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full font-normal">
-                  Gratuit
-                </span>
-              </h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Version résumée du rapport, accessible aux utilisateurs Basic (gratuit)
-              </p>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  URL du rapport Basic (PDF)
-                </label>
-                <input
-                  type="url"
-                  value={formData.report_url_basic}
-                  onChange={(e) => setFormData({ ...formData, report_url_basic: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  placeholder="https://res.cloudinary.com/your-cloud/rapport-basic.pdf"
-                />
-              </div>
-            </div>
-
-            {/* Rapport Premium */}
-            <div className="bg-white rounded-xl shadow-sm p-4 lg:p-6 border-l-4 border-yellow-400">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Crown className="h-5 w-5 text-yellow-600" />
-                Rapport Premium
-                <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-normal">
-                  Professionnel / Entreprise
-                </span>
-              </h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Version complète du rapport, accessible aux utilisateurs Premium (payant)
-              </p>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  URL du rapport Premium (PDF)
-                </label>
-                <input
-                  type="url"
-                  value={formData.report_url_premium}
-                  onChange={(e) => setFormData({ ...formData, report_url_premium: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  placeholder="https://res.cloudinary.com/your-cloud/rapport-premium.pdf"
-                />
-              </div>
-            </div>
-
-            {/* Aperçu */}
-            {(formData.report_url_basic || formData.report_url_premium) && (
-              <div className="bg-gray-50 rounded-xl p-4 lg:p-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Aperçu des rapports</h3>
-                <div className="space-y-2">
-                  {formData.report_url_basic && (
-                    <a
-                      href={formData.report_url_basic}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
-                    >
-                      <FileText className="h-4 w-4" />
-                      Voir le rapport Basic
-                    </a>
-                  )}
-                  {formData.report_url_premium && (
-                    <a
-                      href={formData.report_url_premium}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-yellow-600 hover:text-yellow-700"
-                    >
-                      <Crown className="h-4 w-4" />
-                      Voir le rapport Premium
-                    </a>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <a
-                href="/admin/reports"
-                className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition text-center"
-              >
-                Annuler
-              </a>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-              >
-                <Save className="h-5 w-5" />
-                {loading ? "Enregistrement..." : "Enregistrer les rapports"}
-              </button>
-            </div>
-          </form>
-    </div>
+        </motion.div>
+      </form>
+    </motion.div>
   );
 }

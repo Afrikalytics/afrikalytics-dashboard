@@ -6,19 +6,66 @@ import {
   Clock,
   Calendar,
   ChevronRight,
-  Filter,
   Search,
   Lightbulb,
   Download,
   Lock,
+  FileText,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useAuth } from "@/lib/hooks/useAuth";
 import type { Study, Insight, Report } from "@/lib/types";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 
-// Skeleton component for loading states
-const Skeleton = ({ className }: { className?: string }) => (
-  <div className={`animate-pulse bg-gray-200 rounded ${className || ''}`} />
-);
+// -----------------------------------------------------------------------------
+// Animation variants
+// -----------------------------------------------------------------------------
+
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
+
+// -----------------------------------------------------------------------------
+// Loading skeleton
+// -----------------------------------------------------------------------------
+
+function EtudesPageSkeleton() {
+  return (
+    <div className="page-container space-y-6" aria-busy="true">
+      <div className="space-y-2">
+        <div className="skeleton h-8 w-64 rounded-lg" />
+        <div className="skeleton h-4 w-80 rounded" />
+      </div>
+      <div className="card p-4 lg:p-6">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="skeleton h-10 flex-1 rounded-xl" />
+          <div className="skeleton h-10 w-48 rounded-xl" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <SkeletonCard key={i} className="h-72" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Main
+// -----------------------------------------------------------------------------
 
 export default function EtudesListPage() {
   const { user, token, isLoading: authLoading } = useAuth();
@@ -36,14 +83,12 @@ export default function EtudesListPage() {
 
   const fetchData = async () => {
     try {
-      // Parallel fetch through proxy — auth token injected server-side
       const [studiesRes, insightsRes, reportsRes] = await Promise.all([
         fetch("/api/proxy/api/studies").catch(() => null),
         fetch("/api/proxy/api/insights").catch(() => null),
         fetch("/api/proxy/api/reports").catch(() => null),
       ]);
 
-      // Parse responses in parallel
       const [studiesData, insightsData, reportsData] = await Promise.all([
         studiesRes?.ok ? studiesRes.json().catch(() => null) : null,
         insightsRes?.ok ? insightsRes.json().catch(() => null) : null,
@@ -60,7 +105,6 @@ export default function EtudesListPage() {
     }
   };
 
-  // Memoized filtered studies (Issue #19) — replaces useEffect + setFilteredStudies
   const filteredStudies = useMemo(() => {
     let filtered = studies;
 
@@ -109,190 +153,179 @@ export default function EtudesListPage() {
     setFilterStatus(e.target.value);
   }, []);
 
-  // Loading skeleton (Issue #18) — auth loading is handled by the layout
-  if (authLoading || loading) {
-    return (
-      <>
-        <div className="mb-8">
-          <Skeleton className="h-8 w-64 mb-2" />
-          <Skeleton className="h-5 w-80" />
-        </div>
-        {/* Filter skeleton */}
-        <div className="bg-white rounded-xl shadow-sm p-4 lg:p-6 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <Skeleton className="h-10 flex-1" />
-            <Skeleton className="h-10 w-48" />
-          </div>
-        </div>
-        {/* Studies grid skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Skeleton className="h-72 rounded-xl" />
-          <Skeleton className="h-72 rounded-xl" />
-          <Skeleton className="h-72 rounded-xl" />
-          <Skeleton className="h-72 rounded-xl" />
-        </div>
-      </>
-    );
-  }
+  if (authLoading || loading) return <EtudesPageSkeleton />;
 
   return (
-    <>
-      {/* Header */}
-      <div className="mb-8">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Toutes les Études</h1>
-          <p className="text-gray-600">Consultez les résultats de nos études de marché</p>
-        </div>
+    <div className="page-container space-y-6">
+      {/* ── Header ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <h1 className="font-heading text-2xl lg:text-3xl font-bold text-surface-900 tracking-tight">
+          Toutes les Études
+        </h1>
+        <p className="text-surface-500 mt-1 text-sm">
+          Consultez les résultats de nos études de marché
+        </p>
+      </motion.div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-xl shadow-sm p-4 lg:p-6 mb-6">
+      {/* ── Filters ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+      >
+        <Card>
           <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
+            <div className="flex-1">
+              <Input
                 placeholder="Rechercher une étude..."
                 value={searchTerm}
                 onChange={handleSearchChange}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                icon={<Search className="h-4 w-4" />}
               />
             </div>
-
-            {/* Status Filter */}
-            <div className="flex items-center gap-2">
-              <Filter className="h-5 w-5 text-gray-400" />
-              <select
-                value={filterStatus}
-                onChange={handleFilterChange}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="Tous">Tous les statuts</option>
-                <option value="Ouvert">Ouvert</option>
-                <option value="Fermé">Fermé</option>
-                <option value="Bientôt">Bientôt</option>
-              </select>
-            </div>
+            <Select
+              value={filterStatus}
+              onChange={handleFilterChange}
+              options={[
+                { value: "Tous", label: "Tous les statuts" },
+                { value: "Ouvert", label: "Ouvert" },
+                { value: "Fermé", label: "Fermé" },
+                { value: "Bientôt", label: "Bientôt" },
+              ]}
+            />
           </div>
+          <p className="mt-3 text-xs text-surface-400 tracking-wide uppercase">
+            {filteredStudies.length} étude{filteredStudies.length !== 1 ? "s" : ""} trouvée{filteredStudies.length !== 1 ? "s" : ""}
+          </p>
+        </Card>
+      </motion.div>
 
-          {/* Results count */}
-          <div className="mt-4 text-sm text-gray-500">
-            {filteredStudies.length} étude{filteredStudies.length !== 1 ? "s" : ""} trouvée
-            {filteredStudies.length !== 1 ? "s" : ""}
-          </div>
-        </div>
+      {/* ── Studies Grid ── */}
+      {filteredStudies.length === 0 ? (
+        <EmptyState
+          icon={<FileText className="h-8 w-8" />}
+          title="Aucune étude trouvée"
+          description="Essayez de modifier vos filtres ou votre recherche."
+        />
+      ) : (
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+        >
+          {filteredStudies.map((study) => {
+            const insight = getInsightForStudy(study.id);
+            const report = getReportForStudy(study.id);
 
-        {/* Studies Grid */}
-        {filteredStudies.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
-            <p className="text-gray-500 text-lg">Aucune étude trouvée.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredStudies.map((study) => {
-              const insight = getInsightForStudy(study.id);
-              const report = getReportForStudy(study.id);
-
-              return (
-                <div
-                  key={study.id}
-                  className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
+            return (
+              <motion.div key={study.id} variants={itemVariants}>
+                <Card
+                  variant="bordered"
+                  padding="none"
+                  className="overflow-hidden hover:border-surface-300 hover:shadow-soft transition-all duration-200"
                 >
-                  {/* Header */}
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold text-gray-900 flex-1">{study.title}</h3>
-                    <span
-                      className={`text-xs font-semibold px-3 py-1 rounded-full ml-3 ${
-                        study.status === "Ouvert"
-                          ? "bg-green-100 text-green-700"
-                          : study.status === "Fermé"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {study.status}
-                    </span>
-                  </div>
-
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{study.description}</p>
-
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-4">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4" />
-                      <span>{study.duration}</span>
+                  <div className="p-5 lg:p-6">
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="text-lg font-semibold text-surface-900 flex-1 tracking-tight">
+                        {study.title}
+                      </h3>
+                      <Badge
+                        variant={
+                          study.status === "Ouvert"
+                            ? "success"
+                            : study.status === "Fermé"
+                            ? "danger"
+                            : "warning"
+                        }
+                        size="sm"
+                        dot
+                        className="ml-3"
+                      >
+                        {study.status}
+                      </Badge>
                     </div>
-                    {study.deadline && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span>Jusqu&apos;au {study.deadline}</span>
-                      </div>
-                    )}
+
+                    <p className="text-surface-500 text-sm mb-4 line-clamp-2 leading-relaxed">
+                      {study.description}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-surface-400 mb-4">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="h-3.5 w-3.5" />
+                        {study.duration}
+                      </span>
+                      {study.deadline && (
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5" />
+                          Jusqu&apos;au {study.deadline}
+                        </span>
+                      )}
+                    </div>
+
+                    <Badge variant="primary" size="sm">{study.category}</Badge>
                   </div>
 
-                  <div className="text-blue-600 font-medium text-sm mb-4">{study.category}</div>
-
-                  {/* Boutons */}
-                  <div className="space-y-2 pt-4 border-t border-gray-100">
-                    {/* Bouton Résultats - Toujours visible */}
+                  {/* Actions */}
+                  <div className="border-t border-surface-100 divide-y divide-surface-100">
                     <a
                       href={`/dashboard/etudes/${study.id}`}
-                      className="flex items-center justify-between w-full px-4 py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition"
+                      className="group flex items-center justify-between px-5 lg:px-6 py-3 hover:bg-surface-50 transition-colors"
                     >
-                      <div className="flex items-center gap-2">
-                        <BarChart3 className="h-5 w-5" />
-                        <span className="font-medium">
-                          {study.status === "Ouvert" ? "Voir les résultats en temps réel" : "Voir les résultats finaux"}
-                        </span>
-                      </div>
-                      <ChevronRight className="h-5 w-5" />
+                      <span className="flex items-center gap-2 text-sm font-medium text-surface-700 group-hover:text-primary-600 transition-colors">
+                        <BarChart3 className="h-4 w-4" />
+                        {study.status === "Ouvert" ? "Voir les résultats en temps réel" : "Voir les résultats finaux"}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-surface-300 group-hover:text-primary-500 transition-colors" />
                     </a>
 
-                    {/* Bouton Insight */}
                     {insight ? (
                       <a
                         href={`/dashboard/insights/${insight.id}`}
-                        className="flex items-center justify-between w-full px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition"
+                        className="group flex items-center justify-between px-5 lg:px-6 py-3 hover:bg-surface-50 transition-colors"
                       >
-                        <div className="flex items-center gap-2">
-                          <Lightbulb className="h-5 w-5" />
-                          <span className="font-medium">Lire l&apos;insight</span>
-                        </div>
-                        <ChevronRight className="h-5 w-5" />
+                        <span className="flex items-center gap-2 text-sm font-medium text-surface-700 group-hover:text-accent-600 transition-colors">
+                          <Lightbulb className="h-4 w-4" />
+                          Lire l&apos;insight
+                        </span>
+                        <ChevronRight className="h-4 w-4 text-surface-300 group-hover:text-accent-500 transition-colors" />
                       </a>
                     ) : (
-                      <div className="flex items-center justify-between w-full px-4 py-3 bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed">
-                        <div className="flex items-center gap-2">
-                          <Lock className="h-5 w-5" />
-                          <span className="font-medium">Insight bientôt disponible</span>
-                        </div>
+                      <div className="flex items-center gap-2 px-5 lg:px-6 py-3 text-sm text-surface-400">
+                        <Lock className="h-4 w-4" />
+                        Insight bientôt disponible
                       </div>
                     )}
 
-                    {/* Bouton Rapport */}
                     {report ? (
                       <button
                         onClick={() => handleDownloadReport(report)}
-                        className="flex items-center justify-between w-full px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition"
+                        className="group flex items-center justify-between w-full px-5 lg:px-6 py-3 hover:bg-surface-50 transition-colors text-left"
                       >
-                        <div className="flex items-center gap-2">
-                          <Download className="h-5 w-5" />
-                          <span className="font-medium">Télécharger le rapport ({report.file_size})</span>
-                        </div>
-                        <Download className="h-5 w-5" />
+                        <span className="flex items-center gap-2 text-sm font-medium text-surface-700 group-hover:text-success-600 transition-colors">
+                          <Download className="h-4 w-4" />
+                          Télécharger le rapport ({report.file_size})
+                        </span>
+                        <Download className="h-4 w-4 text-surface-300 group-hover:text-success-500 transition-colors" />
                       </button>
                     ) : (
-                      <div className="flex items-center justify-between w-full px-4 py-3 bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed">
-                        <div className="flex items-center gap-2">
-                          <Lock className="h-5 w-5" />
-                          <span className="font-medium">Rapport bientôt disponible</span>
-                        </div>
+                      <div className="flex items-center gap-2 px-5 lg:px-6 py-3 text-sm text-surface-400">
+                        <Lock className="h-4 w-4" />
+                        Rapport bientôt disponible
                       </div>
                     )}
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-    </>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      )}
+    </div>
   );
 }

@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Users,
-  Plus,
   Trash2,
-  ArrowLeft,
   Loader2,
   X,
   User,
@@ -17,6 +15,18 @@ import {
   UserPlus,
   CheckCircle,
 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { ProgressBar } from "@/components/ui/ProgressBar";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
+
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
 
 interface TeamMember {
   id: number;
@@ -37,29 +47,59 @@ interface TeamData {
   current_count: number;
 }
 
-function DeleteMemberModal({ memberName, actionLoading, onClose, onConfirm }: { memberName: string; actionLoading: boolean; onClose: () => void; onConfirm: () => void }) {
+// -----------------------------------------------------------------------------
+// Animation variants
+// -----------------------------------------------------------------------------
+
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.1 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
+
+// -----------------------------------------------------------------------------
+// Delete Modal
+// -----------------------------------------------------------------------------
+
+function DeleteMemberModal({
+  memberName,
+  actionLoading,
+  onClose,
+  onConfirm,
+}: {
+  memberName: string;
+  actionLoading: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     previousFocusRef.current = document.activeElement as HTMLElement;
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === "Escape") onClose();
     };
-    document.addEventListener('keydown', handleEscape);
+    document.addEventListener("keydown", handleEscape);
 
-    const firstFocusable = modalRef.current?.querySelector('button') as HTMLElement;
+    const firstFocusable = modalRef.current?.querySelector("button") as HTMLElement;
     firstFocusable?.focus();
 
     return () => {
-      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener("keydown", handleEscape);
       previousFocusRef.current?.focus();
     };
   }, [onClose]);
 
   const handleTabTrap = (e: React.KeyboardEvent) => {
-    if (e.key !== 'Tab') return;
-    const focusableEls = modalRef.current?.querySelectorAll('button:not([disabled])') as NodeListOf<HTMLElement>;
+    if (e.key !== "Tab") return;
+    const focusableEls = modalRef.current?.querySelectorAll(
+      "button:not([disabled])"
+    ) as NodeListOf<HTMLElement>;
     if (!focusableEls || focusableEls.length === 0) return;
     const firstEl = focusableEls[0];
     const lastEl = focusableEls[focusableEls.length - 1];
@@ -73,47 +113,57 @@ function DeleteMemberModal({ memberName, actionLoading, onClose, onConfirm }: { 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
       <div
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-member-modal-title"
-        className="bg-white rounded-xl w-full max-w-md"
+        className="bg-white rounded-xl w-full max-w-md shadow-xl"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleTabTrap}
       >
         <div className="p-6 text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Trash2 className="h-8 w-8 text-red-600" aria-hidden="true" />
+          <div className="w-14 h-14 bg-danger-50 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Trash2 className="h-6 w-6 text-danger-600" aria-hidden="true" />
           </div>
-          <h2 id="delete-member-modal-title" className="text-xl font-semibold text-gray-900 mb-2">Retirer ce membre ?</h2>
-          <p className="text-gray-600 mb-2">
-            Êtes-vous sûr de vouloir retirer <strong>{memberName}</strong> de votre équipe ?
+          <h2
+            id="delete-member-modal-title"
+            className="text-lg font-semibold text-surface-900 mb-2"
+          >
+            Retirer ce membre ?
+          </h2>
+          <p className="text-surface-500 text-sm mb-1">
+            Êtes-vous sûr de vouloir retirer <strong className="text-surface-700">{memberName}</strong> de votre équipe ?
           </p>
-          <p className="text-sm text-gray-500 mb-6">
+          <p className="text-xs text-surface-400 mb-6">
             Cette personne n&apos;aura plus accès au plan Entreprise.
           </p>
           <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
+            <Button variant="secondary" fullWidth onClick={onClose}>
               Annuler
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="danger"
+              fullWidth
+              loading={actionLoading}
               onClick={onConfirm}
-              disabled={actionLoading}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {actionLoading ? <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> : "Retirer"}
-            </button>
+              Retirer
+            </Button>
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+// -----------------------------------------------------------------------------
+// Main
+// -----------------------------------------------------------------------------
 
 export default function EntrepriseTeamPage() {
   const router = useRouter();
@@ -127,7 +177,6 @@ export default function EntrepriseTeamPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Form data
   const [formData, setFormData] = useState({
     email: "",
     full_name: "",
@@ -148,7 +197,6 @@ export default function EntrepriseTeamPage() {
       }
 
       const parsedUser = session.user;
-      // Vérifier : plan entreprise ET propriétaire (pas de parent_user_id)
       if (parsedUser.plan !== "entreprise" || parsedUser.parent_user_id) {
         setAccessDenied(true);
         setLoading(false);
@@ -200,7 +248,9 @@ export default function EntrepriseTeamPage() {
         throw new Error(data.detail || "Erreur lors de l'ajout");
       }
 
-      setSuccess(`${formData.full_name} a été ajouté(e) à votre équipe. Un email lui a été envoyé.`);
+      setSuccess(
+        `${formData.full_name} a été ajouté(e) à votre équipe. Un email lui a été envoyé.`
+      );
       setShowAddModal(false);
       setFormData({ email: "", full_name: "" });
       fetchTeam();
@@ -216,9 +266,12 @@ export default function EntrepriseTeamPage() {
     setActionLoading(true);
 
     try {
-      const response = await fetch(`/api/proxy/api/enterprise/team/${selectedMember.id}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/proxy/api/enterprise/team/${selectedMember.id}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!response.ok) {
         const data = await response.json();
@@ -241,41 +294,40 @@ export default function EntrepriseTeamPage() {
     setShowDeleteModal(true);
   };
 
-  const remainingSlots = teamData ? teamData.max_members - teamData.current_count : 0;
+  const remainingSlots = teamData
+    ? teamData.max_members - teamData.current_count
+    : 0;
 
+  // Loading
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      <div className="page-container flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-surface-400" />
       </div>
     );
   }
 
-  // Écran Accès Refusé
+  // Access denied
   if (accessDenied) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="page-container flex items-center justify-center min-h-[60vh]">
         <div className="text-center max-w-md">
-          <div className="bg-purple-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-            <Building className="h-10 w-10 text-purple-600" />
+          <div className="p-4 rounded-xl bg-accent-50 w-fit mx-auto mb-6" aria-hidden="true">
+            <Building className="h-8 w-8 text-accent-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Fonctionnalité Entreprise</h1>
-          <p className="text-gray-600 mb-6">
-            La gestion d&apos;équipe est réservée aux abonnés du forfait Entreprise. 
+          <h1 className="font-heading text-2xl font-bold text-surface-900 mb-2 tracking-tight">
+            Fonctionnalité Entreprise
+          </h1>
+          <p className="text-surface-500 mb-6 leading-relaxed">
+            La gestion d&apos;équipe est réservée aux abonnés du forfait Entreprise.
             Passez au plan Entreprise pour ajouter jusqu&apos;à 5 utilisateurs.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a
-              href="/dashboard"
-              className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-            >
-              Retour au dashboard
-            </a>
-            <a
-              href="https://afrikalytics.com/premium"
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-            >
-              Voir le plan Entreprise
+            <Link href="/dashboard">
+              <Button variant="secondary">Retour au dashboard</Button>
+            </Link>
+            <a href="https://afrikalytics.com/premium">
+              <Button variant="primary">Voir le plan Entreprise</Button>
             </a>
           </div>
         </div>
@@ -284,231 +336,236 @@ export default function EntrepriseTeamPage() {
   }
 
   return (
-    <div id="main-content" className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/dashboard"
-                className="p-2 hover:bg-gray-100 rounded-lg transition"
-              >
-                <ArrowLeft className="h-5 w-5 text-gray-600" />
-              </Link>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Mon Équipe</h1>
-                <p className="text-gray-600">
-                  {teamData?.current_count || 1} / {teamData?.max_members || 5} membres
-                </p>
-              </div>
-            </div>
-            {remainingSlots > 0 && (
-              <button
-                onClick={() => {
-                  setError("");
-                  setSuccess("");
-                  setShowAddModal(true);
-                }}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
-              >
-                <UserPlus className="h-5 w-5" />
-                <span className="hidden sm:inline">Ajouter un membre</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+    <div className="page-container max-w-4xl mx-auto space-y-6">
+      {/* ── Breadcrumb ── */}
+      <Breadcrumb items={[{ label: "Mon Équipe" }]} />
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        {/* Success Message */}
-        {success && (
-          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
-            <CheckCircle className="h-5 w-5" />
-            {success}
-          </div>
+      {/* ── Header ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex items-center justify-between"
+      >
+        <div>
+          <h1 className="font-heading text-2xl lg:text-3xl font-bold text-surface-900 tracking-tight">
+            Mon Équipe
+          </h1>
+          <p className="text-surface-500 text-sm mt-1">
+            {teamData?.current_count || 1} / {teamData?.max_members || 5} membres
+          </p>
+        </div>
+        {remainingSlots > 0 && (
+          <Button
+            variant="primary"
+            icon={<UserPlus className="h-4 w-4" />}
+            onClick={() => {
+              setError("");
+              setSuccess("");
+              setShowAddModal(true);
+            }}
+          >
+            <span className="hidden sm:inline">Ajouter un membre</span>
+            <span className="sm:hidden">Ajouter</span>
+          </Button>
         )}
+      </motion.div>
 
-        {/* Progress Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-gray-700">Places utilisées</span>
-            <span className="text-sm text-gray-500">
-              {remainingSlots} place{remainingSlots > 1 ? "s" : ""} restante{remainingSlots > 1 ? "s" : ""}
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-3">
-            <div
-              className="bg-purple-600 h-3 rounded-full transition-all duration-300"
-              style={{ width: `${((teamData?.current_count || 1) / (teamData?.max_members || 5)) * 100}%` }}
-            ></div>
-          </div>
-        </div>
+      {/* Success Message */}
+      {success && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 bg-success-50 border border-success-200 text-success-700 px-4 py-3 rounded-xl text-sm"
+          role="status"
+        >
+          <CheckCircle className="h-5 w-5 shrink-0" />
+          {success}
+        </motion.div>
+      )}
 
-        {/* Owner Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
+      {/* Progress Bar */}
+      <Card>
+        <ProgressBar
+          value={teamData?.current_count || 1}
+          max={teamData?.max_members || 5}
+          variant="accent"
+          size="md"
+          label="Places utilisées"
+          showValue
+        />
+        <p className="text-xs text-surface-400 mt-2">
+          {remainingSlots} place{remainingSlots > 1 ? "s" : ""} restante{remainingSlots > 1 ? "s" : ""}
+        </p>
+      </Card>
+
+      {/* Owner Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+      >
+        <Card variant="bordered">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <Crown className="h-6 w-6 text-purple-600" />
+            <div className="w-11 h-11 bg-accent-50 rounded-full flex items-center justify-center shrink-0" aria-hidden="true">
+              <Crown className="h-5 w-5 text-accent-600" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="font-semibold text-gray-900">{teamData?.owner.full_name}</p>
-                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
-                  Propriétaire
-                </span>
+                <p className="font-semibold text-surface-900">{teamData?.owner.full_name}</p>
+                <Badge variant="accent" size="sm">Propriétaire</Badge>
               </div>
-              <p className="text-sm text-gray-500">{teamData?.owner.email}</p>
+              <p className="text-sm text-surface-500 truncate">{teamData?.owner.email}</p>
             </div>
           </div>
-        </div>
+        </Card>
+      </motion.div>
 
-        {/* Team Members */}
-        <div className="space-y-3">
-          {teamData?.team_members.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-              <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500 mb-4">Aucun membre dans votre équipe</p>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Ajouter votre premier membre
-              </button>
-            </div>
-          ) : (
-            teamData?.team_members.map((member) => (
-              <div
-                key={member.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
-              >
+      {/* Team Members */}
+      {teamData?.team_members.length === 0 ? (
+        <EmptyState
+          icon={<Users className="h-8 w-8" />}
+          title="Aucun membre dans votre équipe"
+          action={
+            <Button
+              variant="ghost"
+              onClick={() => setShowAddModal(true)}
+            >
+              Ajouter votre premier membre
+            </Button>
+          }
+        />
+      ) : (
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-3"
+        >
+          {teamData?.team_members.map((member) => (
+            <motion.div key={member.id} variants={itemVariants}>
+              <Card variant="bordered">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <User className="h-6 w-6 text-blue-600" />
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-11 h-11 bg-primary-50 rounded-full flex items-center justify-center shrink-0" aria-hidden="true">
+                      <User className="h-5 w-5 text-primary-600" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-900">{member.full_name}</p>
-                        <span
-                          className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                            member.is_active
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                          }`}
+                        <p className="font-semibold text-surface-900">{member.full_name}</p>
+                        <Badge
+                          variant={member.is_active ? "success" : "danger"}
+                          size="sm"
+                          dot
                         >
                           {member.is_active ? "Actif" : "Inactif"}
-                        </span>
+                        </Badge>
                       </div>
-                      <p className="text-sm text-gray-500">{member.email}</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Ajouté le {new Date(member.created_at).toLocaleDateString("fr-FR")}
+                      <p className="text-sm text-surface-500 truncate">{member.email}</p>
+                      <p className="text-xs text-surface-400 mt-0.5">
+                        Ajouté le{" "}
+                        {new Date(member.created_at).toLocaleDateString("fr-FR")}
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => openDeleteModal(member)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                    className="p-2 text-surface-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-all shrink-0"
                     title="Retirer de l'équipe"
                   >
-                    <Trash2 className="h-5 w-5" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
+      )}
 
-        {/* Info Box */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
-          <h3 className="font-medium text-blue-900 mb-2">💡 Comment ça marche ?</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Chaque membre reçoit un email avec ses identifiants</li>
-            <li>• Tous les membres ont accès au plan Entreprise</li>
-            <li>• Vous pouvez ajouter jusqu&apos;à 4 membres (5 utilisateurs au total)</li>
-            <li>• Retirer un membre libère une place dans votre équipe</li>
-          </ul>
-        </div>
-      </div>
+      {/* Info Box */}
+      <Card variant="bordered" className="border-l-4 border-l-primary-500">
+        <h3 className="font-semibold text-surface-900 mb-2 text-sm">Comment ça marche ?</h3>
+        <ul className="text-sm text-surface-500 space-y-1.5">
+          <li>Chaque membre reçoit un email avec ses identifiants</li>
+          <li>Tous les membres ont accès au plan Entreprise</li>
+          <li>Vous pouvez ajouter jusqu&apos;à 4 membres (5 utilisateurs au total)</li>
+          <li>Retirer un membre libère une place dans votre équipe</li>
+        </ul>
+      </Card>
 
       {/* Modal Ajouter */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-lg font-semibold">Ajouter un membre</h2>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-xl w-full max-w-md shadow-xl"
+          >
+            <div className="flex items-center justify-between p-5 border-b border-surface-100">
+              <h2 className="text-base font-semibold text-surface-900">Ajouter un membre</h2>
               <button
                 onClick={() => {
                   setShowAddModal(false);
                   setFormData({ email: "", full_name: "" });
                   setError("");
                 }}
-                className="p-2 hover:bg-gray-100 rounded-lg"
+                className="p-2 hover:bg-surface-100 rounded-lg transition-colors"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4 text-surface-400" />
               </button>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-5 space-y-4">
               {error && (
-                <div className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm">
+                <div className="bg-danger-50 text-danger-600 px-4 py-2 rounded-lg text-sm border border-danger-200">
                   {error}
                 </div>
               )}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nom complet
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    type="text"
-                    value={formData.full_name}
-                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="Jean Dupont"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
-                    placeholder="email@entreprise.com"
-                  />
-                </div>
-              </div>
-              <p className="text-sm text-gray-500">
+              <Input
+                label="Nom complet"
+                value={formData.full_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, full_name: e.target.value })
+                }
+                icon={<User className="h-4 w-4" />}
+                placeholder="Jean Dupont"
+              />
+              <Input
+                label="Email"
+                type="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                icon={<Mail className="h-4 w-4" />}
+                placeholder="email@entreprise.com"
+              />
+              <p className="text-xs text-surface-400">
                 Un email sera envoyé avec un mot de passe temporaire.
               </p>
             </div>
-            <div className="flex gap-3 p-4 border-t">
-              <button
+            <div className="flex gap-3 p-5 border-t border-surface-100">
+              <Button
+                variant="secondary"
+                fullWidth
                 onClick={() => {
                   setShowAddModal(false);
                   setFormData({ email: "", full_name: "" });
                   setError("");
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
               >
                 Annuler
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
+                fullWidth
+                loading={actionLoading}
+                disabled={!formData.email || !formData.full_name}
                 onClick={handleAddMember}
-                disabled={actionLoading || !formData.email || !formData.full_name}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {actionLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Ajouter"}
-              </button>
+                Ajouter
+              </Button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 

@@ -1,13 +1,15 @@
 "use client";
 
 // =============================================================================
-// Afrikalytics Dashboard — Shared Sidebar Component
+// Afrikalytics Dashboard — Sidebar Component (Corporate Premium)
 // =============================================================================
-// Extracted from the ~150-line sidebar duplicated across 10+ pages.
-// Supports: responsive mobile drawer, admin sub-menu with RBAC, user info, logout.
+// White sidebar with refined typography, framer-motion animations
+// Style: Bloomberg / McKinsey corporate
 // =============================================================================
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart3,
   FileText,
@@ -25,31 +27,24 @@ import {
 import type { User } from "@/lib/types";
 import type { AdminRolePermissions } from "@/lib/types";
 import { ADMIN_PERMISSIONS, ROUTES } from "@/lib/constants";
+import { Avatar } from "@/components/ui/Avatar";
+import { Badge } from "@/components/ui/Badge";
 
 // -----------------------------------------------------------------------------
 // Types
 // -----------------------------------------------------------------------------
 
 export interface SidebarProps {
-  /** Current route path (used to highlight the active nav item) */
   currentPath: string;
-  /** The authenticated user */
   user: User | null;
-  /** Logout handler */
   onLogout: () => void;
 }
-
-// -----------------------------------------------------------------------------
-// Navigation items
-// -----------------------------------------------------------------------------
 
 interface NavItem {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  /** If set, only show when this condition is true */
   show?: boolean;
-  /** Badge text (e.g. team member count) */
   badge?: string;
 }
 
@@ -64,33 +59,71 @@ function hasPermission(user: User | null, permission: keyof AdminRolePermissions
 }
 
 // -----------------------------------------------------------------------------
-// Component
+// Animation variants
 // -----------------------------------------------------------------------------
 
-export function Sidebar({ currentPath, user, onLogout }: SidebarProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+const overlayVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+  exit: { opacity: 0 },
+};
+
+const drawerVariants = {
+  hidden: { x: -256 },
+  visible: {
+    x: 0,
+    transition: { type: "spring" as const, damping: 28, stiffness: 300 },
+  },
+  exit: {
+    x: -256,
+    transition: { type: "spring" as const, damping: 28, stiffness: 300 },
+  },
+};
+
+const submenuVariants = {
+  hidden: { height: 0, opacity: 0 },
+  visible: {
+    height: "auto",
+    opacity: 1,
+    transition: { duration: 0.25, ease: "easeOut" as const },
+  },
+  exit: {
+    height: 0,
+    opacity: 0,
+    transition: { duration: 0.2, ease: "easeIn" as const },
+  },
+};
+
+// -----------------------------------------------------------------------------
+// Sidebar Content (shared between desktop & mobile)
+// -----------------------------------------------------------------------------
+
+function SidebarContent({
+  currentPath,
+  user,
+  onLogout,
+  onNavigate,
+}: SidebarProps & { onNavigate?: () => void }) {
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
 
-  // Main navigation items
   const mainNavItems: NavItem[] = [
     { href: ROUTES.DASHBOARD, label: "Dashboard", icon: BarChart3 },
-    { href: ROUTES.ETUDES, label: "Etudes", icon: FileText },
+    { href: ROUTES.ETUDES, label: "Études", icon: FileText },
     { href: ROUTES.INSIGHTS, label: "Insights", icon: TrendingUp },
     { href: ROUTES.PROFILE, label: "Profil", icon: UserIcon },
     {
       href: ROUTES.EQUIPE,
-      label: "Mon Equipe",
+      label: "Mon Équipe",
       icon: Users,
       show: user?.plan === "entreprise" && !user?.parent_user_id,
       badge: "5",
     },
   ];
 
-  // Admin sub-menu items (filtered by permissions)
   const adminNavItems: NavItem[] = [
     {
       href: ROUTES.ADMIN,
-      label: "Etudes",
+      label: "Études",
       icon: FileText,
       show: hasPermission(user, "studies"),
     },
@@ -117,147 +150,245 @@ export function Sidebar({ currentPath, user, onLogout }: SidebarProps) {
   const isActive = (href: string) => currentPath === href;
 
   return (
+    <div className="flex flex-col h-full">
+      {/* Logo */}
+      <div className="px-6 py-5 border-b border-surface-200">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary-600 p-2 rounded-lg">
+            <BarChart3 className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <span className="font-bold text-lg tracking-tight text-surface-900">
+              Afrikalytics
+            </span>
+            <span className="text-primary-600 text-lg font-bold">.</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav
+        className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto no-scrollbar"
+        aria-label="Navigation principale"
+      >
+        {mainNavItems
+          .filter((item) => item.show === undefined || item.show)
+          .map((item) => {
+            const Icon = item.icon;
+            const active = isActive(item.href);
+            return (
+              <a
+                key={item.href}
+                href={item.href}
+                onClick={onNavigate}
+                aria-current={active ? "page" : undefined}
+                className={`
+                  group flex items-center gap-3 px-3 py-2.5 rounded-lg
+                  text-sm font-medium tracking-wide
+                  transition-all duration-200
+                  ${
+                    active
+                      ? "bg-primary-50 text-primary-700 border-l-2 border-primary-600"
+                      : "text-surface-600 hover:text-surface-900 hover:bg-surface-50 border-l-2 border-transparent"
+                  }
+                `}
+              >
+                <Icon
+                  className={`h-4 w-4 shrink-0 ${
+                    active ? "text-primary-600" : "text-surface-400 group-hover:text-surface-600"
+                  }`}
+                />
+                <span>{item.label}</span>
+                {item.badge && (
+                  <Badge variant="accent" size="sm" className="ml-auto">
+                    {item.badge}
+                  </Badge>
+                )}
+              </a>
+            );
+          })}
+
+        {/* Admin Menu */}
+        {user?.is_admin && (
+          <>
+            <div className="border-t border-surface-200 my-3" />
+            <p className="px-3 text-2xs font-semibold uppercase tracking-wider text-surface-400 mb-2">
+              Administration
+            </p>
+
+            <button
+              onClick={() => setAdminMenuOpen(!adminMenuOpen)}
+              aria-expanded={adminMenuOpen}
+              className={`
+                flex items-center justify-between w-full px-3 py-2.5 rounded-lg
+                text-sm font-medium tracking-wide
+                text-surface-600 hover:text-surface-900 hover:bg-surface-50
+                transition-all duration-200
+                border-l-2 border-transparent
+              `}
+            >
+              <div className="flex items-center gap-3">
+                <Settings className="h-4 w-4 text-surface-400" />
+                <span>Gérer</span>
+              </div>
+              <ChevronDown
+                className={`h-4 w-4 text-surface-400 transition-transform duration-300 ${
+                  adminMenuOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+
+            <AnimatePresence initial={false}>
+              {adminMenuOpen && (
+                <motion.div
+                  key="admin-submenu"
+                  variants={submenuVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  className="overflow-hidden"
+                >
+                  <div className="pl-4 space-y-0.5 mt-1">
+                    {adminNavItems
+                      .filter((item) => item.show)
+                      .map((item) => {
+                        const Icon = item.icon;
+                        const active = isActive(item.href);
+                        return (
+                          <a
+                            key={item.href}
+                            href={item.href}
+                            onClick={onNavigate}
+                            aria-current={active ? "page" : undefined}
+                            className={`
+                              flex items-center gap-3 px-3 py-2 rounded-lg
+                              text-sm font-medium tracking-wide
+                              transition-all duration-200
+                              ${
+                                active
+                                  ? "bg-primary-50 text-primary-700"
+                                  : "text-surface-500 hover:text-surface-900 hover:bg-surface-50"
+                              }
+                            `}
+                          >
+                            <Icon
+                              className={`h-3.5 w-3.5 ${
+                                active ? "text-primary-600" : "text-surface-400"
+                              }`}
+                            />
+                            <span>{item.label}</span>
+                          </a>
+                        );
+                      })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
+        )}
+      </nav>
+
+      {/* User info + Logout */}
+      <div className="px-3 py-4 border-t border-surface-200">
+        <div className="flex items-center gap-3 px-3 py-2.5 mb-1">
+          <Avatar name={user?.full_name || ""} size="sm" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-surface-900 truncate">
+              {user?.full_name}
+            </p>
+            <p className="text-2xs text-surface-400 truncate">{user?.email}</p>
+          </div>
+        </div>
+        <button
+          onClick={onLogout}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-surface-500 hover:bg-surface-50 hover:text-surface-700 transition-all duration-200"
+        >
+          <LogOut className="h-4 w-4" />
+          <span className="text-sm font-medium">Déconnexion</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// -----------------------------------------------------------------------------
+// Main Sidebar Component
+// -----------------------------------------------------------------------------
+
+export function Sidebar({ currentPath, user, onLogout }: SidebarProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
+  return (
     <>
       {/* Mobile Menu Button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 bg-gray-900 text-white p-2 rounded-lg shadow-lg"
+        className={`
+          lg:hidden fixed top-4 left-4 z-50
+          p-2.5 rounded-lg shadow-sm
+          transition-all duration-200
+          ${
+            sidebarOpen
+              ? "bg-white text-surface-900 border border-surface-200"
+              : "bg-white text-surface-700 border border-surface-200"
+          }
+        `}
         aria-label={sidebarOpen ? "Fermer le menu" : "Ouvrir le menu"}
       >
-        {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
-      {/* Overlay */}
-      {sidebarOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-30"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Mobile Overlay */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            key="sidebar-overlay"
+            variants={overlayVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            transition={{ duration: 0.2 }}
+            className="lg:hidden fixed inset-0 bg-surface-900/30 backdrop-blur-sm z-30"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed h-full bg-gray-900 text-white z-40 transition-transform duration-300
-          w-64
-          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
-          lg:translate-x-0
-        `}
-      >
-        {/* Logo */}
-        <div className="p-6 border-b border-gray-800">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
-              <BarChart3 className="h-6 w-6" />
-            </div>
-            <span className="font-bold text-lg">Afrikalytics</span>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="p-4 space-y-2">
-          {mainNavItems
-            .filter((item) => item.show === undefined || item.show)
-            .map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-              return (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                    active
-                      ? "bg-gray-800 text-white"
-                      : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                  }`}
-                >
-                  <Icon className="h-5 w-5" />
-                  {item.label}
-                  {item.badge && (
-                    <span className="ml-auto px-2 py-0.5 bg-purple-600 text-white text-xs rounded-full">
-                      {item.badge}
-                    </span>
-                  )}
-                </a>
-              );
-            })}
-
-          {/* Admin Menu */}
-          {user?.is_admin && (
-            <>
-              <div className="border-t border-gray-800 my-4" />
-
-              {/* Admin toggle button */}
-              <button
-                onClick={() => setAdminMenuOpen(!adminMenuOpen)}
-                aria-expanded={adminMenuOpen}
-                className="flex items-center justify-between w-full px-4 py-3 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition"
-              >
-                <div className="flex items-center gap-3">
-                  <Settings className="h-5 w-5" />
-                  <span>Administration</span>
-                </div>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform duration-200 ${
-                    adminMenuOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {/* Admin sub-menu (animated) */}
-              <div
-                className={`overflow-hidden transition-all duration-200 ${
-                  adminMenuOpen ? "max-h-48 opacity-100" : "max-h-0 opacity-0"
-                }`}
-              >
-                <div className="pl-4 space-y-1 mt-1">
-                  {adminNavItems
-                    .filter((item) => item.show)
-                    .map((item) => {
-                      const Icon = item.icon;
-                      const active = isActive(item.href);
-                      return (
-                        <a
-                          key={item.href}
-                          href={item.href}
-                          aria-current={active ? "page" : undefined}
-                          className={`flex items-center gap-3 px-4 py-2 rounded-lg transition text-sm ${
-                            active
-                              ? "bg-gray-800 text-white"
-                              : "text-gray-400 hover:bg-gray-800 hover:text-white"
-                          }`}
-                        >
-                          <Icon className="h-4 w-4" />
-                          {item.label}
-                        </a>
-                      );
-                    })}
-                </div>
-              </div>
-            </>
-          )}
-        </nav>
-
-        {/* User info + Logout (bottom) */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-gray-700 p-2 rounded-full">
-              <UserIcon className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{user?.full_name}</p>
-              <p className="text-gray-400 text-sm truncate">{user?.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={onLogout}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition w-full px-4 py-2 rounded-lg hover:bg-gray-800"
+      {/* Mobile Drawer */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.aside
+            key="sidebar-mobile"
+            variants={drawerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="lg:hidden fixed h-full z-40 w-64 bg-white border-r border-surface-200 flex flex-col"
           >
-            <LogOut className="h-5 w-5" />
-            Deconnexion
-          </button>
-        </div>
+            <SidebarContent
+              currentPath={currentPath}
+              user={user}
+              onLogout={onLogout}
+              onNavigate={() => setSidebarOpen(false)}
+            />
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex fixed h-full z-40 w-64 bg-white border-r border-surface-200 flex-col">
+        <SidebarContent
+          currentPath={currentPath}
+          user={user}
+          onLogout={onLogout}
+        />
       </aside>
     </>
   );

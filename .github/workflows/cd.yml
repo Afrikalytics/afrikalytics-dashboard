@@ -1,5 +1,10 @@
 name: CD — Deploy
 
+permissions:
+  contents: read
+  checks: read
+  issues: write
+
 # Triggered on push to main (after CI passes) or manually via workflow_dispatch
 on:
   push:

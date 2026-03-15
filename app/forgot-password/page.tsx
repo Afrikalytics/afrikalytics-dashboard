@@ -1,9 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { Mail, ArrowLeft, Loader2, CheckCircle } from "lucide-react";
+import { Mail, ArrowLeft, CheckCircle, BarChart3 } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { API_URL } from "@/lib/constants";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Alert } from "@/components/ui/Alert";
+
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
+  },
+};
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -21,7 +38,7 @@ export default function ForgotPasswordPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest", // CSRF protection
+          "X-Requested-With": "XMLHttpRequest",
         },
         body: JSON.stringify({ email }),
       });
@@ -41,120 +58,132 @@ export default function ForgotPasswordPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-purple-900 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6">
-              <CheckCircle className="h-8 w-8 text-green-600" aria-hidden="true" />
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="min-h-screen bg-white flex items-center justify-center p-6"
+      >
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={stagger}
+          className="w-full max-w-[400px] text-center"
+        >
+          <motion.div variants={fadeInUp} className="mb-8">
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-success-50 rounded-full mb-6">
+              <CheckCircle className="h-7 w-7 text-success-600" aria-hidden="true" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              Email envoyé !
+            <h1 className="text-2xl font-semibold text-surface-900 mb-3">
+              Email envoyé
             </h1>
-            <p className="text-gray-600 mb-6">
-              Si un compte existe avec l'adresse <strong>{email}</strong>, vous
-              recevrez un email avec un lien pour réinitialiser votre mot de
-              passe.
+            <p className="text-surface-500 text-sm leading-relaxed">
+              Si un compte existe avec l&apos;adresse <span className="font-medium text-surface-700">{email}</span>,
+              vous recevrez un email avec un lien pour réinitialiser votre mot de passe.
             </p>
-            <p className="text-sm text-gray-500 mb-6">
+            <p className="text-xs text-surface-400 mt-4">
               Le lien expire dans 1 heure. Pensez à vérifier vos spams.
             </p>
+          </motion.div>
+
+          <motion.div variants={fadeInUp}>
             <Link
               href="/login"
-              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+              className="inline-flex items-center gap-2 text-sm text-surface-500 hover:text-surface-900 font-medium transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
               Retour à la connexion
             </Link>
-          </div>
-        </div>
-      </div>
+          </motion.div>
+        </motion.div>
+      </main>
     );
   }
 
   return (
-    <div id="main-content" className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-purple-900 flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
-      </div>
-
-      <div className="relative w-full max-w-md">
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="min-h-screen bg-white flex items-center justify-center p-6"
+    >
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={stagger}
+        className="w-full max-w-[400px]"
+      >
         {/* Logo */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">
-            Afrikalytics<span className="text-yellow-400">.</span>
+        <motion.div variants={fadeInUp} className="flex items-center gap-3 mb-16">
+          <BarChart3 className="h-6 w-6 text-surface-900" />
+          <span className="text-xl font-semibold text-surface-900 tracking-tight">
+            Afrikalytics<span className="text-warning-500">.</span>
+          </span>
+        </motion.div>
+
+        <motion.div variants={fadeInUp} className="mb-8">
+          <h1 className="text-2xl font-semibold text-surface-900 tracking-tight mb-2">
+            Mot de passe oublié
           </h1>
-        </div>
-
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
-            Mot de passe oublié ?
-          </h2>
-          <p className="text-gray-600 text-center mb-6">
-            Entrez votre email et nous vous enverrons un lien pour réinitialiser
-            votre mot de passe.
+          <p className="text-surface-500 text-sm">
+            Entrez votre email et nous vous enverrons un lien de réinitialisation.
           </p>
+        </motion.div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <div role="alert" aria-live="polite" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <motion.div variants={fadeInUp}>
+              <Alert
+                variant="error"
+                dismissible
+                onDismiss={() => setError("")}
+              >
                 {error}
-              </div>
-            )}
+              </Alert>
+            </motion.div>
+          )}
 
-            <div>
-              <label htmlFor="forgot-email" className="block text-sm font-medium text-gray-700 mb-2">
-                Adresse email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
-                <input
-                  id="forgot-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  aria-required="true"
-                  placeholder="votre@email.com"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-primary-600 focus-visible:outline-offset-2 transition"
-                />
-              </div>
-            </div>
+          <motion.div variants={fadeInUp}>
+            <Input
+              label="Adresse email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="votre@email.com"
+              icon={<Mail className="h-4 w-4" />}
+              size="lg"
+            />
+          </motion.div>
 
-            <button
+          <motion.div variants={fadeInUp}>
+            <Button
               type="submit"
-              disabled={loading || !email}
-              aria-busy={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              loading={loading}
+              disabled={!email}
+              fullWidth
+              size="lg"
             >
-              {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-                  Envoi en cours...
-                </>
-              ) : (
-                "Envoyer le lien"
-              )}
-            </button>
-          </form>
+              {loading ? "Envoi en cours..." : "Envoyer le lien"}
+            </Button>
+          </motion.div>
+        </form>
 
-          <div className="mt-6 text-center">
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Retour à la connexion
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
+        <motion.div variants={fadeInUp} className="mt-8 text-center">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 text-sm text-surface-400 hover:text-surface-600 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Retour à la connexion
+          </Link>
+        </motion.div>
+
+        {/* Footer */}
+        <motion.div variants={fadeInUp} className="mt-16 text-center">
+          <p className="text-xs text-surface-300">
+            © 2026 Afrikalytics by Marketym
+          </p>
+        </motion.div>
+      </motion.div>
+    </main>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Plus,
   Pencil,
@@ -8,20 +9,42 @@ import {
   Eye,
   EyeOff,
   ShieldX,
+  Search,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { api, ApiRequestError } from "@/lib/api";
 import type { Study } from "@/lib/types";
+import {
+  Breadcrumb,
+  Button,
+  Badge,
+  Card,
+  EmptyState,
+  SkeletonTable,
+} from "@/components/ui";
 
-// Skeleton component for loading states (Issue #18)
-const Skeleton = ({ className }: { className?: string }) => (
-  <div className={`animate-pulse bg-gray-200 rounded ${className || ''}`} />
-);
+// Animation variants
+const pageVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
+
+const listVariants = {
+  visible: { transition: { staggerChildren: 0.04 } },
+};
+
+const rowVariants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+};
 
 export default function AdminPage() {
   const { token, isLoading: authLoading, accessDenied } = useAuth({ requireAdmin: "studies" });
   const [studies, setStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   useEffect(() => {
     if (authLoading || !token || accessDenied) return;
@@ -60,200 +83,273 @@ export default function AdminPage() {
     }
   }, []);
 
-  // Access Denied screen — sidebar is rendered by the layout
+  const filteredStudies = studies.filter((study) => {
+    const matchesSearch =
+      !searchTerm ||
+      study.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      study.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === "all" || study.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+
+  // Access Denied screen
   if (accessDenied) {
     return (
       <div className="flex items-center justify-center p-4 min-h-[60vh]">
-        <div className="text-center max-w-md">
-          <div className="bg-red-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-            <ShieldX className="h-10 w-10 text-red-600" aria-hidden="true" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center max-w-md"
+        >
+          <div className="bg-danger-50 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
+            <ShieldX className="h-10 w-10 text-danger-600" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Acces refuse</h1>
-          <p className="text-gray-600 mb-6">
-            Cette page est reservee aux administrateurs. Vous n&apos;avez pas les permissions necessaires pour y acceder.
+          <h1 className="font-heading text-2xl font-bold text-surface-900 mb-2">Accès refusé</h1>
+          <p className="text-surface-500 mb-6">
+            Cette page est réservée aux administrateurs. Vous n&apos;avez pas les permissions nécessaires pour y accéder.
           </p>
-          <a
-            href="/dashboard"
-            className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
-          >
+          <Button variant="primary" size="lg" onClick={() => window.location.href = "/dashboard"}>
             Retour au dashboard
-          </a>
-        </div>
+          </Button>
+        </motion.div>
       </div>
     );
   }
 
-  // Loading skeleton (Issue #18) — auth loading is handled by the layout
+  // Loading skeleton
   if (authLoading || loading) {
     return (
-      <>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <Skeleton className="h-8 w-64 mb-2" />
-            <Skeleton className="h-5 w-80" />
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="space-y-2">
+            <div className="skeleton h-8 w-64 rounded" />
+            <div className="skeleton h-4 w-80 rounded" />
           </div>
-          <Skeleton className="h-10 w-40 rounded-lg" />
+          <div className="skeleton h-10 w-40 rounded-lg" />
         </div>
-        {/* Table skeleton */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 space-y-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-          </div>
-        </div>
-      </>
+        <Card padding="md">
+          <SkeletonTable rows={5} cols={5} />
+        </Card>
+      </div>
     );
   }
 
   return (
-    <>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Gestion des Études</h1>
-            <p className="text-gray-600 mt-1">Ajoutez, modifiez ou supprimez des études</p>
-          </div>
-          <a
-            href="/admin/ajouter"
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition w-full sm:w-auto justify-center"
-          >
-            <Plus className="h-5 w-5" aria-hidden="true" />
-            Nouvelle Étude
-          </a>
-        </div>
+    <motion.div
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-6"
+    >
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: "Administration", href: "/admin" },
+          { label: "Études" },
+        ]}
+        className="mb-2"
+      />
 
-        {/* Studies Table - Desktop */}
-        <div className="hidden lg:block bg-white rounded-xl shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="font-heading text-2xl lg:text-3xl font-bold text-surface-900 tracking-tight">
+            Gestion des Études
+          </h1>
+          <p className="text-surface-500 mt-1">
+            {studies.length} étude{studies.length !== 1 ? "s" : ""} au total
+          </p>
+        </div>
+        <Button
+          variant="primary"
+          icon={<Plus className="h-4 w-4" />}
+          onClick={() => window.location.href = "/admin/ajouter"}
+        >
+          Nouvelle Étude
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <Card padding="sm" className="flex flex-col sm:flex-row gap-3 items-center">
+        <div className="flex-1 min-w-[200px] relative w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-surface-400" aria-hidden="true" />
+          <input
+            type="text"
+            placeholder="Rechercher une étude..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 text-sm border border-surface-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 hover:border-surface-400 transition-all placeholder:text-surface-400"
+          />
+        </div>
+        <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value)}
+          className="px-4 py-2 text-sm border border-surface-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 hover:border-surface-400 appearance-none cursor-pointer w-full sm:w-auto"
+        >
+          <option value="all">Tous les statuts</option>
+          <option value="Ouvert">Ouvert</option>
+          <option value="Fermé">Fermé</option>
+          <option value="Bientôt">Bientôt</option>
+        </select>
+      </Card>
+
+      {/* Studies Table — Desktop */}
+      <div className="hidden lg:block">
+        <Card padding="none" className="overflow-hidden">
           <table className="w-full" aria-label="Liste des études">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Titre</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Catégorie</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Statut</th>
-                <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Visible</th>
-                <th className="text-right px-6 py-4 text-sm font-medium text-gray-500">Actions</th>
+            <thead>
+              <tr className="border-b border-surface-100">
+                <th className="text-left px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">Titre</th>
+                <th className="text-left px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">Catégorie</th>
+                <th className="text-left px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">Statut</th>
+                <th className="text-left px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">Visible</th>
+                <th className="text-right px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
-              {studies.length === 0 ? (
+            <motion.tbody variants={listVariants} initial="hidden" animate="visible" className="divide-y divide-surface-100">
+              {filteredStudies.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                    Aucune étude pour le moment. Créez votre première étude !
+                  <td colSpan={5}>
+                    <EmptyState
+                      icon={<BookOpen className="h-8 w-8" />}
+                      title="Aucune étude trouvée"
+                      description={searchTerm ? "Essayez de modifier vos critères de recherche." : "Créez votre première étude pour commencer."}
+                      action={
+                        !searchTerm ? (
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            icon={<Plus className="h-4 w-4" />}
+                            onClick={() => window.location.href = "/admin/ajouter"}
+                          >
+                            Créer une étude
+                          </Button>
+                        ) : undefined
+                      }
+                    />
                   </td>
                 </tr>
               ) : (
-                studies.map((study) => (
-                  <tr key={study.id} className="hover:bg-gray-50">
+                filteredStudies.map((study) => (
+                  <motion.tr key={study.id} variants={rowVariants} className="hover:bg-surface-50 transition-colors">
                     <td className="px-6 py-4">
-                      <p className="font-medium text-gray-900">{study.title}</p>
-                      <p className="text-sm text-gray-500 truncate max-w-xs">{study.description}</p>
+                      <p className="font-medium text-surface-900">{study.title}</p>
+                      <p className="text-sm text-surface-400 truncate max-w-xs mt-0.5">{study.description}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-blue-600 font-medium">{study.category}</span>
+                      <Badge variant="primary" size="sm">{study.category}</Badge>
                     </td>
                     <td className="px-6 py-4">
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full ${
-                          study.status === "Ouvert"
-                            ? "bg-green-100 text-green-700"
-                            : study.status === "Fermé"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
+                      <Badge
+                        variant={
+                          study.status === "Ouvert" ? "success" :
+                          study.status === "Fermé" ? "danger" : "warning"
+                        }
+                        size="sm"
+                        dot
                       >
                         {study.status}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="px-6 py-4">
                       {study.is_active ? (
-                        <Eye className="h-5 w-5 text-green-600" aria-hidden="true" />
+                        <Eye className="h-4 w-4 text-success-500" aria-label="Visible" />
                       ) : (
-                        <EyeOff className="h-5 w-5 text-gray-400" aria-hidden="true" />
+                        <EyeOff className="h-4 w-4 text-surface-300" aria-label="Masqué" />
                       )}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1">
                         <a
                           href={`/admin/modifier/${study.id}`}
                           aria-label={`Modifier ${study.title}`}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                          className="p-2 text-surface-400 hover:text-primary-600 hover:bg-surface-50 rounded-lg transition-colors"
                         >
                           <Pencil className="h-4 w-4" aria-hidden="true" />
                         </a>
                         <button
                           onClick={() => handleDelete(study.id)}
                           aria-label={`Supprimer ${study.title}`}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                          className="p-2 text-surface-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors"
                         >
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                       </div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))
               )}
-            </tbody>
+            </motion.tbody>
           </table>
-        </div>
+        </Card>
+      </div>
 
-        {/* Studies Cards - Mobile */}
-        <div className="lg:hidden space-y-4">
-          {studies.length === 0 ? (
-            <div className="bg-white rounded-xl p-6 text-center text-gray-500">
-              Aucune étude pour le moment. Créez votre première étude !
-            </div>
-          ) : (
-            studies.map((study) => (
-              <div key={study.id} className="bg-white rounded-xl shadow-sm p-4">
+      {/* Studies Cards — Mobile */}
+      <motion.div
+        variants={listVariants}
+        initial="hidden"
+        animate="visible"
+        className="lg:hidden space-y-3"
+      >
+        {filteredStudies.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={<BookOpen className="h-8 w-8" />}
+              title="Aucune étude trouvée"
+              description={searchTerm ? "Essayez de modifier vos critères de recherche." : "Créez votre première étude pour commencer."}
+            />
+          </Card>
+        ) : (
+          filteredStudies.map((study) => (
+            <motion.div key={study.id} variants={rowVariants}>
+              <Card padding="sm">
                 <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900">{study.title}</h3>
-                    <p className="text-sm text-gray-500 line-clamp-2 mt-1">{study.description}</p>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-surface-900 truncate">{study.title}</h3>
+                    <p className="text-sm text-surface-400 line-clamp-2 mt-1">{study.description}</p>
                   </div>
                   {study.is_active ? (
-                    <Eye className="h-5 w-5 text-green-600 ml-2" aria-hidden="true" />
+                    <Eye className="h-4 w-4 text-success-500 ml-3 shrink-0" aria-hidden="true" />
                   ) : (
-                    <EyeOff className="h-5 w-5 text-gray-400 ml-2" aria-hidden="true" />
+                    <EyeOff className="h-4 w-4 text-surface-300 ml-3 shrink-0" aria-hidden="true" />
                   )}
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between pt-3 border-t border-surface-100">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-blue-600 font-medium">{study.category}</span>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        study.status === "Ouvert"
-                          ? "bg-green-100 text-green-700"
-                          : study.status === "Fermé"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
+                    <Badge variant="primary" size="sm">{study.category}</Badge>
+                    <Badge
+                      variant={
+                        study.status === "Ouvert" ? "success" :
+                        study.status === "Fermé" ? "danger" : "warning"
+                      }
+                      size="sm"
+                      dot
                     >
                       {study.status}
-                    </span>
+                    </Badge>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                     <a
                       href={`/admin/modifier/${study.id}`}
                       aria-label={`Modifier ${study.title}`}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                      className="p-2 text-surface-400 hover:text-primary-600 hover:bg-surface-50 rounded-lg transition-colors"
                     >
                       <Pencil className="h-4 w-4" aria-hidden="true" />
                     </a>
                     <button
                       onClick={() => handleDelete(study.id)}
                       aria-label={`Supprimer ${study.title}`}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+                      className="p-2 text-surface-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="h-4 w-4" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-    </>
+              </Card>
+            </motion.div>
+          ))
+        )}
+      </motion.div>
+    </motion.div>
   );
 }

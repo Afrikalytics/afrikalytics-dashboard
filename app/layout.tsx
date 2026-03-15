@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-heading",
+  weight: ["400", "600", "700"],
+});
 
 export const metadata: Metadata = {
   title: "Dashboard - Afrikalytics AI",
@@ -39,7 +44,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={inter.className}>
+      <body className={`${inter.variable} ${playfair.variable} font-sans`}>
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:text-primary-600 focus:rounded focus:shadow-lg"

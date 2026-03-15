@@ -4,33 +4,49 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft,
   BarChart3,
   Clock,
   Calendar,
   Lock,
-  Crown,
   Download,
   FileText,
-  Lightbulb
+  Lightbulb,
+  ArrowRight,
+  CheckCircle,
+  Loader2,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import type { User, Insight } from "@/lib/types";
+import { ROUTES } from "@/lib/constants";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { EmptyState } from "@/components/ui/EmptyState";
+
+// -----------------------------------------------------------------------------
+// Constants
+// -----------------------------------------------------------------------------
 
 const ALLOWED_EMBED_ORIGINS = [
-  'https://lookerstudio.google.com',
-  'https://app.powerbi.com',
-  'https://public.tableau.com',
-  'https://datastudio.google.com',
+  "https://lookerstudio.google.com",
+  "https://app.powerbi.com",
+  "https://public.tableau.com",
+  "https://datastudio.google.com",
 ];
 
 function isValidEmbedUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return ALLOWED_EMBED_ORIGINS.some(origin => parsed.origin === origin);
+    return ALLOWED_EMBED_ORIGINS.some((origin) => parsed.origin === origin);
   } catch {
     return false;
   }
 }
+
+// -----------------------------------------------------------------------------
+// Types
+// -----------------------------------------------------------------------------
 
 interface StudyDetail {
   id: number;
@@ -45,6 +61,19 @@ interface StudyDetail {
   report_url_premium: string;
 }
 
+// -----------------------------------------------------------------------------
+// Animation variants
+// -----------------------------------------------------------------------------
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
+
+// -----------------------------------------------------------------------------
+// Main
+// -----------------------------------------------------------------------------
+
 export default function StudyResultsPage() {
   const params = useParams();
   const router = useRouter();
@@ -55,7 +84,6 @@ export default function StudyResultsPage() {
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    // Récupérer l'utilisateur depuis la session httpOnly
     const fetchUser = async () => {
       try {
         const res = await fetch("/api/auth/session");
@@ -67,7 +95,6 @@ export default function StudyResultsPage() {
     };
     fetchUser();
 
-    // Récupérer l'étude via proxy
     const fetchStudy = async () => {
       try {
         const response = await fetch(`/api/proxy/api/studies/${params.id}`);
@@ -80,7 +107,6 @@ export default function StudyResultsPage() {
       }
     };
 
-    // Récupérer l'insight via proxy
     const fetchInsight = async () => {
       try {
         const response = await fetch(`/api/proxy/api/insights/study/${params.id}`);
@@ -117,14 +143,12 @@ export default function StudyResultsPage() {
 
   const handleDownloadReport = async () => {
     if (!study) return;
-    
     const reportUrl = getReportUrl();
     if (!reportUrl) return;
 
     setDownloading(true);
 
     try {
-      // Tracker le téléchargement via proxy
       await fetch(`/api/proxy/api/reports/study/${study.id}/type/${getReportType()}/download`, {
         method: "POST",
       });
@@ -132,161 +156,192 @@ export default function StudyResultsPage() {
       console.error("Erreur tracking:", error);
     }
 
-    // Ouvrir le PDF
     window.open(reportUrl, "_blank");
     setDownloading(false);
   };
 
+  // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="page-container flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-surface-400" />
       </div>
     );
   }
 
+  // Not found
   if (!study) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Étude non trouvée</h1>
-          <Link href="/dashboard/etudes" className="text-blue-600 hover:text-blue-700">
-            ← Retour aux études
-          </Link>
-        </div>
+      <div className="page-container">
+        <EmptyState
+          icon={<FileText className="h-8 w-8" />}
+          title="Étude non trouvée"
+          description="Cette étude n'existe pas ou a été supprimée."
+          action={
+            <Link href={ROUTES.ETUDES}>
+              <Button variant="secondary">Retour aux études</Button>
+            </Link>
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div id="main-content" className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Link 
-            href="/dashboard/etudes" 
-            className="inline-flex items-center text-gray-500 hover:text-gray-700 mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" />
-            Retour aux études
-          </Link>
+    <div className="page-container space-y-6">
+      {/* ── Breadcrumb ── */}
+      <Breadcrumb
+        items={[
+          { label: "Études", href: ROUTES.ETUDES },
+          { label: study.title },
+        ]}
+      />
 
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <BarChart3 className="h-8 w-8 text-blue-600" />
-                <h1 className="text-2xl font-bold text-gray-900">{study.title}</h1>
-              </div>
-              <p className="text-gray-600 max-w-2xl">{study.description}</p>
-              
-              <div className="flex items-center gap-4 mt-4 text-sm text-gray-500">
-                <span className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  {study.duration}
-                </span>
-                {study.deadline && (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    {study.deadline}
-                  </span>
-                )}
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  study.status === "Ouvert" 
-                    ? "bg-green-100 text-green-700" 
-                    : "bg-red-100 text-red-700"
-                }`}>
-                  {study.status}
-                </span>
-              </div>
-            </div>
+      {/* ── Header ── */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4"
+      >
+        <div className="flex-1">
+          <h1 className="font-heading text-2xl lg:text-3xl font-bold text-surface-900 tracking-tight">
+            {study.title}
+          </h1>
+          <p className="text-surface-500 mt-2 leading-relaxed max-w-2xl">
+            {study.description}
+          </p>
 
-            {/* Badge Plan */}
-            <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-              isPremium 
-                ? "bg-yellow-100 text-yellow-800" 
-                : "bg-gray-100 text-gray-600"
-            }`}>
-              {isPremium ? "👑 Premium" : "Basic"}
-            </div>
+          <div className="flex flex-wrap items-center gap-3 mt-4">
+            <Badge
+              variant={study.status === "Ouvert" ? "success" : "danger"}
+              size="md"
+              dot
+            >
+              {study.status}
+            </Badge>
+            <span className="flex items-center gap-1.5 text-sm text-surface-400">
+              <Clock className="h-4 w-4" />
+              {study.duration}
+            </span>
+            {study.deadline && (
+              <span className="flex items-center gap-1.5 text-sm text-surface-400">
+                <Calendar className="h-4 w-4" />
+                {study.deadline}
+              </span>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Actions Buttons */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          {/* Insight Button */}
+        <Badge
+          variant={isPremium ? "primary" : "default"}
+          size="md"
+        >
+          {isPremium ? "Premium" : "Basic"}
+        </Badge>
+      </motion.div>
+
+      {/* ── Action Cards ── */}
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+      >
+        {/* Insight */}
+        <motion.div variants={fadeInUp}>
           {insight ? (
             <Link
               href={`/dashboard/insights/${insight.id}`}
-              className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:border-blue-500 hover:shadow-md transition"
+              className="group block"
             >
-              <div className="bg-purple-100 p-3 rounded-lg">
-                <Lightbulb className="h-6 w-6 text-purple-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">Lire l&apos;insight</p>
-                <p className="text-sm text-gray-500">Analyse et recommandations</p>
-              </div>
+              <Card variant="bordered" className="hover:border-surface-300 hover:shadow-soft transition-all duration-200">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-accent-50 shrink-0" aria-hidden="true">
+                    <Lightbulb className="h-5 w-5 text-accent-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-surface-900 group-hover:text-primary-600 transition-colors">
+                      Lire l&apos;insight
+                    </p>
+                    <p className="text-sm text-surface-500">Analyse et recommandations</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-surface-300 group-hover:text-primary-500 transition-colors" />
+                </div>
+              </Card>
             </Link>
           ) : (
-            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="bg-gray-100 p-3 rounded-lg">
-                <Lightbulb className="h-6 w-6 text-gray-400" />
+            <Card variant="bordered" className="opacity-60">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-surface-100 shrink-0" aria-hidden="true">
+                  <Lightbulb className="h-5 w-5 text-surface-400" />
+                </div>
+                <div>
+                  <p className="font-semibold text-surface-400">Insight bientôt disponible</p>
+                  <p className="text-sm text-surface-400">En cours de rédaction</p>
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-gray-400">Insight bientôt disponible</p>
-                <p className="text-sm text-gray-400">En cours de rédaction</p>
-              </div>
-            </div>
+            </Card>
           )}
+        </motion.div>
 
-          {/* Report Button */}
+        {/* Report */}
+        <motion.div variants={fadeInUp}>
           {getReportUrl() ? (
-            <button
-              onClick={handleDownloadReport}
-              disabled={downloading}
-              className="flex items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 hover:border-green-500 hover:shadow-md transition text-left"
-            >
-              <div className="bg-green-100 p-3 rounded-lg">
-                <Download className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <p className="font-semibold text-gray-900">
-                  {downloading ? "Ouverture..." : `Télécharger le rapport ${isPremium ? "complet" : ""}`}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {isPremium ? "Version Premium" : "Version Basic"}
-                </p>
-              </div>
+            <button onClick={handleDownloadReport} disabled={downloading} className="w-full text-left">
+              <Card variant="bordered" className="hover:border-surface-300 hover:shadow-soft transition-all duration-200">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-lg bg-success-50 shrink-0" aria-hidden="true">
+                    <Download className="h-5 w-5 text-success-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-surface-900">
+                      {downloading ? "Ouverture..." : `Télécharger le rapport ${isPremium ? "complet" : ""}`}
+                    </p>
+                    <p className="text-sm text-surface-500">
+                      {isPremium ? "Version Premium" : "Version Basic"}
+                    </p>
+                  </div>
+                  <Download className="h-4 w-4 text-surface-300" />
+                </div>
+              </Card>
             </button>
           ) : (
-            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="bg-gray-100 p-3 rounded-lg">
-                <FileText className="h-6 w-6 text-gray-400" />
+            <Card variant="bordered" className="opacity-60">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-lg bg-surface-100 shrink-0" aria-hidden="true">
+                  <FileText className="h-5 w-5 text-surface-400" />
+                </div>
+                <div>
+                  <p className="font-semibold text-surface-400">Rapport bientôt disponible</p>
+                  <p className="text-sm text-surface-400">En cours de préparation</p>
+                </div>
               </div>
-              <div>
-                <p className="font-semibold text-gray-400">Rapport bientôt disponible</p>
-                <p className="text-sm text-gray-400">En cours de préparation</p>
-              </div>
-            </div>
+            </Card>
           )}
-        </div>
+        </motion.div>
+      </motion.div>
 
-        {/* Results Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <BarChart3 className="h-6 w-6 text-blue-600" />
-              Résultats de l&apos;étude
-            </h2>
+      {/* ── Results Section ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+      >
+        <Card padding="none" className="overflow-hidden">
+          <div className="px-5 lg:px-6 py-4 border-b border-surface-100">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-surface-100" aria-hidden="true">
+                <BarChart3 className="h-5 w-5 text-surface-600" />
+              </div>
+              <h2 className="text-base font-semibold text-surface-900 tracking-tight">
+                Résultats de l&apos;étude
+              </h2>
+            </div>
           </div>
 
           {isPremium ? (
-            /* Premium: Show iframe */
-            <div className="p-6">
+            <div className="p-5 lg:p-6">
               {study.embed_url_results ? (
                 isValidEmbedUrl(study.embed_url_results) ? (
                   <iframe
@@ -297,77 +352,69 @@ export default function StudyResultsPage() {
                     title="Résultats de l'étude"
                   />
                 ) : (
-                  <div className="text-center py-12">
-                    <div className="bg-red-50 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-                      <BarChart3 className="h-8 w-8 text-red-400" />
-                    </div>
-                    <p className="text-red-600 font-medium">URL d&apos;intégration non autorisée</p>
-                    <p className="text-gray-500 text-sm mt-1">L&apos;origine de cette URL n&apos;est pas dans la liste des sources approuvées.</p>
-                  </div>
+                  <EmptyState
+                    icon={<BarChart3 className="h-8 w-8" />}
+                    title="URL d'intégration non autorisée"
+                    description="L'origine de cette URL n'est pas dans la liste des sources approuvées."
+                  />
                 )
               ) : (
-                <div className="text-center py-12">
-                  <BarChart3 className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">Résultats en cours de préparation</p>
-                </div>
+                <EmptyState
+                  icon={<BarChart3 className="h-8 w-8" />}
+                  title="Résultats en préparation"
+                  description="Les résultats seront bientôt disponibles."
+                />
               )}
             </div>
           ) : (
-            /* Basic: Show upgrade message */
-            <div className="p-12 text-center">
-              <div className="bg-yellow-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-                <Lock className="h-10 w-10 text-yellow-600" />
+            <div className="p-8 lg:p-12 text-center">
+              <div className="p-4 rounded-xl bg-surface-100 w-fit mx-auto mb-6" aria-hidden="true">
+                <Lock className="h-8 w-8 text-surface-500" />
               </div>
-              
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+
+              <h3 className="font-heading text-xl lg:text-2xl font-bold text-surface-900 mb-3 tracking-tight">
                 Contenu réservé aux membres Premium
               </h3>
-              
-              <p className="text-gray-600 max-w-md mx-auto mb-8">
-                Les résultats en temps réel sont disponibles pour les abonnés Professionnel et Entreprise. Passez à Premium pour débloquer l&apos;accès complet.
+
+              <p className="text-surface-500 max-w-md mx-auto mb-8 leading-relaxed">
+                Les résultats en temps réel sont disponibles pour les abonnés Professionnel et Entreprise.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link
-                  href="/premium"
-                  className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
-                >
-                  <Crown className="h-5 w-5" />
-                  Devenir Premium
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href="/premium">
+                  <Button variant="primary" size="lg">
+                    Devenir Premium
+                  </Button>
                 </Link>
-                
-                <Link
-                  href="/dashboard/etudes"
-                  className="inline-flex items-center justify-center gap-2 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition"
-                >
-                  Voir d&apos;autres études
+                <Link href={ROUTES.ETUDES}>
+                  <Button variant="secondary" size="lg">
+                    Voir d&apos;autres études
+                  </Button>
                 </Link>
               </div>
 
-              {/* What's included */}
-              <div className="mt-10 pt-8 border-t border-gray-200">
-                <p className="text-sm font-semibold text-gray-700 mb-4">
-                  Avec Premium, vous obtenez :
+              <div className="mt-10 pt-8 border-t border-surface-100">
+                <p className="text-xs font-semibold text-surface-500 uppercase tracking-wider mb-4">
+                  Avec Premium, vous obtenez
                 </p>
-                <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-600">
-                  <span className="flex items-center gap-1">
-                    ✅ Résultats en temps réel
-                  </span>
-                  <span className="flex items-center gap-1">
-                    ✅ Insights complets
-                  </span>
-                  <span className="flex items-center gap-1">
-                    ✅ Rapports détaillés
-                  </span>
-                  <span className="flex items-center gap-1">
-                    ✅ Dashboard avancé
-                  </span>
+                <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-surface-600">
+                  {[
+                    "Résultats en temps réel",
+                    "Insights complets",
+                    "Rapports détaillés",
+                    "Dashboard avancé",
+                  ].map((item) => (
+                    <span key={item} className="flex items-center gap-1.5">
+                      <CheckCircle className="h-4 w-4 text-success-500" />
+                      {item}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
           )}
-        </div>
-      </div>
+        </Card>
+      </motion.div>
     </div>
   );
 }

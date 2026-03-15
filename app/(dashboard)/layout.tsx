@@ -1,68 +1,65 @@
 "use client";
 
 // =============================================================================
-// Afrikalytics Dashboard — Shared Dashboard Layout
-// =============================================================================
-// Route Group layout for all authenticated pages (dashboard, admin, profile).
-// Centralizes: auth check, sidebar rendering, main content wrapper, loading state.
-// Uses Next.js Route Groups — (dashboard) does NOT affect URLs.
+// Afrikalytics Dashboard — Shared Dashboard Layout (Corporate Premium)
 // =============================================================================
 
 import { usePathname } from "next/navigation";
-import { ShieldX, Loader2 } from "lucide-react";
+import { ShieldX } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { Sidebar } from "@/components/Sidebar";
+import { Button } from "@/components/ui/Button";
+import { PageSkeleton } from "@/components/ui/Skeleton";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 // -----------------------------------------------------------------------------
-// Loading skeleton (replaces per-page loading states)
+// Loading State — Corporate Skeleton
 // -----------------------------------------------------------------------------
 
 function DashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8 flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <Loader2
-            className="h-10 w-10 animate-spin text-blue-600 mx-auto mb-4"
-            role="status"
-            aria-label="Chargement en cours"
-          />
-          <p className="text-gray-500 text-sm">Chargement...</p>
-        </div>
+    <div className="min-h-screen bg-white">
+      {/* Sidebar placeholder */}
+      <div className="hidden lg:block fixed h-full w-64 bg-white border-r border-surface-200" />
+      <div className="lg:ml-64 p-6 lg:p-10 pt-16 lg:pt-10">
+        <PageSkeleton />
       </div>
     </div>
   );
 }
 
 // -----------------------------------------------------------------------------
-// Access denied screen (replaces per-page access denied states)
+// Access Denied — Corporate Style
 // -----------------------------------------------------------------------------
 
 function AccessDeniedScreen() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="text-center max-w-md">
-        <div className="bg-red-100 p-4 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-          <ShieldX className="h-10 w-10 text-red-600" aria-hidden="true" />
+    <div className="min-h-screen bg-white flex items-center justify-center p-6">
+      <div className="text-center max-w-sm">
+        <div className="border border-surface-200 p-4 rounded-xl w-16 h-16 flex items-center justify-center mx-auto mb-8">
+          <ShieldX className="h-7 w-7 text-surface-400" aria-hidden="true" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Acces refuse</h1>
-        <p className="text-gray-600 mb-6">
-          Cette page est reservee aux administrateurs. Vous n&apos;avez pas les
-          permissions necessaires pour y acceder.
+        <h1 className="text-xl font-semibold text-surface-900 mb-2 tracking-tight">
+          Accès refusé
+        </h1>
+        <p className="text-sm text-surface-500 leading-relaxed mb-8">
+          Cette page est réservée aux administrateurs. Vous n&apos;avez pas les
+          permissions nécessaires pour y accéder.
         </p>
-        <a
-          href="/dashboard"
-          className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+        <Button
+          variant="primary"
+          size="lg"
+          onClick={() => (window.location.href = "/dashboard")}
         >
           Retour au dashboard
-        </a>
+        </Button>
       </div>
     </div>
   );
 }
 
 // -----------------------------------------------------------------------------
-// Layout Component
+// Layout
 // -----------------------------------------------------------------------------
 
 export default function DashboardLayout({
@@ -73,28 +70,21 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const { user, isLoading, accessDenied, logout } = useAuth();
 
-  // Show loading spinner while checking auth
-  if (isLoading) {
-    return <DashboardSkeleton />;
-  }
+  if (isLoading) return <DashboardSkeleton />;
+  if (accessDenied) return <AccessDeniedScreen />;
 
-  // Show access denied screen if user lacks permissions
-  if (accessDenied) {
-    return <AccessDeniedScreen />;
-  }
-
-  // User is authenticated — render sidebar + content
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <Sidebar currentPath={pathname} user={user} onLogout={logout} />
 
-      {/* Main Content Area */}
       <main
         id="main-content"
         tabIndex={-1}
         className="lg:ml-64 p-4 lg:p-8 pt-16 lg:pt-8"
       >
-        {children}
+        <PageTransition>
+          {children}
+        </PageTransition>
       </main>
     </div>
   );

@@ -2,16 +2,37 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, Lock, ArrowRight, BarChart3 } from "lucide-react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import { API_URL } from "@/lib/constants";
 import { saveSession } from "@/lib/api";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Alert } from "@/components/ui/Alert";
+
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.6, ease: "easeOut" as const } },
+};
+
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1, delayChildren: 0.15 },
+  },
+};
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -25,7 +46,7 @@ export default function LoginPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest", // CSRF protection
+          "X-Requested-With": "XMLHttpRequest",
         },
         body: JSON.stringify({ email, password }),
       });
@@ -36,14 +57,12 @@ export default function LoginPage() {
         throw new Error(data.detail || "Erreur de connexion");
       }
 
-      // Si 2FA requis, rediriger vers la page de vérification
       if (data.requires_verification) {
-        sessionStorage.setItem('verify_email', email);
-        router.push('/verify-code');
+        sessionStorage.setItem("verify_email", email);
+        router.push("/verify-code");
         return;
       }
 
-      // Store auth in httpOnly cookies (XSS-safe)
       await saveSession(data.access_token, data.user);
       router.push("/dashboard");
     } catch (err: unknown) {
@@ -54,153 +73,155 @@ export default function LoginPage() {
   };
 
   return (
-    <main id="main-content" tabIndex={-1} className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-purple-900 flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10" aria-hidden="true">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
-      </div>
+    <main
+      id="main-content"
+      tabIndex={-1}
+      className="min-h-screen flex"
+    >
+      {/* Left Panel — Corporate Branding */}
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={fadeIn}
+        className="hidden lg:flex lg:w-1/2 relative bg-surface-950 overflow-hidden"
+      >
+        <div className="relative flex flex-col justify-between px-16 py-16 text-white z-10 w-full">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <BarChart3 className="h-7 w-7 text-white/90" />
+            <span className="text-xl font-semibold tracking-tight">
+              Afrikalytics<span className="text-warning-500">.</span>
+            </span>
+          </div>
 
-      <div className="relative w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">
-            Afrikalytics AI<span className="text-yellow-400">.</span>
-          </h1>
-          <p className="text-blue-200 mt-2">by Marketym</p>
+          {/* Tagline */}
+          <div className="max-w-lg">
+            <h1 className="font-heading text-4xl xl:text-5xl leading-tight text-balance mb-6 tracking-tight">
+              L&apos;intelligence business au service de l&apos;Afrique
+            </h1>
+            <p className="text-lg text-white/50 leading-relaxed max-w-md">
+              Études de marché, insights exclusifs et rapports détaillés sur l&apos;Afrique francophone.
+            </p>
+          </div>
+
+          {/* Trust indicators */}
+          <div className="flex items-center gap-8 text-white/40 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-success-500" />
+              Données en temps réel
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-success-500" />
+              14 pays couverts
+            </div>
+          </div>
         </div>
+      </motion.div>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">
-            Connexion
-          </h2>
+      {/* Right Panel — Login Form */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 bg-white">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={stagger}
+          className="w-full max-w-[400px]"
+        >
+          {/* Mobile logo */}
+          <motion.div variants={fadeInUp} className="lg:hidden flex items-center gap-3 mb-12">
+            <BarChart3 className="h-6 w-6 text-surface-900" />
+            <span className="text-xl font-semibold text-surface-900 tracking-tight">
+              Afrikalytics<span className="text-warning-500">.</span>
+            </span>
+          </motion.div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <motion.div variants={fadeInUp} className="mb-10">
+            <h2 className="text-2xl font-semibold text-surface-900 tracking-tight">
+              Connexion
+            </h2>
+            <p className="text-surface-500 mt-2 text-sm">
+              Accédez à votre espace d&apos;analyse
+            </p>
+          </motion.div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div role="alert" aria-live="polite" className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
+              <motion.div variants={fadeInUp}>
+                <Alert
+                  variant="error"
+                  dismissible
+                  onDismiss={() => setError("")}
+                >
+                  {error}
+                </Alert>
+              </motion.div>
             )}
 
-            {/* Email */}
-            <div>
-              <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 mb-2">
-                Adresse email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
-                <input
-                  id="login-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  aria-required="true"
-                  aria-invalid={error ? "true" : undefined}
-                  aria-describedby={error ? "login-error" : undefined}
-                  placeholder="votre@email.com"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-primary-600 focus-visible:outline-offset-2 transition"
-                />
-              </div>
-            </div>
+            <motion.div variants={fadeInUp}>
+              <Input
+                label="Adresse email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="votre@email.com"
+                icon={<Mail className="h-4 w-4" />}
+                size="lg"
+              />
+            </motion.div>
 
-            {/* Password */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label htmlFor="login-password" className="block text-sm font-medium text-gray-700">
-                  Mot de passe
-                </label>
+            <motion.div variants={fadeInUp}>
+              <Input
+                label="Mot de passe"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                icon={<Lock className="h-4 w-4" />}
+                size="lg"
+              />
+              <div className="mt-1.5 text-right">
                 <Link
                   href="/forgot-password"
-                  className="text-sm text-blue-600 hover:text-blue-700"
+                  className="text-xs text-surface-400 hover:text-surface-600 transition-colors"
                 >
                   Mot de passe oublié ?
                 </Link>
               </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
-                <input
-                  id="login-password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  aria-required="true"
-                  aria-invalid={error ? "true" : undefined}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus-visible:outline-2 focus-visible:outline-primary-600 focus-visible:outline-offset-2 transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" aria-hidden="true" />
-                  ) : (
-                    <Eye className="h-5 w-5" aria-hidden="true" />
-                  )}
-                </button>
-              </div>
-            </div>
+            </motion.div>
 
-            <button
-              type="submit"
-              disabled={loading || !email || !password}
-              aria-busy={loading}
-              aria-disabled={loading || !email || !password}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-                  Connexion en cours...
-                </>
-              ) : (
-                "Se connecter"
-              )}
-            </button>
+            <motion.div variants={fadeInUp}>
+              <Button
+                type="submit"
+                loading={loading}
+                disabled={!email || !password}
+                fullWidth
+                size="lg"
+                iconRight={!loading ? <ArrowRight className="h-4 w-4" /> : undefined}
+              >
+                {loading ? "Connexion en cours..." : "Se connecter"}
+              </Button>
+            </motion.div>
           </form>
 
           {/* Register Link */}
-          <div className="mt-6 text-center">
-            <p className="text-gray-600">
-              Pas encore de compte ?{" "}
-              <Link
-                href="/register"
-                className="text-blue-600 hover:text-blue-700 font-medium"
-              >
-                Créer un compte
-              </Link>
+          <motion.p variants={fadeInUp} className="mt-10 text-center text-sm text-surface-400">
+            Pas encore de compte ?{" "}
+            <Link
+              href="/register"
+              className="text-surface-900 hover:text-primary-600 font-medium transition-colors"
+            >
+              Créer un compte
+            </Link>
+          </motion.p>
+
+          {/* Footer */}
+          <motion.div variants={fadeInUp} className="mt-16 text-center">
+            <p className="text-xs text-surface-300">
+              © 2026 Afrikalytics by Marketym
             </p>
-          </div>
-
-          {/* Premium Link */}
-          <div className="mt-4 text-center">
-            <a
-              href="https://afrikalytics.com/premium"
-              className="inline-flex items-center justify-center gap-2 text-yellow-600 hover:text-yellow-700 font-medium"
-            >
-              ✨ Devenir Premium
-            </a>
-          </div>
-
-          {/* Back to site */}
-          <div className="mt-4 text-center">
-            <a
-              href="https://afrikalytics.com"
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              ← Retour au site
-            </a>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </main>
   );

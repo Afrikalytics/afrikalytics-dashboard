@@ -1,18 +1,18 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Users,
   Plus,
-  Edit,
+  Pencil,
   Trash2,
   Search,
   X,
   Shield,
   UserCheck,
   UserX,
-  ArrowLeft,
   Eye,
   EyeOff,
   FileText,
@@ -25,8 +25,21 @@ import { ADMIN_ROLES } from "@/lib/constants";
 import { api, ApiRequestError } from "@/lib/api";
 import { useAuth } from "@/lib/hooks/useAuth";
 import type { User } from "@/lib/types";
+import {
+  Breadcrumb,
+  Button,
+  Badge,
+  Card,
+  Modal,
+  Avatar,
+  Alert,
+  Input,
+  Select,
+  EmptyState,
+  SkeletonTable,
+} from "@/components/ui";
 
-// Icon mapping for admin roles (not in shared constants since Lucide components are UI-specific)
+// Icon mapping for admin roles
 const ROLE_ICONS: Record<string, LucideIcon> = {
   super_admin: Crown,
   admin_content: FileText,
@@ -35,85 +48,39 @@ const ROLE_ICONS: Record<string, LucideIcon> = {
   admin_reports: Download,
 };
 
-// Skeleton component for loading states (Issue #18)
-const Skeleton = ({ className }: { className?: string }) => (
-  <div className={`animate-pulse bg-gray-200 rounded ${className || ''}`} />
-);
+const pageVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
 
-function DeleteUserModal({ userName, onClose, onConfirm }: { userName: string; onClose: () => void; onConfirm: () => void }) {
-  const modalRef = useRef<HTMLDivElement>(null);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
+const listVariants = {
+  visible: { transition: { staggerChildren: 0.03 } },
+};
 
-  useEffect(() => {
-    previousFocusRef.current = document.activeElement as HTMLElement;
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handleEscape);
+const rowVariants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.25 } },
+};
 
-    // Focus first button in modal
-    const firstFocusable = modalRef.current?.querySelector('button') as HTMLElement;
-    firstFocusable?.focus();
+// Map admin role codes to Badge variants
+function getRoleBadgeVariant(code: string | null): "default" | "primary" | "success" | "warning" | "danger" | "accent" {
+  switch (code) {
+    case "super_admin": return "danger";
+    case "admin_content": return "primary";
+    case "admin_studies": return "primary";
+    case "admin_insights": return "warning";
+    case "admin_reports": return "success";
+    default: return "default";
+  }
+}
 
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      previousFocusRef.current?.focus();
-    };
-  }, [onClose]);
-
-  const handleTabTrap = (e: React.KeyboardEvent) => {
-    if (e.key !== 'Tab') return;
-    const focusableEls = modalRef.current?.querySelectorAll('button') as NodeListOf<HTMLElement>;
-    if (!focusableEls || focusableEls.length === 0) return;
-    const firstEl = focusableEls[0];
-    const lastEl = focusableEls[focusableEls.length - 1];
-    if (e.shiftKey && document.activeElement === firstEl) {
-      e.preventDefault();
-      lastEl.focus();
-    } else if (!e.shiftKey && document.activeElement === lastEl) {
-      e.preventDefault();
-      firstEl.focus();
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={onClose}>
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="delete-user-modal-title"
-        className="bg-white rounded-xl max-w-md w-full p-6"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={handleTabTrap}
-      >
-        <div className="text-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Trash2 className="w-8 h-8 text-red-600" aria-hidden="true" />
-          </div>
-          <h2 id="delete-user-modal-title" className="text-xl font-bold mb-2">Supprimer l&apos;utilisateur ?</h2>
-          <p className="text-gray-600 mb-6">
-            Êtes-vous sûr de vouloir supprimer <strong>{userName}</strong> ?
-            Cette action est irréversible.
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-            >
-              Annuler
-            </button>
-            <button
-              onClick={onConfirm}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-            >
-              Supprimer
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+// Map plan to Badge variant
+function getPlanBadgeVariant(plan: string): "default" | "primary" | "accent" {
+  switch (plan) {
+    case "entreprise": return "accent";
+    case "professionnel": return "primary";
+    default: return "default";
+  }
 }
 
 export default function AdminUsersPage() {
@@ -145,17 +112,20 @@ export default function AdminUsersPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 10;
+
   useEffect(() => {
     const controller = new AbortController();
     fetchUsers(controller);
     return () => controller.abort();
   }, []);
 
-  // Memoized filtered users (Issue #19) — replaces useEffect + setFilteredUsers
+  // Memoized filtered users
   const filteredUsers = useMemo(() => {
     let filtered = [...users];
 
-    // Recherche
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -165,12 +135,10 @@ export default function AdminUsersPage() {
       );
     }
 
-    // Filtre plan
     if (filterPlan !== "all") {
       filtered = filtered.filter((user) => user.plan === filterPlan);
     }
 
-    // Filtre admin
     if (filterAdmin === "admin") {
       filtered = filtered.filter((user) => user.is_admin);
     } else if (filterAdmin === "user") {
@@ -179,6 +147,18 @@ export default function AdminUsersPage() {
 
     return filtered;
   }, [users, searchTerm, filterPlan, filterAdmin]);
+
+  // Paginated users
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * usersPerPage,
+    currentPage * usersPerPage
+  );
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterPlan, filterAdmin]);
 
   const fetchUsers = async (controller?: AbortController) => {
     try {
@@ -303,617 +283,607 @@ export default function AdminUsersPage() {
     return ADMIN_ROLES.find((r) => r.code === roleCode) || ADMIN_ROLES[0];
   }, []);
 
-  // Loading skeleton (Issue #18) — auth loading is handled by the layout
+  // Admin role selector — shared by create and edit modals
+  const AdminRoleSelector = () => (
+    <div className="bg-surface-50 p-4 rounded-lg border border-surface-200 mt-4">
+      <p className="text-sm font-medium text-surface-700 mb-3 flex items-center gap-1.5">
+        <Shield className="w-4 h-4" aria-hidden="true" />
+        Rôle Administrateur
+      </p>
+      <div className="space-y-2">
+        {ADMIN_ROLES.map((role) => {
+          const RoleIcon = ROLE_ICONS[role.code] || FileText;
+          return (
+            <label
+              key={role.code}
+              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                formData.admin_role === role.code
+                  ? "border-primary-500 bg-primary-50 ring-1 ring-primary-200"
+                  : "border-surface-200 hover:border-surface-300"
+              }`}
+            >
+              <input
+                type="radio"
+                name="admin_role"
+                value={role.code}
+                checked={formData.admin_role === role.code}
+                onChange={(e) => setFormData({ ...formData, admin_role: e.target.value })}
+                className="w-4 h-4 text-primary-600"
+              />
+              <RoleIcon className="w-4 h-4 text-surface-500 shrink-0" aria-hidden="true" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-surface-900">{role.label}</p>
+                <p className="text-xs text-surface-400">{role.description}</p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                {role.permissions.studies && (
+                  <span className="px-1.5 py-0.5 bg-primary-100 text-primary-700 text-2xs rounded font-semibold">É</span>
+                )}
+                {role.permissions.insights && (
+                  <span className="px-1.5 py-0.5 bg-warning-100 text-warning-700 text-2xs rounded font-semibold">I</span>
+                )}
+                {role.permissions.reports && (
+                  <span className="px-1.5 py-0.5 bg-success-100 text-success-700 text-2xs rounded font-semibold">R</span>
+                )}
+                {role.permissions.users && (
+                  <span className="px-1.5 py-0.5 bg-danger-100 text-danger-700 text-2xs rounded font-semibold">U</span>
+                )}
+              </div>
+            </label>
+          );
+        })}
+      </div>
+      <p className="text-2xs text-surface-400 mt-2 tracking-wide">
+        É = Études, I = Insights, R = Rapports, U = Utilisateurs
+      </p>
+    </div>
+  );
+
+  // Loading skeleton
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Skeleton className="h-10 w-10 rounded-lg" />
-            <div>
-              <Skeleton className="h-7 w-64 mb-2" />
-              <Skeleton className="h-5 w-40" />
-            </div>
-          </div>
-          <Skeleton className="h-10 w-44 rounded-lg" />
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="space-y-2">
+          <div className="skeleton h-8 w-64 rounded" />
+          <div className="skeleton h-4 w-40 rounded" />
         </div>
-        {/* Filters skeleton */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
+        <Card padding="sm">
           <div className="flex flex-wrap gap-4">
-            <Skeleton className="h-10 flex-1 min-w-[200px]" />
-            <Skeleton className="h-10 w-40" />
-            <Skeleton className="h-10 w-40" />
+            <div className="skeleton h-10 flex-1 min-w-[200px] rounded-lg" />
+            <div className="skeleton h-10 w-40 rounded-lg" />
+            <div className="skeleton h-10 w-40 rounded-lg" />
           </div>
-        </div>
-        {/* Roles skeleton */}
-        <Skeleton className="h-16 rounded-xl mb-6" />
-        {/* Table skeleton */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="p-4 space-y-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-          </div>
-        </div>
+        </Card>
+        <Card padding="md">
+          <SkeletonTable rows={6} cols={6} />
+        </Card>
       </div>
     );
   }
 
   return (
-    <>
-      <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Gestion des Utilisateurs</h1>
-              <p className="text-gray-600">{users.length} utilisateurs au total</p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              resetForm();
-              setShowCreateModal(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            <Plus className="w-5 h-5" />
-            Nouvel utilisateur
-          </button>
+    <motion.div
+      variants={pageVariants}
+      initial="hidden"
+      animate="visible"
+      className="max-w-7xl mx-auto space-y-6"
+    >
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: "Administration", href: "/admin" },
+          { label: "Utilisateurs" },
+        ]}
+        className="mb-2"
+      />
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="font-heading text-2xl lg:text-3xl font-bold text-surface-900 tracking-tight">
+            Gestion des Utilisateurs
+          </h1>
+          <p className="text-surface-500 mt-1">
+            {users.length} utilisateur{users.length !== 1 ? "s" : ""} au total
+          </p>
         </div>
-
-        {/* Messages */}
-        {error && (
-          <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg flex items-center justify-between">
-            {error}
-            <button onClick={() => setError("")}>
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-        {success && (
-          <div className="mb-4 p-4 bg-green-100 text-green-700 rounded-lg flex items-center justify-between">
-            {success}
-            <button onClick={() => setSuccess("")}>
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        )}
-
-        {/* Filtres */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Rechercher par nom ou email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-            <select
-              value={filterPlan}
-              onChange={(e) => setFilterPlan(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Tous les plans</option>
-              <option value="basic">Basic</option>
-              <option value="professionnel">Professionnel</option>
-              <option value="entreprise">Entreprise</option>
-            </select>
-            <select
-              value={filterAdmin}
-              onChange={(e) => setFilterAdmin(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">Tous les types</option>
-              <option value="admin">Administrateurs</option>
-              <option value="user">Utilisateurs</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Légende des rôles */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <h3 className="font-semibold text-gray-900 mb-3">Rôles Administrateurs</h3>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            {ADMIN_ROLES.map((role) => (
-              <div key={role.code} className="flex items-center gap-2">
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${role.color}`}>
-                  {role.label}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Utilisateur
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Plan
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Rôle Admin
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Statut
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Date création
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredUsers.map((user) => {
-                  const roleInfo = getRoleInfo(user.admin_role);
-                  return (
-                    <tr key={user.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-blue-600 font-semibold">
-                              {user.full_name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{user.full_name}</p>
-                            <p className="text-sm text-gray-500">{user.email}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            user.plan === "entreprise"
-                              ? "bg-purple-100 text-purple-800"
-                              : user.plan === "professionnel"
-                              ? "bg-blue-100 text-blue-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {user.plan.charAt(0).toUpperCase() + user.plan.slice(1)}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        {user.is_admin ? (
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${roleInfo.color}`}>
-                            {roleInfo.label}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 text-sm">-</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => handleToggleActive(user)}
-                          className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                            user.is_active
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
-                        >
-                          {user.is_active ? (
-                            <>
-                              <UserCheck className="w-3 h-3" /> Actif
-                            </>
-                          ) : (
-                            <>
-                              <UserX className="w-3 h-3" /> Inactif
-                            </>
-                          )}
-                        </button>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {new Date(user.created_at).toLocaleDateString("fr-FR")}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => openEditModal(user)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                            title="Modifier"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setShowDeleteModal(true);
-                            }}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-
-          {filteredUsers.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              Aucun utilisateur trouvé
-            </div>
-          )}
-        </div>
+        <Button
+          variant="primary"
+          icon={<Plus className="h-4 w-4" />}
+          onClick={() => {
+            resetForm();
+            setShowCreateModal(true);
+          }}
+        >
+          Nouvel utilisateur
+        </Button>
       </div>
 
-      {/* Modal Créer */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Nouvel Utilisateur</h2>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {/* Messages */}
+      <AnimatePresence>
+        {error && (
+          <Alert variant="error" dismissible onDismiss={() => setError("")}>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert variant="success" dismissible onDismiss={() => setSuccess("")}>
+            {success}
+          </Alert>
+        )}
+      </AnimatePresence>
 
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nom complet *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Mot de passe (laisser vide pour générer automatiquement)
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 pr-10"
-                    placeholder="Généré automatiquement si vide"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
-                <select
-                  value={formData.plan}
-                  onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="basic">Basic</option>
-                  <option value="professionnel">Professionnel</option>
-                  <option value="entreprise">Entreprise</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 rounded"
-                  />
-                  <span className="text-sm text-gray-700">Actif</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_admin}
-                    onChange={(e) => setFormData({ ...formData, is_admin: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 rounded"
-                  />
-                  <span className="text-sm text-gray-700">Administrateur</span>
-                </label>
-              </div>
-
-              {/* Section Rôle Admin */}
-              {formData.is_admin && (
-                <div className="bg-gray-50 p-4 rounded-lg border">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    <Shield className="w-4 h-4 inline mr-1" />
-                    Rôle Administrateur
-                  </label>
-                  <div className="space-y-2">
-                    {ADMIN_ROLES.map((role) => {
-                      const RoleIcon = ROLE_ICONS[role.code] || FileText;
-                      return (
-                        <label
-                          key={role.code}
-                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
-                            formData.admin_role === role.code
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-gray-200 hover:border-gray-300"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="admin_role"
-                            value={role.code}
-                            checked={formData.admin_role === role.code}
-                            onChange={(e) => setFormData({ ...formData, admin_role: e.target.value })}
-                            className="w-4 h-4 text-blue-600"
-                          />
-                          <RoleIcon className="w-5 h-5 text-gray-600" />
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">{role.label}</p>
-                            <p className="text-xs text-gray-500">{role.description}</p>
-                          </div>
-                          <div className="flex gap-1">
-                            {role.permissions.studies && (
-                              <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">É</span>
-                            )}
-                            {role.permissions.insights && (
-                              <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded">I</span>
-                            )}
-                            {role.permissions.reports && (
-                              <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded">R</span>
-                            )}
-                            {role.permissions.users && (
-                              <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs rounded">U</span>
-                            )}
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    É = Études, I = Insights, R = Rapports, U = Utilisateurs
-                  </p>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Créer
-                </button>
-              </div>
-            </form>
+      {/* Filtres */}
+      <Card padding="sm">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1 min-w-[200px] relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-surface-400 w-4 h-4" aria-hidden="true" />
+            <input
+              type="text"
+              placeholder="Rechercher par nom ou email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm border border-surface-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 hover:border-surface-400 transition-all placeholder:text-surface-400"
+            />
           </div>
+          <select
+            value={filterPlan}
+            onChange={(e) => setFilterPlan(e.target.value)}
+            className="px-4 py-2 text-sm border border-surface-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 hover:border-surface-400 appearance-none cursor-pointer"
+          >
+            <option value="all">Tous les plans</option>
+            <option value="basic">Basic</option>
+            <option value="professionnel">Professionnel</option>
+            <option value="entreprise">Entreprise</option>
+          </select>
+          <select
+            value={filterAdmin}
+            onChange={(e) => setFilterAdmin(e.target.value)}
+            className="px-4 py-2 text-sm border border-surface-300 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 hover:border-surface-400 appearance-none cursor-pointer"
+          >
+            <option value="all">Tous les types</option>
+            <option value="admin">Administrateurs</option>
+            <option value="user">Utilisateurs</option>
+          </select>
         </div>
-      )}
+      </Card>
+
+      {/* Légende des rôles */}
+      <Card padding="sm">
+        <h3 className="text-xs font-semibold text-surface-500 uppercase tracking-wider mb-3">Rôles Administrateurs</h3>
+        <div className="flex flex-wrap gap-2">
+          {ADMIN_ROLES.map((role) => (
+            <Badge key={role.code} variant={getRoleBadgeVariant(role.code)} size="sm">
+              {role.label}
+            </Badge>
+          ))}
+        </div>
+      </Card>
+
+      {/* Table — Desktop */}
+      <div className="hidden lg:block">
+        <Card padding="none" className="overflow-hidden">
+          <table className="w-full" aria-label="Liste des utilisateurs">
+            <thead>
+              <tr className="border-b border-surface-100">
+                <th className="px-6 py-3.5 text-left text-2xs font-semibold text-surface-500 uppercase tracking-wider">Utilisateur</th>
+                <th className="px-6 py-3.5 text-left text-2xs font-semibold text-surface-500 uppercase tracking-wider">Plan</th>
+                <th className="px-6 py-3.5 text-left text-2xs font-semibold text-surface-500 uppercase tracking-wider">Rôle Admin</th>
+                <th className="px-6 py-3.5 text-left text-2xs font-semibold text-surface-500 uppercase tracking-wider">Statut</th>
+                <th className="px-6 py-3.5 text-left text-2xs font-semibold text-surface-500 uppercase tracking-wider">Date création</th>
+                <th className="px-6 py-3.5 text-right text-2xs font-semibold text-surface-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <motion.tbody variants={listVariants} initial="hidden" animate="visible" className="divide-y divide-surface-100">
+              {paginatedUsers.map((user) => {
+                const roleInfo = getRoleInfo(user.admin_role);
+                return (
+                  <motion.tr key={user.id} variants={rowVariants} className="hover:bg-surface-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <Avatar name={user.full_name} size="md" />
+                        <div className="min-w-0">
+                          <p className="font-medium text-surface-900 truncate">{user.full_name}</p>
+                          <p className="text-sm text-surface-400 truncate">{user.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant={getPlanBadgeVariant(user.plan)} size="sm">
+                        {user.plan.charAt(0).toUpperCase() + user.plan.slice(1)}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      {user.is_admin ? (
+                        <Badge variant={getRoleBadgeVariant(user.admin_role)} size="sm">
+                          {roleInfo.label}
+                        </Badge>
+                      ) : (
+                        <span className="text-surface-300 text-sm">--</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        onClick={() => handleToggleActive(user)}
+                        className="transition-colors"
+                        title={user.is_active ? "Désactiver" : "Activer"}
+                      >
+                        <Badge
+                          variant={user.is_active ? "success" : "danger"}
+                          size="sm"
+                          dot
+                          icon={user.is_active ? <UserCheck className="w-3 h-3" /> : <UserX className="w-3 h-3" />}
+                        >
+                          {user.is_active ? "Actif" : "Inactif"}
+                        </Badge>
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-surface-500 tabular-nums">
+                      {new Date(user.created_at).toLocaleDateString("fr-FR")}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => openEditModal(user)}
+                          className="p-2 text-surface-400 hover:text-primary-600 hover:bg-surface-50 rounded-lg transition-colors"
+                          title="Modifier"
+                          aria-label={`Modifier ${user.full_name}`}
+                        >
+                          <Pencil className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setShowDeleteModal(true);
+                          }}
+                          className="p-2 text-surface-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors"
+                          title="Supprimer"
+                          aria-label={`Supprimer ${user.full_name}`}
+                        >
+                          <Trash2 className="w-4 h-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                );
+              })}
+            </motion.tbody>
+          </table>
+
+          {filteredUsers.length === 0 && (
+            <EmptyState
+              icon={<Users className="h-8 w-8" />}
+              title="Aucun utilisateur trouvé"
+              description="Essayez de modifier vos critères de recherche."
+            />
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-surface-100">
+              <p className="text-sm text-surface-500">
+                {(currentPage - 1) * usersPerPage + 1}–{Math.min(currentPage * usersPerPage, filteredUsers.length)} sur {filteredUsers.length}
+              </p>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 text-sm border border-surface-300 rounded-lg text-surface-600 hover:bg-surface-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Précédent
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                      page === currentPage
+                        ? "bg-primary-600 text-white"
+                        : "border border-surface-300 text-surface-600 hover:bg-surface-50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 text-sm border border-surface-300 rounded-lg text-surface-600 hover:bg-surface-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Suivant
+                </button>
+              </div>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Cards — Mobile */}
+      <motion.div
+        variants={listVariants}
+        initial="hidden"
+        animate="visible"
+        className="lg:hidden space-y-3"
+      >
+        {filteredUsers.length === 0 ? (
+          <Card>
+            <EmptyState
+              icon={<Users className="h-8 w-8" />}
+              title="Aucun utilisateur trouvé"
+              description="Essayez de modifier vos critères de recherche."
+            />
+          </Card>
+        ) : (
+          paginatedUsers.map((user) => {
+            const roleInfo = getRoleInfo(user.admin_role);
+            return (
+              <motion.div key={user.id} variants={rowVariants}>
+                <Card padding="sm">
+                  <div className="flex items-start gap-3 mb-3">
+                    <Avatar name={user.full_name} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-surface-900 truncate">{user.full_name}</h3>
+                      <p className="text-sm text-surface-400 truncate">{user.email}</p>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                        <Badge variant={getPlanBadgeVariant(user.plan)} size="sm">
+                          {user.plan.charAt(0).toUpperCase() + user.plan.slice(1)}
+                        </Badge>
+                        {user.is_admin && (
+                          <Badge variant={getRoleBadgeVariant(user.admin_role)} size="sm">
+                            {roleInfo.label}
+                          </Badge>
+                        )}
+                        <Badge variant={user.is_active ? "success" : "danger"} size="sm" dot>
+                          {user.is_active ? "Actif" : "Inactif"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-3 border-t border-surface-100">
+                    <span className="text-xs text-surface-400 tabular-nums">
+                      {new Date(user.created_at).toLocaleDateString("fr-FR")}
+                    </span>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => openEditModal(user)}
+                        className="p-2 text-surface-400 hover:text-primary-600 hover:bg-surface-50 rounded-lg transition-colors"
+                        title="Modifier"
+                      >
+                        <Pencil className="w-4 h-4" aria-hidden="true" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowDeleteModal(true);
+                        }}
+                        className="p-2 text-surface-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="w-4 h-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                </Card>
+              </motion.div>
+            );
+          })
+        )}
+
+        {/* Mobile Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-surface-500">
+              Page {currentPage}/{totalPages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Précédent
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Suivant
+              </Button>
+            </div>
+          </div>
+        )}
+      </motion.div>
+
+      {/* Modal Créer */}
+      <Modal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Nouvel Utilisateur"
+        description="Créez un nouveau compte utilisateur"
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowCreateModal(false)}>
+              Annuler
+            </Button>
+            <Button variant="primary" onClick={(e) => handleCreateUser(e as unknown as React.FormEvent)}>
+              Créer
+            </Button>
+          </>
+        }
+      >
+        <form onSubmit={handleCreateUser} className="space-y-4">
+          <Input
+            label="Nom complet"
+            required
+            value={formData.full_name}
+            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+          />
+
+          <Input
+            label="Email"
+            type="email"
+            required
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          />
+
+          <Input
+            label="Mot de passe"
+            type="password"
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            helper="Laisser vide pour générer automatiquement"
+            placeholder="Généré automatiquement si vide"
+          />
+
+          <Select
+            label="Plan"
+            value={formData.plan}
+            onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
+            options={[
+              { value: "basic", label: "Basic" },
+              { value: "professionnel", label: "Professionnel" },
+              { value: "entreprise", label: "Entreprise" },
+            ]}
+          />
+
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                className="w-4 h-4 text-primary-600 rounded border-surface-300 focus:ring-primary-500"
+              />
+              <span className="text-sm text-surface-700">Actif</span>
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.is_admin}
+                onChange={(e) => setFormData({ ...formData, is_admin: e.target.checked })}
+                className="w-4 h-4 text-primary-600 rounded border-surface-300 focus:ring-primary-500"
+              />
+              <span className="text-sm text-surface-700">Administrateur</span>
+            </label>
+          </div>
+
+          {formData.is_admin && <AdminRoleSelector />}
+        </form>
+      </Modal>
 
       {/* Modal Modifier */}
-      {showEditModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Modifier l'Utilisateur</h2>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      <Modal
+        open={showEditModal && !!selectedUser}
+        onClose={() => setShowEditModal(false)}
+        title="Modifier l'Utilisateur"
+        description={selectedUser?.full_name}
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+              Annuler
+            </Button>
+            <Button variant="primary" onClick={(e) => handleUpdateUser(e as unknown as React.FormEvent)}>
+              Enregistrer
+            </Button>
+          </>
+        }
+      >
+        <form onSubmit={handleUpdateUser} className="space-y-4">
+          <Input
+            label="Nom complet"
+            required
+            value={formData.full_name}
+            onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+          />
 
-            <form onSubmit={handleUpdateUser} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nom complet *
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+          <Input
+            label="Email"
+            type="email"
+            required
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+          <Input
+            label="Nouveau mot de passe"
+            type="password"
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            helper="Laisser vide pour conserver le mot de passe actuel"
+            placeholder="Laisser vide pour conserver"
+          />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nouveau mot de passe (laisser vide pour ne pas modifier)
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 pr-10"
-                    placeholder="Laisser vide pour conserver"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-              </div>
+          <Select
+            label="Plan"
+            value={formData.plan}
+            onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
+            options={[
+              { value: "basic", label: "Basic" },
+              { value: "professionnel", label: "Professionnel" },
+              { value: "entreprise", label: "Entreprise" },
+            ]}
+          />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
-                <select
-                  value={formData.plan}
-                  onChange={(e) => setFormData({ ...formData, plan: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="basic">Basic</option>
-                  <option value="professionnel">Professionnel</option>
-                  <option value="entreprise">Entreprise</option>
-                </select>
-              </div>
+          <div className="flex items-center gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                className="w-4 h-4 text-primary-600 rounded border-surface-300 focus:ring-primary-500"
+              />
+              <span className="text-sm text-surface-700">Actif</span>
+            </label>
 
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_active}
-                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 rounded"
-                  />
-                  <span className="text-sm text-gray-700">Actif</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_admin}
-                    onChange={(e) => setFormData({ ...formData, is_admin: e.target.checked })}
-                    className="w-4 h-4 text-blue-600 rounded"
-                  />
-                  <span className="text-sm text-gray-700">Administrateur</span>
-                </label>
-              </div>
-
-              {/* Section Rôle Admin */}
-              {formData.is_admin && (
-                <div className="bg-gray-50 p-4 rounded-lg border">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    <Shield className="w-4 h-4 inline mr-1" />
-                    Rôle Administrateur
-                  </label>
-                  <div className="space-y-2">
-                    {ADMIN_ROLES.map((role) => {
-                      const RoleIcon = ROLE_ICONS[role.code] || FileText;
-                      return (
-                        <label
-                          key={role.code}
-                          className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition ${
-                            formData.admin_role === role.code
-                              ? "border-blue-500 bg-blue-50"
-                              : "border-gray-200 hover:border-gray-300"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="admin_role"
-                            value={role.code}
-                            checked={formData.admin_role === role.code}
-                            onChange={(e) => setFormData({ ...formData, admin_role: e.target.value })}
-                            className="w-4 h-4 text-blue-600"
-                          />
-                          <RoleIcon className="w-5 h-5 text-gray-600" />
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">{role.label}</p>
-                            <p className="text-xs text-gray-500">{role.description}</p>
-                          </div>
-                          <div className="flex gap-1">
-                            {role.permissions.studies && (
-                              <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">É</span>
-                            )}
-                            {role.permissions.insights && (
-                              <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded">I</span>
-                            )}
-                            {role.permissions.reports && (
-                              <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded">R</span>
-                            )}
-                            {role.permissions.users && (
-                              <span className="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs rounded">U</span>
-                            )}
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    É = Études, I = Insights, R = Rapports, U = Utilisateurs
-                  </p>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Enregistrer
-                </button>
-              </div>
-            </form>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.is_admin}
+                onChange={(e) => setFormData({ ...formData, is_admin: e.target.checked })}
+                className="w-4 h-4 text-primary-600 rounded border-surface-300 focus:ring-primary-500"
+              />
+              <span className="text-sm text-surface-700">Administrateur</span>
+            </label>
           </div>
-        </div>
-      )}
+
+          {formData.is_admin && <AdminRoleSelector />}
+        </form>
+      </Modal>
 
       {/* Modal Supprimer */}
-      {showDeleteModal && selectedUser && (
-        <DeleteUserModal
-          userName={selectedUser.full_name}
-          onClose={() => setShowDeleteModal(false)}
-          onConfirm={handleDeleteUser}
-        />
-      )}
-    </>
+      <Modal
+        open={showDeleteModal && !!selectedUser}
+        onClose={() => setShowDeleteModal(false)}
+        title="Supprimer l'utilisateur ?"
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+              Annuler
+            </Button>
+            <Button variant="danger" onClick={handleDeleteUser}>
+              Supprimer
+            </Button>
+          </>
+        }
+      >
+        <div className="text-center">
+          <div className="w-16 h-16 bg-danger-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Trash2 className="w-7 h-7 text-danger-600" aria-hidden="true" />
+          </div>
+          <p className="text-surface-600">
+            Êtes-vous sûr de vouloir supprimer <strong className="text-surface-900">{selectedUser?.full_name}</strong> ?
+            Cette action est irréversible.
+          </p>
+        </div>
+      </Modal>
+    </motion.div>
   );
 }

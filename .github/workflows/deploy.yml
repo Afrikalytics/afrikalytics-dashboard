@@ -1,8 +1,6 @@
 name: Deploy to Vercel
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       environment:
@@ -38,7 +36,7 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: ESLint
         run: npm run lint
@@ -58,7 +56,7 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
 
       - name: Jest
         run: npm test -- --coverage --ci --watchAll=false

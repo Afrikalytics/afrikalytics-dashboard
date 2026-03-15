@@ -3,9 +3,31 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { BarChart3, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check } from "lucide-react";
+import { BarChart3, Mail, Lock, User, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { API_URL } from "@/lib/constants";
 import { saveSession } from "@/lib/api";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Alert } from "@/components/ui/Alert";
+
+const fadeIn = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.6, ease: "easeOut" as const } },
+};
+
+const stagger = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.15 },
+  },
+};
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+};
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -15,8 +37,6 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
   });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -49,7 +69,7 @@ export default function RegisterPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest", // CSRF protection
+          "X-Requested-With": "XMLHttpRequest",
         },
         body: JSON.stringify({
           name: formData.name,
@@ -64,7 +84,6 @@ export default function RegisterPage() {
         throw new Error(data.detail || "Erreur lors de l'inscription");
       }
 
-      // Store auth in httpOnly cookies (XSS-safe)
       await saveSession(data.access_token, data.user);
       router.push("/dashboard");
     } catch (err) {
@@ -75,221 +94,174 @@ export default function RegisterPage() {
   };
 
   return (
-    <main id="main-content" tabIndex={-1} className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900 flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10" aria-hidden="true">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-          }}
-        />
-      </div>
-
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="https://afrikalytics.com" className="inline-flex items-center gap-3">
-            <div className="bg-blue-600 p-3 rounded-xl">
-              <BarChart3 className="h-8 w-8 text-white" />
-            </div>
-            <span className="text-3xl font-bold text-white">Afrikalytics AI</span>
-          </Link>
-          <p className="text-blue-200 mt-2">by Marketym</p>
-        </div>
-
-        {/* Register Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">
-            Créer un compte gratuit
-          </h1>
-          <p className="text-gray-500 text-center mb-6">
-            Accédez aux études et insights Afrikalytics
-          </p>
-
-          {/* Avantages Basic */}
-          <div className="bg-blue-50 rounded-lg p-4 mb-6">
-            <p className="text-sm font-semibold text-blue-900 mb-2">Plan Basic inclut :</p>
-            <ul className="text-sm text-blue-700 space-y-1">
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-green-500" aria-hidden="true" />
-                Participer aux études
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-green-500" aria-hidden="true" />
-                Aperçu des insights
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-green-500" aria-hidden="true" />
-                Dashboard basic
-              </li>
-            </ul>
+    <main id="main-content" tabIndex={-1} className="min-h-screen flex">
+      {/* Left Panel — Corporate Branding */}
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={fadeIn}
+        className="hidden lg:flex lg:w-1/2 relative bg-surface-950 overflow-hidden"
+      >
+        <div className="relative flex flex-col justify-between px-16 py-16 text-white z-10 w-full">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <BarChart3 className="h-7 w-7 text-white/90" />
+            <span className="text-xl font-semibold tracking-tight">
+              Afrikalytics<span className="text-warning-500">.</span>
+            </span>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div role="alert" aria-live="polite" className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
-              {error}
-            </div>
-          )}
+          {/* Tagline */}
+          <div className="max-w-lg">
+            <h1 className="font-heading text-4xl xl:text-5xl leading-tight text-balance mb-6 tracking-tight">
+              Rejoignez la communauté Afrikalytics
+            </h1>
+            <p className="text-lg text-white/50 leading-relaxed max-w-md">
+              Créez votre compte et accédez à des données exclusives sur les marchés africains.
+            </p>
+          </div>
 
-          {/* Register Form */}
+          {/* Trust indicators */}
+          <div className="flex items-center gap-8 text-white/40 text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-success-500" />
+              Inscription gratuite
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-success-500" />
+              Accès immédiat
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Right Panel — Register Form */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 bg-white">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={stagger}
+          className="w-full max-w-[400px]"
+        >
+          {/* Mobile logo */}
+          <motion.div variants={fadeInUp} className="lg:hidden flex items-center gap-3 mb-12">
+            <BarChart3 className="h-6 w-6 text-surface-900" />
+            <span className="text-xl font-semibold text-surface-900 tracking-tight">
+              Afrikalytics<span className="text-warning-500">.</span>
+            </span>
+          </motion.div>
+
+          <motion.div variants={fadeInUp} className="mb-10">
+            <h2 className="text-2xl font-semibold text-surface-900 tracking-tight">
+              Créer un compte
+            </h2>
+            <p className="text-surface-500 mt-2 text-sm">
+              Commencez votre exploration des marchés africains
+            </p>
+          </motion.div>
+
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                Nom complet
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Jean Dupont"
-                  required
-                  aria-required="true"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="votre@email.com"
-                  required
-                  aria-required="true"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Mot de passe
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  required
-                  aria-required="true"
-                  aria-describedby="password-hint"
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            {error && (
+              <motion.div variants={fadeInUp}>
+                <Alert
+                  variant="error"
+                  dismissible
+                  onDismiss={() => setError("")}
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
-                </button>
-              </div>
-              <p id="password-hint" className="text-xs text-gray-500 mt-1">Minimum 8 caractères</p>
-            </div>
+                  {error}
+                </Alert>
+              </motion.div>
+            )}
 
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                Confirmer le mot de passe
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" aria-hidden="true" />
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  required
-                  aria-required="true"
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  aria-label={showConfirmPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showConfirmPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
-                </button>
-              </div>
-            </div>
+            <motion.div variants={fadeInUp}>
+              <Input
+                label="Nom complet"
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                required
+                placeholder="Jean Dupont"
+                icon={<User className="h-4 w-4" />}
+                size="lg"
+              />
+            </motion.div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              aria-busy={loading}
-              aria-disabled={loading}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" role="status" aria-label="Chargement"></div>
-                  Création en cours...
-                </>
-              ) : (
-                <>
-                  Créer mon compte gratuit
-                  <ArrowRight className="h-5 w-5" aria-hidden="true" />
-                </>
-              )}
-            </button>
+            <motion.div variants={fadeInUp}>
+              <Input
+                label="Adresse email"
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                placeholder="votre@email.com"
+                icon={<Mail className="h-4 w-4" />}
+                size="lg"
+              />
+            </motion.div>
+
+            <motion.div variants={fadeInUp}>
+              <Input
+                label="Mot de passe"
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                placeholder="••••••••"
+                icon={<Lock className="h-4 w-4" />}
+                size="lg"
+                helper="Minimum 8 caractères"
+              />
+            </motion.div>
+
+            <motion.div variants={fadeInUp}>
+              <Input
+                label="Confirmer le mot de passe"
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                placeholder="••••••••"
+                icon={<Lock className="h-4 w-4" />}
+                size="lg"
+              />
+            </motion.div>
+
+            <motion.div variants={fadeInUp}>
+              <Button
+                type="submit"
+                loading={loading}
+                disabled={!formData.name || !formData.email || !formData.password || !formData.confirmPassword}
+                fullWidth
+                size="lg"
+                iconRight={!loading ? <ArrowRight className="h-4 w-4" /> : undefined}
+              >
+                {loading ? "Création en cours..." : "Créer mon compte"}
+              </Button>
+            </motion.div>
           </form>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">Déjà un compte ?</span>
-            </div>
-          </div>
-
           {/* Login Link */}
-          <Link
-            href="/login"
-            className="block w-full text-center py-3 border-2 border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition"
-          >
-            Se connecter
-          </Link>
-        </div>
+          <motion.p variants={fadeInUp} className="mt-10 text-center text-sm text-surface-400">
+            Déjà un compte ?{" "}
+            <Link
+              href="/login"
+              className="text-surface-900 hover:text-primary-600 font-medium transition-colors"
+            >
+              Se connecter
+            </Link>
+          </motion.p>
 
-        {/* Premium CTA */}
-        <div className="mt-6 text-center">
-          <p className="text-blue-200 text-sm mb-2">Besoin d&apos;un accès complet ?</p>
-          <a
-            href="https://afrikalytics.com/premium"
-            className="text-yellow-400 font-semibold hover:text-yellow-300 transition"
-          >
-            Découvrir les offres Premium →
-          </a>
-        </div>
-
-        {/* Back Link */}
-        <div className="text-center mt-4">
-          <a href="https://afrikalytics.com" className="text-blue-200 hover:text-white transition text-sm">
-            ← Retour à l&apos;accueil
-          </a>
-        </div>
+          {/* Footer */}
+          <motion.div variants={fadeInUp} className="mt-16 text-center">
+            <p className="text-xs text-surface-300">
+              © 2026 Afrikalytics by Marketym
+            </p>
+          </motion.div>
+        </motion.div>
       </div>
     </main>
   );

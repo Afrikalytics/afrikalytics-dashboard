@@ -2,6 +2,251 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+/* ==========================================================================
+   Afrikalytics Design System — Corporate Premium
+   ========================================================================== */
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    @apply border-surface-200;
+  }
+
+  html {
+    @apply antialiased scroll-smooth;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-white text-surface-900 font-sans;
+  }
+
+  /* Focus visible — refined corporate focus ring */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary-500 rounded-sm;
+    transition: outline-offset 0.15s ease;
+  }
+
+  /* Remove focus ring for mouse users */
+  :focus:not(:focus-visible) {
+    @apply outline-none;
+  }
+
+  /* Refined thin scrollbar */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-300/60 rounded-full;
+    transition: background-color 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-surface-400/80;
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(203 213 225 / 0.6) transparent;
+  }
+
+  /* Selection color */
+  ::selection {
+    @apply bg-primary-100 text-primary-900;
+  }
+
+  /* Headings default to heading font */
+  h1, h2, h3 {
+    font-family: var(--font-heading), Georgia, serif;
+  }
+}
+
+@layer components {
+  /* ==========================================================================
+     Cards — Corporate Premium
+     ========================================================================== */
+
+  .card {
+    @apply bg-white rounded-2xl border border-surface-100/80 transition-all duration-200;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+  }
+
+  .card-hover {
+    @apply card hover:-translate-y-0.5;
+    &:hover {
+      box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+      border-color: rgb(226 232 240 / 0.9);
+    }
+  }
+
+  .card-interactive {
+    @apply card-hover cursor-pointer active:translate-y-0;
+    &:active {
+      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+    }
+  }
+
+  /* Card with subtle gradient background */
+  .card-gradient {
+    @apply card;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  }
+
+  /* Glass effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/20;
+  }
+
+  /* ==========================================================================
+     Gradient backgrounds
+     ========================================================================== */
+
+  .gradient-primary {
+    @apply bg-gradient-to-br from-primary-600 to-primary-800;
+  }
+
+  .gradient-accent {
+    @apply bg-gradient-to-br from-primary-600 via-accent-600 to-accent-700;
+  }
+
+  .gradient-surface {
+    @apply bg-gradient-to-br from-surface-50 to-surface-100;
+  }
+
+  /* ==========================================================================
+     Typography — Corporate Premium
+     ========================================================================== */
+
+  .text-display-lg {
+    @apply text-display-lg tracking-tighter text-balance;
+    font-family: var(--font-heading), Georgia, serif;
+  }
+
+  .text-display {
+    @apply text-display tracking-tight text-balance;
+    font-family: var(--font-heading), Georgia, serif;
+  }
+
+  .text-display-sm {
+    @apply text-display-sm tracking-tight text-balance;
+    font-family: var(--font-heading), Georgia, serif;
+  }
+
+  .text-heading {
+    @apply text-xl font-semibold tracking-tight text-surface-900;
+    font-family: var(--font-heading), Georgia, serif;
+  }
+
+  .text-heading-sm {
+    @apply text-lg font-semibold tracking-tight text-surface-900;
+    font-family: var(--font-heading), Georgia, serif;
+  }
+
+  .text-overline {
+    @apply text-xs font-medium uppercase tracking-widest text-surface-500;
+  }
+
+  /* ==========================================================================
+     Skeleton shimmer
+     ========================================================================== */
+
+  .skeleton {
+    @apply relative overflow-hidden bg-surface-200 rounded-lg;
+  }
+
+  .skeleton::after {
+    content: "";
+    @apply absolute inset-0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.5),
+      transparent
+    );
+    animation: shimmer 2s infinite;
+    background-size: 200% 100%;
+  }
+
+  /* ==========================================================================
+     Page layout
+     ========================================================================== */
+
+  .page-container {
+    @apply max-w-7xl mx-auto animate-fade-in;
+  }
+
+  .page-header {
+    @apply flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8;
+  }
+
+  .page-title {
+    @apply text-2xl lg:text-3xl font-bold text-surface-900 tracking-tight;
+  }
+
+  .page-subtitle {
+    @apply text-surface-500 mt-1 text-sm lg:text-base;
+  }
+
+  /* ==========================================================================
+     Divider & Status
+     ========================================================================== */
+
+  .divider {
+    @apply border-t border-surface-200 my-6;
+  }
+
+  .status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+  }
+
+  .status-dot-active {
+    @apply status-dot bg-success-500 shadow-[0_0_6px_rgb(34_197_94_/_0.4)];
+  }
+
+  .status-dot-inactive {
+    @apply status-dot bg-surface-300;
+  }
+}
+
+@layer utilities {
+  /* Text balance for headings */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Truncate multiline */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* No scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
