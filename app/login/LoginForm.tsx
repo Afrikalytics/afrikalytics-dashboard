@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Mail, Lock, ArrowRight, BarChart3, Loader2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { Mail, Lock, ArrowRight, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { API_URL } from "@/lib/constants";
@@ -10,7 +10,7 @@ import { saveSession } from "@/lib/api";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
-import SSOButtons from "@/components/SSOButtons";
+
 
 const fadeIn = {
   hidden: { opacity: 0 },
@@ -32,62 +32,12 @@ const fadeInUp = {
 
 export default function LoginForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [ssoLoading, setSsoLoading] = useState(false);
   const [error, setError] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Handle SSO callback
-  useEffect(() => {
-    const ssoCode = searchParams.get("sso_code");
-    const token = searchParams.get("token");
-    const sso = searchParams.get("sso");
-    const ssoError = searchParams.get("sso_error");
-
-    if (ssoError) {
-      setError(
-        ssoError === "google"
-          ? "Erreur lors de la connexion avec Google. Veuillez réessayer."
-          : "Erreur lors de la connexion avec Microsoft. Veuillez réessayer."
-      );
-      return;
-    }
-
-    // New flow: exchange short-lived SSO code for JWT
-    if (ssoCode && sso === "true") {
-      setSsoLoading(true);
-      (async () => {
-        try {
-          const res = await fetch(`${API_URL}/api/auth/sso/exchange`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "X-Requested-With": "XMLHttpRequest",
-            },
-            body: JSON.stringify({ sso_code: ssoCode }),
-          });
-          if (!res.ok) {
-            const data = await res.json().catch(() => null);
-            throw new Error(data?.detail || "Code SSO invalide");
-          }
-          const data = await res.json();
-          await saveSession(data.access_token, data.user);
-          router.push("/dashboard");
-        } catch {
-          setError("Code SSO expiré ou invalide. Veuillez réessayer.");
-          setSsoLoading(false);
-        }
-      })();
-      return;
-    }
-
-    // Legacy SSO flow removed (VUL-01): exposing JWT in URL query params
-    // is a security risk (server logs, browser history, Referer headers).
-    // The secure sso_code exchange flow above handles all SSO logins.
-  }, [searchParams, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,20 +154,7 @@ export default function LoginForm() {
             </p>
           </motion.div>
 
-          {/* SSO exchange loading state */}
-          {ssoLoading && (
-            <motion.div
-              variants={fadeInUp}
-              className="flex flex-col items-center justify-center py-16 gap-4"
-            >
-              <Loader2 className="h-8 w-8 text-primary-600 animate-spin" />
-              <p className="text-surface-500 text-sm">
-                Connexion SSO en cours...
-              </p>
-            </motion.div>
-          )}
-
-          <form ref={formRef} onSubmit={handleSubmit} className={`space-y-5 ${ssoLoading ? "hidden" : ""}`} noValidate>
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-5" noValidate>
             {error && (
               <motion.div variants={fadeInUp}>
                 <Alert
@@ -279,16 +216,8 @@ export default function LoginForm() {
             </motion.div>
           </form>
 
-          {/* SSO Buttons */}
-          {!ssoLoading && (
-            <motion.div variants={fadeInUp}>
-              <SSOButtons mode="login" />
-            </motion.div>
-          )}
-
           {/* Register Link */}
-          {!ssoLoading && (
-            <motion.p variants={fadeInUp} className="mt-10 text-center text-sm text-surface-400">
+          <motion.p variants={fadeInUp} className="mt-10 text-center text-sm text-surface-400">
               Pas encore de compte ?{" "}
               <Link
                 href="/register"
@@ -297,7 +226,6 @@ export default function LoginForm() {
                 Créer un compte
               </Link>
             </motion.p>
-          )}
 
           {/* Footer */}
           <motion.div variants={fadeInUp} className="mt-16 text-center">
