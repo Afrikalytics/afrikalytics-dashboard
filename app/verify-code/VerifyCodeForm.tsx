@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, RefreshCw, BarChart3, Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -306,7 +306,9 @@ export default function VerifyCodeForm() {
       tabIndex={-1}
       className="min-h-screen bg-white flex items-center justify-center p-6"
     >
-      <VerifyCodeFormInner />
+      <Suspense fallback={<div className="animate-pulse h-96 w-full max-w-md bg-surface-100 rounded-2xl" />}>
+        <VerifyCodeFormInner />
+      </Suspense>
     </main>
   );
 }
