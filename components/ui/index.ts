@@ -1,5 +1,5 @@
 // =============================================================================
-// Afrikalytics Design System — Component Exports
+// Datatym AI Design System — Component Exports
 // =============================================================================
 
 export { Button } from "./Button";

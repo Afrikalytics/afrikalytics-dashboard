@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ###############################################################################
-# pre-deploy-check.sh — Pre-deployment validation for Afrikalytics
+# pre-deploy-check.sh — Pre-deployment validation for Datatym AI
 #
 # Validates frontend/backend coherence and deployment readiness.
 #
@@ -66,8 +66,8 @@ log_error()   { echo -e "${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} ${RED}FAIL${
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-DASHBOARD_DIR="${ROOT_DIR}/afrikalytics-dashboard"
-API_DIR="${ROOT_DIR}/afrikalytics-api"
+DASHBOARD_DIR="${ROOT_DIR}/Datatym AI-dashboard"
+API_DIR="${ROOT_DIR}/Datatym AI-api"
 
 TARGET="${POSITIONAL_TARGET:-all}"
 FAILURES=0
@@ -424,7 +424,7 @@ check_hardcoded_api_url() {
 # ---------------------------------------------------------------------------
 echo ""
 echo -e "${CYAN}=======================================${NC}"
-echo -e "${CYAN}  Afrikalytics Pre-Deploy Checks${NC}"
+echo -e "${CYAN}  Datatym AI Pre-Deploy Checks${NC}"
 echo -e "${CYAN}=======================================${NC}"
 echo ""
 echo -e "${BOLD}Target:${NC} ${TARGET}"

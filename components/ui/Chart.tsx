@@ -20,7 +20,7 @@ import { Card, CardHeader } from "./Card";
 // =============================================================================
 // Chart — Design System (Corporate Premium)
 // =============================================================================
-// Wrappers Recharts avec le thème Afrikalytics corporate
+// Wrappers Recharts avec le thème Datatym AI corporate
 // Exports : AreaChartCard, BarChartCard, PieChartCard
 // Couleurs : primary-600, accent-500, success-500, warning-500
 // Style : grille subtile, légende en bas, tooltip arrondi

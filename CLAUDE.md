@@ -1,11 +1,11 @@
-# CLAUDE.md — Afrikalytics Dashboard (Frontend Next.js)
+# CLAUDE.md — Datatym AI Dashboard (Frontend Next.js)
 
-Ce fichier guide Claude Code pour le developpement du frontend Afrikalytics.
-Voir aussi `../CLAUDE.md` pour le contexte monorepo global et `../afrikalytics-api/CLAUDE.md` pour le backend.
+Ce fichier guide Claude Code pour le developpement du frontend Datatym AI.
+Voir aussi `../CLAUDE.md` pour le contexte monorepo global et `../Datatym AI-api/CLAUDE.md` pour le backend.
 
 ## Project Overview
 
-Afrikalytics Dashboard — tableau de bord premium pour Afrikalytics AI, plateforme de Business Intelligence pour l'Afrique francophone. Toute l'interface est en francais.
+Datatym AI Dashboard — tableau de bord premium pour Datatym AI AI, plateforme de Business Intelligence pour l'Afrique francophone. Toute l'interface est en francais.
 
 ## Development Commands
 
@@ -17,7 +17,7 @@ npm run start    # Start production server
 npm run lint     # ESLint via next lint
 ```
 
-Jest + React Testing Library configured (`jest.config.ts`), with shared test helpers in `__tests__/helpers.ts`. Playwright for E2E (3 specs in `e2e/`). Test specs to write (0% coverage). Part of the Afrikalytics monorepo workspace (see parent `CLAUDE.md`).
+Jest + React Testing Library configured (`jest.config.ts`), with shared test helpers in `__tests__/helpers.ts`. Playwright for E2E (3 specs in `e2e/`). Test specs to write (0% coverage). Part of the Datatym AI monorepo workspace (see parent `CLAUDE.md`).
 
 ## Architecture
 
@@ -97,7 +97,7 @@ Three tiers: `basic`, `professionnel`, `entreprise`. Enterprise plan owners (`pa
 
 Located in `docs/references/`:
 
-- **`audit-rapport-afrikalytics.md`** — Technical audit report (score 3.2/10). Lists all critical security issues, code quality problems, and architectural debt. Every fix or new feature should check whether it addresses any audit finding.
+- **`audit-rapport-Datatym AI.md`** — Technical audit report (score 3.2/10). Lists all critical security issues, code quality problems, and architectural debt. Every fix or new feature should check whether it addresses any audit finding.
 - **`matrice-pilotage.md`** — Project steering matrix. Defines the 4-phase roadmap (Foundations → MVP Core BI → IA & Growth → Scale), multi-agent architecture, tech decisions, CI/CD pipeline targets, and security requirements.
 
 Key priorities from these references:

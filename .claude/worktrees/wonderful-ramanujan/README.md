@@ -1,11 +1,11 @@
-# 🎯 Afrikalytics Dashboard
+# 🎯 Datatym AI Dashboard
 
-Dashboard privé pour les utilisateurs Premium d'Afrikalytics AI.
+Dashboard privé pour les utilisateurs Premium d'Datatym AI AI.
 
 ## 📁 Structure
 
 ```
-afrikalytics-dashboard/
+Datatym AI-dashboard/
 ├── app/
 │   ├── layout.tsx          # Layout principal
 │   ├── page.tsx            # Redirection vers login
@@ -37,7 +37,7 @@ npm run build
 
 ## 🔗 Connexion à l'API
 
-Le dashboard se connecte à l'API Afrikalytics :
+Le dashboard se connecte à l'API Datatym AI :
 - **API URL:** https://web-production-ef657.up.railway.app
 - **Login:** POST /api/auth/login
 - **User Info:** GET /api/users/me
@@ -61,4 +61,4 @@ Le dashboard se connecte à l'API Afrikalytics :
 
 ---
 
-© 2024 Afrikalytics AI. Tous droits réservés.
+© 2024 Datatym AI AI. Tous droits réservés.

@@ -198,7 +198,7 @@ export default function AdminReportsPage() {
             <div className="bg-blue-600 p-2 rounded-lg">
               <BarChart3 className="h-6 w-6" />
             </div>
-            <span className="font-bold text-lg">Afrikalytics</span>
+            <span className="font-bold text-lg">Datatym AI</span>
           </div>
         </div>
 

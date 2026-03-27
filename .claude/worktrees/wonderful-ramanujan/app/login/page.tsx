@@ -68,7 +68,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">
-            Afrikalytics AI<span className="text-yellow-400">.</span>
+            Datatym AI AI<span className="text-yellow-400">.</span>
           </h1>
           <p className="text-blue-200 mt-2">by Marketym</p>
         </div>
@@ -173,7 +173,7 @@ export default function LoginPage() {
           {/* Premium Link */}
           <div className="mt-4 text-center">
             <a
-              href="https://afrikalytics.com/premium"
+              href="https://Datatym AI.com/premium"
               className="inline-flex items-center justify-center gap-2 text-yellow-600 hover:text-yellow-700 font-medium"
             >
               ✨ Devenir Premium
@@ -183,7 +183,7 @@ export default function LoginPage() {
           {/* Back to site */}
           <div className="mt-4 text-center">
             <a
-              href="https://afrikalytics.com"
+              href="https://Datatym AI.com"
               className="text-sm text-gray-500 hover:text-gray-700"
             >
               ← Retour au site

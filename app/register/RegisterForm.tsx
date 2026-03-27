@@ -115,14 +115,14 @@ export default function RegisterForm() {
           <div className="flex items-center gap-3">
             <BarChart3 className="h-7 w-7 text-white/90" />
             <span className="text-xl font-semibold tracking-tight">
-              Afrikalytics<span className="text-warning-500">.</span>
+              Datatym AI<span className="text-warning-500">.</span>
             </span>
           </div>
 
           {/* Tagline */}
           <div className="max-w-lg">
             <h1 className="font-heading text-4xl xl:text-5xl leading-tight text-balance mb-6 tracking-tight">
-              Rejoignez la communauté Afrikalytics
+              Rejoignez la communauté Datatym AI
             </h1>
             <p className="text-lg text-white/50 leading-relaxed max-w-md">
               Créez votre compte et accédez à des données exclusives sur les marchés africains.
@@ -155,7 +155,7 @@ export default function RegisterForm() {
           <motion.div variants={fadeInUp} className="lg:hidden flex items-center gap-3 mb-12">
             <BarChart3 className="h-6 w-6 text-surface-900" />
             <span className="text-xl font-semibold text-surface-900 tracking-tight">
-              Afrikalytics<span className="text-warning-500">.</span>
+              Datatym AI<span className="text-warning-500">.</span>
             </span>
           </motion.div>
 
@@ -267,7 +267,7 @@ export default function RegisterForm() {
           {/* Footer */}
           <motion.div variants={fadeInUp} className="mt-16 text-center">
             <p className="text-xs text-surface-300">
-              © 2026 Afrikalytics by Marketym
+              © 2026 Datatym AI by Marketym
             </p>
           </motion.div>
         </motion.div>

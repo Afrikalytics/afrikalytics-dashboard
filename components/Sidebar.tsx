@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-// Afrikalytics Dashboard — Sidebar Component (Corporate Premium)
+// Datatym AI Dashboard — Sidebar Component (Corporate Premium)
 // =============================================================================
 // White sidebar with refined typography, framer-motion animations
 // Style: Bloomberg / McKinsey corporate
@@ -163,7 +163,7 @@ function SidebarContent({
           </div>
           <div>
             <span className="font-bold text-lg tracking-tight text-surface-900">
-              Afrikalytics
+              Datatym AI
             </span>
             <span className="text-primary-600 text-lg font-bold">.</span>
           </div>

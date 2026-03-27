@@ -1,5 +1,5 @@
 // =============================================================================
-// Afrikalytics Dashboard — Centralized API Service
+// Datatym AI Dashboard — Centralized API Service
 // =============================================================================
 // All API calls go through /api/proxy/ which injects the auth token from
 // httpOnly cookies server-side. No token is ever exposed to client JS.

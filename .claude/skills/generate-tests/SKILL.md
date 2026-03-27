@@ -1,12 +1,12 @@
 ---
 name: generate-tests
-description: Génère des tests unitaires et d'intégration pour le projet Afrikalytics. Utiliser quand on demande d'ajouter des tests ou d'améliorer la couverture.
+description: Génère des tests unitaires et d'intégration pour le projet Datatym AI. Utiliser quand on demande d'ajouter des tests ou d'améliorer la couverture.
 user-invocable: true
 argument-hint: <fichier ou composant à tester>
 allowed-tools: Read, Grep, Glob, Write, Edit, Bash(npm *), Bash(npx *)
 ---
 
-# Génération de Tests - Afrikalytics Dashboard
+# Génération de Tests - Datatym AI Dashboard
 
 **Cible :** $ARGUMENTS
 

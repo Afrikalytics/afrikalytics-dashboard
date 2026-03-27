@@ -1,13 +1,13 @@
 ---
 name: explore-codebase
-description: Explore le codebase Afrikalytics en profondeur. Utiliser quand on cherche à comprendre un pattern, trouver des fichiers liés, ou analyser l'architecture.
+description: Explore le codebase Datatym AI en profondeur. Utiliser quand on cherche à comprendre un pattern, trouver des fichiers liés, ou analyser l'architecture.
 user-invocable: true
 argument-hint: <question ou sujet à explorer>
 context: fork
 agent: Explore
 ---
 
-# Exploration du Codebase - Afrikalytics Dashboard
+# Exploration du Codebase - Datatym AI Dashboard
 
 **Sujet :** $ARGUMENTS
 

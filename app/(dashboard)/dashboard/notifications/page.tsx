@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-// Afrikalytics Dashboard — Notifications Page
+// Datatym AI Dashboard — Notifications Page
 // =============================================================================
 // Full list of user notifications with filtering, pagination, and mark-as-read.
 // =============================================================================

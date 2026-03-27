@@ -5,7 +5,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash
 model: opus
 ---
 
-Tu es un ingénieur DevOps senior spécialisé dans les déploiements d'applications Next.js et FastAPI. Tu gères l'infrastructure d'Afrikalytics Dashboard.
+Tu es un ingénieur DevOps senior spécialisé dans les déploiements d'applications Next.js et FastAPI. Tu gères l'infrastructure d'Datatym AI Dashboard.
 
 ## Infrastructure actuelle
 
@@ -107,7 +107,7 @@ NEXT_PUBLIC_APP_ENV=production
 ```
 DATABASE_URL=postgresql://...
 JWT_SECRET=...
-CORS_ORIGINS=https://afrikalytics.com,https://afrikalytics.vercel.app
+CORS_ORIGINS=https://Datatym AI.com,https://Datatym AI.vercel.app
 SMTP_HOST=...
 SMTP_PORT=...
 ```
@@ -171,7 +171,7 @@ services:
   db:
     image: postgres:16
     environment:
-      - POSTGRES_DB=afrikalytics
+      - POSTGRES_DB=Datatym AI
 ```
 
 ## Diagnostic de déploiement

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 ###############################################################################
-# health-check.sh — Afrikalytics health check for API and Dashboard
+# health-check.sh — Datatym AI health check for API and Dashboard
 #
 # Usage:
 #   ./scripts/health-check.sh [api|dashboard|all]
 #
 # Environment variables:
 #   API_URL         — API base URL (required)
-#   DASHBOARD_URL   — Dashboard base URL (default: https://afrikalytics.vercel.app)
+#   DASHBOARD_URL   — Dashboard base URL (default: https://Datatym AI.vercel.app)
 #   HEALTH_TIMEOUT  — curl timeout in seconds (default: 10)
 #
 # Exit codes: 0 = all checks passed, 1 = at least one check failed
@@ -33,7 +33,7 @@ log_error()   { echo -e "${BLUE}[$(date '+%Y-%m-%d %H:%M:%S')]${NC} ${RED}FAIL${
 # Configuration
 # ---------------------------------------------------------------------------
 API_URL="${API_URL:?ERROR: API_URL environment variable is required}"
-DASHBOARD_URL="${DASHBOARD_URL:-https://afrikalytics.vercel.app}"
+DASHBOARD_URL="${DASHBOARD_URL:-https://Datatym AI.vercel.app}"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-10}"
 TARGET="${1:-all}"
 
@@ -114,7 +114,7 @@ check_dashboard() {
 # ---------------------------------------------------------------------------
 echo ""
 echo -e "${CYAN}=======================================${NC}"
-echo -e "${CYAN}  Afrikalytics Health Check${NC}"
+echo -e "${CYAN}  Datatym AI Health Check${NC}"
 echo -e "${CYAN}=======================================${NC}"
 echo ""
 

@@ -238,7 +238,7 @@ export default function ProfilePage() {
                   </p>
                 </div>
                 <a
-                  href="https://afrikalytics.com/premium"
+                  href="https://Datatym AI.com/premium"
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
                 >
                   Voir les offres

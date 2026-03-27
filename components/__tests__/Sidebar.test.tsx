@@ -120,12 +120,12 @@ describe('Sidebar', () => {
     expect(screen.getAllByText('Profil').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders the Afrikalytics brand name', () => {
+  it('renders the Datatym AI brand name', () => {
     render(
       <Sidebar currentPath="/dashboard" user={regularUser} onLogout={onLogout} />
     );
 
-    expect(screen.getAllByText('Afrikalytics').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Datatym AI').length).toBeGreaterThanOrEqual(1);
   });
 
   // -------------------------------------------------------------------------

@@ -169,7 +169,7 @@ function VerifyCodeForm() {
       {/* Logo */}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-white">
-          Afrikalytics AI<span className="text-yellow-400">.</span>
+          Datatym AI AI<span className="text-yellow-400">.</span>
         </h1>
         <p className="text-blue-200 mt-2">by Marketym</p>
       </div>

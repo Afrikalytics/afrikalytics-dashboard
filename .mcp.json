@@ -70,7 +70,7 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-postgres",
-        "postgresql://user:password@host:5432/afrikalytics"
+        "postgresql://user:password@host:5432/Datatym AI"
       ],
       "description": "PostgreSQL read-only - schema inspection & queries"
     },
@@ -82,7 +82,7 @@
         "@crystaldba/postgres-mcp"
       ],
       "env": {
-        "DATABASE_URL": "postgresql://user:password@host:5432/afrikalytics"
+        "DATABASE_URL": "postgresql://user:password@host:5432/Datatym AI"
       },
       "description": "PostgreSQL Pro - performance analysis & index tuning"
     },

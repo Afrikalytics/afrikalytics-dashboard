@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 // =============================================================================
-// Afrikalytics — Tests E2E : Import de donnees
+// Datatym AI — Tests E2E : Import de donnees
 // =============================================================================
 // Teste les fonctionnalites d'import de donnees via l'interface admin.
 // L'endpoint API est POST /api/studies/import mais l'interface frontend
@@ -33,7 +33,7 @@ async function authenticateAsAdmin(
       JSON.stringify({
         id: 1,
         full_name: 'Oumar Admin',
-        email: 'admin@afrikalytics.com',
+        email: 'admin@Datatym AI.com',
         plan: 'entreprise',
         is_admin: true,
         admin_role: role,

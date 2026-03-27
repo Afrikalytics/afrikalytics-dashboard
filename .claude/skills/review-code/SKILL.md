@@ -9,12 +9,12 @@ agent: general-purpose
 allowed-tools: Read, Grep, Glob, Bash(git diff*), Bash(git log*), Bash(npm run lint), Bash(npm run build)
 ---
 
-# Code Review - Afrikalytics Dashboard
+# Code Review - Datatym AI Dashboard
 
 **Cible :** $ARGUMENTS (défaut: changements staged dans git)
 
 ## Documents de référence
-- [Rapport d'audit](docs/references/audit-rapport-afrikalytics.md)
+- [Rapport d'audit](docs/references/audit-rapport-Datatym AI.md)
 - [Matrice de pilotage](docs/references/matrice-pilotage.md)
 
 ## Étape 1 — Identifier les changements

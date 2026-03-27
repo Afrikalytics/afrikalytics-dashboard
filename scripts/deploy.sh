@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ###############################################################################
-# deploy.sh — Afrikalytics Cross-Project Deployment Orchestrator
+# deploy.sh — Datatym AI Cross-Project Deployment Orchestrator
 #
 # Coordinates deployment of the API (Railway) and Dashboard (Vercel) in the
 # correct order: API first, then Dashboard. Includes pre-deploy checks,
@@ -49,16 +49,16 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$SCRIPT_DIR"
-DASHBOARD_DIR="$ROOT_DIR/afrikalytics-dashboard"
-API_DIR="$ROOT_DIR/afrikalytics-api"
+DASHBOARD_DIR="$ROOT_DIR/Datatym AI-dashboard"
+API_DIR="$ROOT_DIR/Datatym AI-api"
 HEALTH_CHECK_SCRIPT="$ROOT_DIR/scripts/health-check.sh"
 PRE_DEPLOY_SCRIPT="$ROOT_DIR/scripts/pre-deploy-check.sh"
 
 # Default URLs per environment
-API_URL_STAGING="${API_URL_STAGING:-https://afrikalytics-api-staging.up.railway.app}"
+API_URL_STAGING="${API_URL_STAGING:-https://Datatym AI-api-staging.up.railway.app}"
 API_URL_PRODUCTION="${API_URL_PRODUCTION:?ERROR: API_URL_PRODUCTION environment variable is required}"
-DASH_URL_STAGING="${DASH_URL_STAGING:-https://afrikalytics-staging.vercel.app}"
-DASH_URL_PRODUCTION="${DASH_URL_PRODUCTION:-https://afrikalytics.vercel.app}"
+DASH_URL_STAGING="${DASH_URL_STAGING:-https://Datatym AI-staging.vercel.app}"
+DASH_URL_PRODUCTION="${DASH_URL_PRODUCTION:-https://Datatym AI.vercel.app}"
 
 # Retry/timeout configuration
 HEALTH_CHECK_RETRIES=5
@@ -67,8 +67,8 @@ HEALTH_CHECK_TIMEOUT=15
 DEPLOY_TIMEOUT=300
 
 # Railway service names per environment
-RAILWAY_SERVICE_API_STAGING="${RAILWAY_SERVICE_API_STAGING:-afrikalytics-api-staging}"
-RAILWAY_SERVICE_API_PROD="${RAILWAY_SERVICE_API_PROD:-afrikalytics-api}"
+RAILWAY_SERVICE_API_STAGING="${RAILWAY_SERVICE_API_STAGING:-Datatym AI-api-staging}"
+RAILWAY_SERVICE_API_PROD="${RAILWAY_SERVICE_API_PROD:-Datatym AI-api}"
 
 # ---------------------------------------------------------------------------
 # Colors and logging
@@ -497,7 +497,7 @@ confirm_production() {
 # ---------------------------------------------------------------------------
 echo ""
 echo -e "${CYAN}=====================================================${NC}"
-echo -e "${CYAN}  Afrikalytics Deployment Orchestrator${NC}"
+echo -e "${CYAN}  Datatym AI Deployment Orchestrator${NC}"
 echo -e "${CYAN}=====================================================${NC}"
 echo ""
 echo -e "  ${BOLD}Environment:${NC}  $ENVIRONMENT"

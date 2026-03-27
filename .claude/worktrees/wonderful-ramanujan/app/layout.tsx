@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Dashboard - Afrikalytics AI",
+  title: "Dashboard - Datatym AI AI",
   description: "Accédez à vos études de marché, insights et rapports sur l'Afrique francophone",
   icons: {
     icon: [

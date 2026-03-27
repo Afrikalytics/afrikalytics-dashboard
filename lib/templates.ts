@@ -1,5 +1,5 @@
 // =============================================================================
-// Afrikalytics Dashboard — Sectoral Dashboard Templates
+// Datatym AI Dashboard — Sectoral Dashboard Templates
 // =============================================================================
 // 10 industry-specific templates tailored for francophone Africa.
 // Each template contains 5-7 widgets with realistic data sources and demo data.

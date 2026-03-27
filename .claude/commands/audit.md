@@ -4,7 +4,7 @@ argument-hint: [catégorie: security|duplication|architecture|all]
 allowed-tools: Read, Grep, Glob, Bash(wc *)
 ---
 
-# Audit Technique - Afrikalytics Dashboard
+# Audit Technique - Datatym AI Dashboard
 
 ## Contexte
 Le projet a obtenu un score de 3.2/10 lors de l'audit technique. Cette commande analyse l'état actuel du code par rapport aux findings identifiés.
@@ -13,7 +13,7 @@ Le projet a obtenu un score de 3.2/10 lors de l'audit technique. Cette commande 
 
 ## Documents de référence
 Consulte OBLIGATOIREMENT ces documents avant toute analyse :
-- [Rapport d'audit](docs/references/audit-rapport-afrikalytics.md)
+- [Rapport d'audit](docs/references/audit-rapport-Datatym AI.md)
 - [Matrice de pilotage](docs/references/matrice-pilotage.md)
 
 ## Checklist d'analyse

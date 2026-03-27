@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-// Afrikalytics Dashboard — Shared Dashboard Layout (Corporate Premium)
+// Datatym AI Dashboard — Shared Dashboard Layout (Corporate Premium)
 // =============================================================================
 
 import { usePathname, useRouter } from "next/navigation";

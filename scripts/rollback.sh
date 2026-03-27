@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ###############################################################################
-# rollback.sh — Rollback Afrikalytics deployments
+# rollback.sh — Rollback Datatym AI deployments
 #
 # Usage:
 #   ./scripts/rollback.sh [dashboard|api|all] [commit-hash]
@@ -46,7 +46,7 @@ TARGET="${1:-all}"
 COMMIT_HASH="${2:-}"
 
 API_URL="${API_URL:?ERROR: API_URL environment variable is required}"
-DASHBOARD_URL="${DASHBOARD_URL:-https://afrikalytics.vercel.app}"
+DASHBOARD_URL="${DASHBOARD_URL:-https://Datatym AI.vercel.app}"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-15}"
 
 # ---------------------------------------------------------------------------
@@ -106,8 +106,8 @@ rollback_dashboard() {
         log_info "Creating revert commit and pushing to trigger Vercel auto-deploy..."
         (
             cd "$ROOT_DIR"
-            git checkout "$COMMIT_HASH" -- afrikalytics-dashboard/
-            git add afrikalytics-dashboard/
+            git checkout "$COMMIT_HASH" -- Datatym AI-dashboard/
+            git add Datatym AI-dashboard/
             git commit -m "revert: rollback dashboard to ${COMMIT_HASH}"
             git push origin HEAD
         )
@@ -167,8 +167,8 @@ rollback_api() {
         log_info "Creating revert commit and pushing to trigger Railway auto-deploy..."
         (
             cd "$ROOT_DIR"
-            git checkout "$COMMIT_HASH" -- afrikalytics-api/
-            git add afrikalytics-api/
+            git checkout "$COMMIT_HASH" -- Datatym AI-api/
+            git add Datatym AI-api/
             git commit -m "revert: rollback API to ${COMMIT_HASH}"
             git push origin HEAD
         )
@@ -219,7 +219,7 @@ rollback_api() {
 # ---------------------------------------------------------------------------
 echo ""
 echo -e "${RED}=======================================${NC}"
-echo -e "${RED}  Afrikalytics ROLLBACK${NC}"
+echo -e "${RED}  Datatym AI ROLLBACK${NC}"
 echo -e "${RED}=======================================${NC}"
 echo ""
 echo -e "${BOLD}Target:${NC}  ${TARGET}"

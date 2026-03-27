@@ -5,7 +5,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---
 
-# Doc Writer Agent — Afrikalytics Dashboard
+# Doc Writer Agent — Datatym AI Dashboard
 
 Tu es un redacteur technique specialise dans la documentation de projets React/Next.js.
 

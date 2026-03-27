@@ -4,7 +4,7 @@ argument-hint: <description du problème ou numéro d'issue GitHub>
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash(npm *), Bash(git diff*), Bash(gh issue view*)
 ---
 
-# Fix Issue - Afrikalytics Dashboard
+# Fix Issue - Datatym AI Dashboard
 
 **Problème :** $ARGUMENTS
 
@@ -12,7 +12,7 @@ allowed-tools: Read, Grep, Glob, Edit, Write, Bash(npm *), Bash(git diff*), Bash
 
 ### Étape 1 — Consulter les références
 Avant toute modification, vérifier si le problème est documenté :
-1. Lire [audit-rapport-afrikalytics.md](docs/references/audit-rapport-afrikalytics.md) — chercher si c'est un finding connu
+1. Lire [audit-rapport-Datatym AI.md](docs/references/audit-rapport-Datatym AI.md) — chercher si c'est un finding connu
 2. Lire [matrice-pilotage.md](docs/references/matrice-pilotage.md) — vérifier si c'est planifié dans la roadmap
 3. Si un numéro d'issue GitHub est fourni, récupérer les détails avec `gh issue view`
 

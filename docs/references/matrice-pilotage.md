@@ -1,6 +1,6 @@
-# Matrice de Pilotage Projet - Afrikalytics
+# Matrice de Pilotage Projet - Datatym AI
 
-> Source : `afrikalytics_matrice_pilotage.docx` (Mars 2026 - CONFIDENTIEL)
+> Source : `Datatym AI_matrice_pilotage.docx` (Mars 2026 - CONFIDENTIEL)
 
 ## 1. Decisions techniques structurantes
 

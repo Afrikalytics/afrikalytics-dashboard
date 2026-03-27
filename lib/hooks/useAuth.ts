@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-// Afrikalytics Dashboard — useAuth Hook
+// Datatym AI Dashboard — useAuth Hook
 // =============================================================================
 // Fetches auth state from httpOnly cookies via /api/auth/session.
 // No token or user data is stored in localStorage (XSS-safe).

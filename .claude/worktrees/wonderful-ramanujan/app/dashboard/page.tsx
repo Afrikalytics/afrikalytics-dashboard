@@ -176,7 +176,7 @@ export default function DashboardPage() {
             <div className="bg-blue-600 p-2 rounded-lg">
               <BarChart3 className="h-6 w-6" />
             </div>
-            <span className="font-bold text-lg">Afrikalytics</span>
+            <span className="font-bold text-lg">Datatym AI</span>
           </div>
         </div>
 
@@ -353,7 +353,7 @@ export default function DashboardPage() {
                 </p>
               </div>
               <a
-                href="https://afrikalytics.com/premium"
+                href="https://Datatym AI.com/premium"
                 className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition text-sm whitespace-nowrap"
               >
                 Voir les offres

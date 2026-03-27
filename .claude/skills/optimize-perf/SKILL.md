@@ -9,7 +9,7 @@ agent: general-purpose
 allowed-tools: Read, Grep, Glob, Bash(npm *), Bash(npx *), Bash(du *)
 ---
 
-# Optimisation Performance - Afrikalytics Dashboard
+# Optimisation Performance - Datatym AI Dashboard
 
 **Cible :** $ARGUMENTS (défaut: all)
 
@@ -53,7 +53,7 @@ Analyser la taille du bundle :
 ## Format de rapport
 
 ```
-⚡ Performance Report — Afrikalytics Dashboard
+⚡ Performance Report — Datatym AI Dashboard
 ════════════════════════════════════════════════
 
 📦 Bundle Size

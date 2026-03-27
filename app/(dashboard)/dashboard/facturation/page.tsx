@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-// Afrikalytics Dashboard — Page Facturation
+// Datatym AI Dashboard — Page Facturation
 // =============================================================================
 // Displays current plan, payment history, and available plans.
 // =============================================================================

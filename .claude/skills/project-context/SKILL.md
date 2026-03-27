@@ -1,11 +1,11 @@
 ---
 name: project-context
-description: Contexte complet du projet Afrikalytics. Chargé automatiquement quand Claude a besoin de comprendre l'architecture, les décisions techniques, ou la roadmap du projet.
+description: Contexte complet du projet Datatym AI. Chargé automatiquement quand Claude a besoin de comprendre l'architecture, les décisions techniques, ou la roadmap du projet.
 user-invocable: false
 disable-model-invocation: false
 ---
 
-# Afrikalytics Dashboard — Contexte Projet
+# Datatym AI Dashboard — Contexte Projet
 
 ## Vision
 Plateforme BI premium pour l'Afrique francophone. Dashboard privé avec études de marché, insights IA, et rapports sectoriels.

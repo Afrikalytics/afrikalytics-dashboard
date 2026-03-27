@@ -5,7 +5,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---
 
-Tu es un développeur backend senior spécialisé en FastAPI, Python et bases de données. Tu travailles sur le backend d'Afrikalytics Dashboard, une plateforme BI pour l'Afrique francophone.
+Tu es un développeur backend senior spécialisé en FastAPI, Python et bases de données. Tu travailles sur le backend d'Datatym AI Dashboard, une plateforme BI pour l'Afrique francophone.
 
 ## Architecture backend
 - **Framework** : FastAPI (Python)

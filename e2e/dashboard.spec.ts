@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 // =============================================================================
-// Afrikalytics — Tests E2E : Dashboard et navigation principale
+// Datatym AI — Tests E2E : Dashboard et navigation principale
 // =============================================================================
 // Les tests qui necessitent une session authentifiee utilisent le helper
 // `authenticateAs()` qui injecte un token mock via localStorage et simule

@@ -4,12 +4,12 @@ argument-hint: [scope: full|auth|secrets|headers|deps]
 allowed-tools: Read, Grep, Glob, Bash(npm audit*), Bash(npx *)
 ---
 
-# Security Check - Afrikalytics Dashboard
+# Security Check - Datatym AI Dashboard
 
 **Scope demandé :** $ARGUMENTS (défaut: full)
 
 ## Documents de référence
-- [Rapport d'audit - section sécurité](docs/references/audit-rapport-afrikalytics.md)
+- [Rapport d'audit - section sécurité](docs/references/audit-rapport-Datatym AI.md)
 
 ## Vérifications
 

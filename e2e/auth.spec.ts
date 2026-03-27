@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 // =============================================================================
-// Afrikalytics — Tests E2E : Flux d'authentification
+// Datatym AI — Tests E2E : Flux d'authentification
 // =============================================================================
 // Ces tests couvrent les parcours critiques de la page /login, /register,
 // /forgot-password et la protection des routes authentifiees.
@@ -24,8 +24,8 @@ test.describe('Page de connexion — structure et accessibilite', () => {
   });
 
   test('affiche le titre de la page et le logo', async ({ page }) => {
-    await expect(page).toHaveTitle(/Afrikalytics/i);
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Afrikalytics AI');
+    await expect(page).toHaveTitle(/Datatym AI/i);
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Datatym AI AI');
     await expect(page.getByRole('heading', { level: 2 })).toContainText('Connexion');
   });
 
@@ -158,7 +158,7 @@ test.describe('Connexion reussie — redirection', () => {
           user: {
             id: 1,
             full_name: 'Test User',
-            email: 'test@afrikalytics.com',
+            email: 'test@Datatym AI.com',
             plan: 'basic',
             is_admin: false,
             admin_role: null,
@@ -167,7 +167,7 @@ test.describe('Connexion reussie — redirection', () => {
       });
     });
 
-    await page.getByLabel('Adresse email').fill('test@afrikalytics.com');
+    await page.getByLabel('Adresse email').fill('test@Datatym AI.com');
     await page.getByLabel('Mot de passe').fill('password123');
     await page.getByRole('button', { name: /se connecter/i }).click();
 
@@ -193,7 +193,7 @@ test.describe('Connexion reussie — redirection', () => {
       });
     });
 
-    await page.getByLabel('Adresse email').fill('test2fa@afrikalytics.com');
+    await page.getByLabel('Adresse email').fill('test2fa@Datatym AI.com');
     await page.getByLabel('Mot de passe').fill('password123');
     await page.getByRole('button', { name: /se connecter/i }).click();
 

@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 // =============================================================================
-// Afrikalytics — Tests E2E : Administration (CRUD etudes, insights, reports)
+// Datatym AI — Tests E2E : Administration (CRUD etudes, insights, reports)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -23,7 +23,7 @@ async function authenticateAsAdmin(
       JSON.stringify({
         id: 1,
         full_name: 'Oumar Admin',
-        email: 'admin@afrikalytics.com',
+        email: 'admin@Datatym AI.com',
         plan: 'entreprise',
         is_admin: true,
         admin_role: role,
@@ -179,7 +179,7 @@ async function mockAdminUsersApi(page: Page) {
     {
       id: 1,
       full_name: 'Oumar Admin',
-      email: 'admin@afrikalytics.com',
+      email: 'admin@Datatym AI.com',
       plan: 'entreprise',
       is_admin: true,
       admin_role: 'super_admin',

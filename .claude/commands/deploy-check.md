@@ -4,7 +4,7 @@ disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, Bash(npm *), Bash(npx *), Bash(git status), Bash(git log*), Bash(git diff*)
 ---
 
-# Deploy Check - Afrikalytics Dashboard
+# Deploy Check - Datatym AI Dashboard
 
 Vérification complète avant déploiement sur Vercel.
 

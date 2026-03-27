@@ -1,6 +1,6 @@
-# Rapport d'Audit Technique - Afrikalytics Dashboard
+# Rapport d'Audit Technique - Datatym AI Dashboard
 
-> Source : `audit-rapport-afrikalytics.pdf` (05/03/2026)
+> Source : `audit-rapport-Datatym AI.pdf` (05/03/2026)
 
 ## Score Global : 3.2 / 10 (CRITIQUE)
 

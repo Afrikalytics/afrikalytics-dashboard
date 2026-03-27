@@ -1,5 +1,5 @@
 // =============================================================================
-// Afrikalytics Dashboard — Shared TypeScript Types
+// Datatym AI Dashboard — Shared TypeScript Types
 // =============================================================================
 // Centralized type definitions extracted from inline page definitions.
 // All pages should import from here instead of defining types locally.

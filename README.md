@@ -1,10 +1,10 @@
 <p align="center">
-  <h1 align="center">Afrikalytics Dashboard</h1>
+  <h1 align="center">Datatym AI Dashboard</h1>
   <p align="center">
     <strong>Tableau de bord premium de Business Intelligence pour l'Afrique francophone</strong>
   </p>
   <p align="center">
-    <a href="https://github.com/Afrikalytics/afrikalytics-dashboard/actions/workflows/ci.yml"><img src="https://github.com/Afrikalytics/afrikalytics-dashboard/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+    <a href="https://github.com/Datatym AI/Datatym AI-dashboard/actions/workflows/ci.yml"><img src="https://github.com/Datatym AI/Datatym AI-dashboard/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
     <img src="https://img.shields.io/badge/Next.js-16-black?logo=next.js" alt="Next.js 16">
     <img src="https://img.shields.io/badge/React-18-61DAFB?logo=react" alt="React 18">
     <img src="https://img.shields.io/badge/TypeScript-5.7-3178C6?logo=typescript" alt="TypeScript">
@@ -17,9 +17,9 @@
 
 ---
 
-Interface web d'**Afrikalytics AI**, la plateforme SaaS qui fournit des etudes de marche, insights et rapports strategiques aux entreprises d'Afrique francophone. Le dashboard permet aux utilisateurs de consulter leurs donnees, aux administrateurs de gerer le contenu, et integre les paiements en FCFA via mobile money.
+Interface web d'**Datatym AI AI**, la plateforme SaaS qui fournit des etudes de marche, insights et rapports strategiques aux entreprises d'Afrique francophone. Le dashboard permet aux utilisateurs de consulter leurs donnees, aux administrateurs de gerer le contenu, et integre les paiements en FCFA via mobile money.
 
-> **Partie frontend du monorepo Afrikalytics.** Le backend associe se trouve dans [`afrikalytics-api`](https://github.com/Afrikalytics/afrikalytics-api).
+> **Partie frontend du monorepo Datatym AI.** Le backend associe se trouve dans [`Datatym AI-api`](https://github.com/Datatym AI/Datatym AI-api).
 
 ## Fonctionnalites
 
@@ -40,14 +40,14 @@ Interface web d'**Afrikalytics AI**, la plateforme SaaS qui fournit des etudes d
 ```
                                  +---------------------------+
                                  |        Vercel (CDN)       |
-                                 |    afrikalytics-dashboard |
+                                 |    Datatym AI-dashboard |
                                  +------------+--------------+
                                               |
                                     REST API + JWT Bearer
                                               |
                                  +------------v--------------+
                                  |    Railway (Backend)      |
-                                 |     afrikalytics-api      |
+                                 |     Datatym AI-api      |
                                  +--+----------+----------+--+
                                     |          |          |
                                PostgreSQL   Resend    PayDunya
@@ -80,8 +80,8 @@ Interface web d'**Afrikalytics AI**, la plateforme SaaS qui fournit des etudes d
 
 ```bash
 # Cloner le repository
-git clone https://github.com/Afrikalytics/afrikalytics-dashboard.git
-cd afrikalytics-dashboard
+git clone https://github.com/Datatym AI/Datatym AI-dashboard.git
+cd Datatym AI-dashboard
 
 # Installer les dependances
 npm install
@@ -139,7 +139,7 @@ Executes sur 3 viewports : Desktop Chrome, Mobile Safari, Tablet.
 ## Structure du projet
 
 ```
-afrikalytics-dashboard/
+Datatym AI-dashboard/
 ├── app/                            # Pages (App Router, toutes "use client")
 │   ├── login/                      # Connexion
 │   ├── register/                   # Inscription
@@ -177,7 +177,7 @@ afrikalytics-dashboard/
 ├── sentry.client.config.ts          # Sentry (client)
 ├── sentry.server.config.ts          # Sentry (serveur)
 ├── next.config.js                   # CSP, Sentry, rewrites
-├── tailwind.config.ts               # Palette custom Afrikalytics
+├── tailwind.config.ts               # Palette custom Datatym AI
 └── tsconfig.json                    # Path alias @/*
 ```
 
@@ -250,7 +250,7 @@ Le pipeline CI (GitHub Actions) execute automatiquement : **Lint** > **Tests uni
 
 ## Connexion avec l'API
 
-Le dashboard communique avec [`afrikalytics-api`](https://github.com/Afrikalytics/afrikalytics-api) :
+Le dashboard communique avec [`Datatym AI-api`](https://github.com/Datatym AI/Datatym AI-api) :
 
 - **Protocole** : REST over HTTPS
 - **Authentification** : `Authorization: Bearer {JWT}`
@@ -268,13 +268,13 @@ Le dashboard communique avec [`afrikalytics-api`](https://github.com/Afrikalytic
 
 | | |
 |---|---|
-| **Organisation** | [Afrikalytics](https://github.com/Afrikalytics) |
+| **Organisation** | [Datatym AI](https://github.com/Datatym AI) |
 | **Email** | software@hcexecutive.net |
 | **Localisation** | Dakar, Senegal |
 
 ---
 
 <p align="center">
-  <strong>Afrikalytics AI</strong> — Business Intelligence pour l'Afrique francophone<br>
-  &copy; 2024-2026 Afrikalytics. Tous droits reserves.
+  <strong>Datatym AI AI</strong> — Business Intelligence pour l'Afrique francophone<br>
+  &copy; 2024-2026 Datatym AI. Tous droits reserves.
 </p>

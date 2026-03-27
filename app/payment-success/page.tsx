@@ -75,7 +75,7 @@ export default function PaymentSuccessPage() {
               Paiement Réussi
             </h1>
             <p className="text-surface-300 mt-2 text-sm">
-              Bienvenue dans Afrikalytics Premium
+              Bienvenue dans Datatym AI Premium
             </p>
           </div>
 
@@ -153,7 +153,7 @@ export default function PaymentSuccessPage() {
         <motion.p variants={itemVariants} className="text-center text-surface-400 text-sm mt-6">
           Besoin d&apos;aide ?{" "}
           <a
-            href="https://afrikalytics.com/contact"
+            href="https://Datatym AI.com/contact"
             className="text-primary-600 hover:text-primary-700 font-medium transition-colors"
           >
             Contactez-nous

@@ -208,7 +208,7 @@ export default function EntrepriseTeamPage() {
               Retour au dashboard
             </a>
             <a
-              href="https://afrikalytics.com/premium"
+              href="https://Datatym AI.com/premium"
               className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
             >
               Voir le plan Entreprise

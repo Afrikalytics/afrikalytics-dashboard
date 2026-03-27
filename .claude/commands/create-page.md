@@ -1,10 +1,10 @@
 ---
-description: Crée une nouvelle page Next.js en suivant les conventions du projet Afrikalytics (App Router, client component, Tailwind, Lucide icons).
+description: Crée une nouvelle page Next.js en suivant les conventions du projet Datatym AI (App Router, client component, Tailwind, Lucide icons).
 argument-hint: <route> [type: dashboard|admin|public]
 allowed-tools: Read, Glob, Write, Edit, Bash(npm run build)
 ---
 
-# Créer une nouvelle page - Afrikalytics Dashboard
+# Créer une nouvelle page - Datatym AI Dashboard
 
 **Route :** $ARGUMENTS[0]
 **Type :** $ARGUMENTS[1] (défaut: dashboard)

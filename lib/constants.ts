@@ -1,5 +1,5 @@
 // =============================================================================
-// Afrikalytics Dashboard — Shared Constants
+// Datatym AI Dashboard — Shared Constants
 // =============================================================================
 
 import type { AdminRole, AdminRoleInfo, AdminRolePermissions } from "./types";
@@ -63,8 +63,8 @@ export const ROUTES = {
   ADMIN_USERS: "/admin/users",
 
   // External
-  PREMIUM: "https://afrikalytics.com/premium",
-  WEBSITE: "https://afrikalytics.com",
+  PREMIUM: "https://Datatym AI.com/premium",
+  WEBSITE: "https://Datatym AI.com",
 } as const;
 
 // -----------------------------------------------------------------------------

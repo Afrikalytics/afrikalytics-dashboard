@@ -101,7 +101,7 @@ export default function LoginForm() {
           <div className="flex items-center gap-3">
             <BarChart3 className="h-7 w-7 text-white/90" />
             <span className="text-xl font-semibold tracking-tight">
-              Afrikalytics<span className="text-warning-500">.</span>
+              Datatym AI<span className="text-warning-500">.</span>
             </span>
           </div>
 
@@ -141,7 +141,7 @@ export default function LoginForm() {
           <motion.div variants={fadeInUp} className="lg:hidden flex items-center gap-3 mb-12">
             <BarChart3 className="h-6 w-6 text-surface-900" />
             <span className="text-xl font-semibold text-surface-900 tracking-tight">
-              Afrikalytics<span className="text-warning-500">.</span>
+              Datatym AI<span className="text-warning-500">.</span>
             </span>
           </motion.div>
 
@@ -230,7 +230,7 @@ export default function LoginForm() {
           {/* Footer */}
           <motion.div variants={fadeInUp} className="mt-16 text-center">
             <p className="text-xs text-surface-300">
-              © 2026 Afrikalytics by Marketym
+              © 2026 Datatym AI by Marketym
             </p>
           </motion.div>
         </motion.div>

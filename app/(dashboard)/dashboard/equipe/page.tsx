@@ -285,7 +285,7 @@ export default function EntrepriseTeamPage() {
             <Link href="/dashboard">
               <Button variant="secondary">Retour au dashboard</Button>
             </Link>
-            <a href="https://afrikalytics.com/premium">
+            <a href="https://Datatym AI.com/premium">
               <Button variant="primary">Voir le plan Entreprise</Button>
             </a>
           </div>

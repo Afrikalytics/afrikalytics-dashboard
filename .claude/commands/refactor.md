@@ -4,12 +4,12 @@ argument-hint: [cible: sidebar|auth|api|layout|types|plan]
 allowed-tools: Read, Grep, Glob, Edit, Write, Bash(npm run lint), Bash(npm run build)
 ---
 
-# Refactoring - Afrikalytics Dashboard
+# Refactoring - Datatym AI Dashboard
 
 **Cible :** $ARGUMENTS (défaut: plan — affiche le plan sans modifier)
 
 ## Documents de référence
-- [Rapport d'audit](docs/references/audit-rapport-afrikalytics.md)
+- [Rapport d'audit](docs/references/audit-rapport-Datatym AI.md)
 - [Matrice de pilotage](docs/references/matrice-pilotage.md)
 
 ## Cibles de refactoring

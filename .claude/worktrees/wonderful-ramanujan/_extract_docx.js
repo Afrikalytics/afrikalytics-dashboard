@@ -61,7 +61,7 @@ function readDocx(filepath) {
 
 const base = "C:/Users/JDTKD/OneDrive - H&C EXECUTIVE EDUCATION/Bureau";
 console.log("=== FEUILLE DE LANCEMENT ===");
-console.log(readDocx(base + "/afrikalytics_feuille_lancement.docx"));
+console.log(readDocx(base + "/Datatym AI_feuille_lancement.docx"));
 console.log();
 console.log("=== MATRICE DE PILOTAGE ===");
-console.log(readDocx(base + "/afrikalytics_matrice_pilotage.docx"));
+console.log(readDocx(base + "/Datatym AI_matrice_pilotage.docx"));

@@ -5,7 +5,7 @@ tools: Read, Write, Edit, Glob, Grep, Bash
 model: sonnet
 ---
 
-# QA Tester Agent — Afrikalytics Dashboard
+# QA Tester Agent — Datatym AI Dashboard
 
 Tu es un ingenieur QA specialise dans le testing d'applications Next.js/React.
 
@@ -22,7 +22,7 @@ playwright                   # Tests E2E
 ## Structure des tests
 
 ```
-afrikalytics-dashboard/
+Datatym AI-dashboard/
 ├── __tests__/
 │   ├── components/
 │   │   ├── Sidebar.test.tsx

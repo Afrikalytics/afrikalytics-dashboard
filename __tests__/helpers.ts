@@ -1,5 +1,5 @@
 // =============================================================================
-// Afrikalytics Dashboard — Shared Test Helpers
+// Datatym AI Dashboard — Shared Test Helpers
 // =============================================================================
 // Utility factories used across all test suites.
 // Import what you need — nothing is auto-applied on import.

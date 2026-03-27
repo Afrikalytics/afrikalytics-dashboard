@@ -91,11 +91,11 @@ export default function RegisterPage() {
       <div className="w-full max-w-md relative z-10">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="https://afrikalytics.com" className="inline-flex items-center gap-3">
+          <Link href="https://Datatym AI.com" className="inline-flex items-center gap-3">
             <div className="bg-blue-600 p-3 rounded-xl">
               <BarChart3 className="h-8 w-8 text-white" />
             </div>
-            <span className="text-3xl font-bold text-white">Afrikalytics AI</span>
+            <span className="text-3xl font-bold text-white">Datatym AI AI</span>
           </Link>
           <p className="text-blue-200 mt-2">by Marketym</p>
         </div>
@@ -106,7 +106,7 @@ export default function RegisterPage() {
             Créer un compte gratuit
           </h1>
           <p className="text-gray-500 text-center mb-6">
-            Accédez aux études et insights Afrikalytics
+            Accédez aux études et insights Datatym AI
           </p>
 
           {/* Avantages Basic */}
@@ -270,7 +270,7 @@ export default function RegisterPage() {
         <div className="mt-6 text-center">
           <p className="text-blue-200 text-sm mb-2">Besoin d&apos;un accès complet ?</p>
           <a
-            href="https://afrikalytics.com/premium"
+            href="https://Datatym AI.com/premium"
             className="text-yellow-400 font-semibold hover:text-yellow-300 transition"
           >
             Découvrir les offres Premium →
@@ -279,7 +279,7 @@ export default function RegisterPage() {
 
         {/* Back Link */}
         <div className="text-center mt-4">
-          <a href="https://afrikalytics.com" className="text-blue-200 hover:text-white transition text-sm">
+          <a href="https://Datatym AI.com" className="text-blue-200 hover:text-white transition text-sm">
             ← Retour à l&apos;accueil
           </a>
         </div>

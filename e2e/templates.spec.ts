@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 // =============================================================================
-// Afrikalytics — Tests E2E : Dashboard Templates
+// Datatym AI — Tests E2E : Dashboard Templates
 // =============================================================================
 // NOTE : La page /dashboard/templates n'existe pas encore dans le codebase.
 // Ces tests documentent le comportement attendu et echoueront tant que la page

@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 // =============================================================================
-// Afrikalytics — Tests E2E : Dashboard Builder
+// Datatym AI — Tests E2E : Dashboard Builder
 // =============================================================================
 // Teste la creation de tableaux de bord personnalises via le builder :
 //  - Palette de widgets (7 types)

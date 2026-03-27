@@ -7,7 +7,7 @@ context: fork
 agent: Explore
 ---
 
-# Documentation API - Afrikalytics Dashboard
+# Documentation API - Datatym AI Dashboard
 
 **Cible :** $ARGUMENTS (défaut: all)
 
@@ -54,7 +54,7 @@ Organiser les endpoints par domaine fonctionnel :
 ### 5. Format de sortie
 
 ```
-📡 API Documentation — Afrikalytics Dashboard
+📡 API Documentation — Datatym AI Dashboard
 ══════════════════════════════════════════════
 
 Base URL: ${API_URL} (hardcodé ou env var)

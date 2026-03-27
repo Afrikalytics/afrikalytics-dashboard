@@ -32,7 +32,7 @@ export default function PaymentSuccessPage() {
               <CheckCircle className="h-12 w-12 text-green-500" />
             </div>
             <h1 className="text-2xl font-bold">Paiement Réussi !</h1>
-            <p className="text-green-100 mt-2">Bienvenue dans Afrikalytics Premium</p>
+            <p className="text-green-100 mt-2">Bienvenue dans Datatym AI Premium</p>
           </div>
 
           {/* Content */}
@@ -100,7 +100,7 @@ export default function PaymentSuccessPage() {
         {/* Help Link */}
         <p className="text-center text-gray-500 text-sm mt-6">
           Besoin d&apos;aide ?{" "}
-          <a href="https://afrikalytics.com/contact" className="text-blue-600 hover:underline">
+          <a href="https://Datatym AI.com/contact" className="text-blue-600 hover:underline">
             Contactez-nous
           </a>
         </p>

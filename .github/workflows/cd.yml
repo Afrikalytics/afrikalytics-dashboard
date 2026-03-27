@@ -118,8 +118,8 @@ jobs:
         id: changes
         run: |
           # Check which sub-projects have changes in this push
-          API_CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -c '^afrikalytics-api/' || echo "0")
-          DASH_CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -c '^afrikalytics-dashboard/' || echo "0")
+          API_CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -c '^Datatym AI-api/' || echo "0")
+          DASH_CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -c '^Datatym AI-dashboard/' || echo "0")
           echo "api_changed=$API_CHANGED" >> $GITHUB_OUTPUT
           echo "dashboard_changed=$DASH_CHANGED" >> $GITHUB_OUTPUT
           echo "API files changed: $API_CHANGED"
@@ -161,7 +161,7 @@ jobs:
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
-          cd afrikalytics-api
+          cd Datatym AI-api
           railway up --detach
         continue-on-error: true
         id: railway_deploy
@@ -223,18 +223,18 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
-          cache-dependency-path: afrikalytics-dashboard/package-lock.json
+          cache-dependency-path: Datatym AI-dashboard/package-lock.json
 
       - name: Set environment URLs
         id: urls
         run: |
           ENV="${{ needs.pre-deploy.outputs.environment }}"
           if [[ "$ENV" == "production" ]]; then
-            echo "dash_url=${{ secrets.DASH_URL_PRODUCTION || 'https://afrikalytics.vercel.app' }}" >> $GITHUB_OUTPUT
+            echo "dash_url=${{ secrets.DASH_URL_PRODUCTION || 'https://Datatym AI.vercel.app' }}" >> $GITHUB_OUTPUT
             echo "api_url=${{ secrets.API_URL_PRODUCTION }}" >> $GITHUB_OUTPUT
             echo "vercel_flag=--prod" >> $GITHUB_OUTPUT
           else
-            echo "dash_url=${{ secrets.DASH_URL_STAGING || 'https://afrikalytics-staging.vercel.app' }}" >> $GITHUB_OUTPUT
+            echo "dash_url=${{ secrets.DASH_URL_STAGING || 'https://Datatym AI-staging.vercel.app' }}" >> $GITHUB_OUTPUT
             echo "api_url=${{ secrets.API_URL_STAGING }}" >> $GITHUB_OUTPUT
             echo "vercel_flag=" >> $GITHUB_OUTPUT
           fi
@@ -248,7 +248,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          cd afrikalytics-dashboard
+          cd Datatym AI-dashboard
           vercel pull --yes --token=$VERCEL_TOKEN
 
       - name: Build
@@ -256,7 +256,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           NEXT_PUBLIC_API_URL: ${{ steps.urls.outputs.api_url }}
         run: |
-          cd afrikalytics-dashboard
+          cd Datatym AI-dashboard
           vercel build ${{ steps.urls.outputs.vercel_flag }} --token=$VERCEL_TOKEN
 
       - name: Deploy
@@ -264,7 +264,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          cd afrikalytics-dashboard
+          cd Datatym AI-dashboard
           DEPLOY_URL=$(vercel deploy --prebuilt ${{ steps.urls.outputs.vercel_flag }} --token=$VERCEL_TOKEN 2>&1)
           echo "dashboard_url=$DEPLOY_URL" >> $GITHUB_OUTPUT
           echo "Deployed to: $DEPLOY_URL"
@@ -318,10 +318,10 @@ jobs:
           ENV="${{ needs.pre-deploy.outputs.environment }}"
           if [[ "$ENV" == "production" ]]; then
             echo "api_url=${{ secrets.API_URL_PRODUCTION }}" >> $GITHUB_OUTPUT
-            echo "dash_url=${{ secrets.DASH_URL_PRODUCTION || 'https://afrikalytics.vercel.app' }}" >> $GITHUB_OUTPUT
+            echo "dash_url=${{ secrets.DASH_URL_PRODUCTION || 'https://Datatym AI.vercel.app' }}" >> $GITHUB_OUTPUT
           else
             echo "api_url=${{ secrets.API_URL_STAGING }}" >> $GITHUB_OUTPUT
-            echo "dash_url=${{ secrets.DASH_URL_STAGING || 'https://afrikalytics-staging.vercel.app' }}" >> $GITHUB_OUTPUT
+            echo "dash_url=${{ secrets.DASH_URL_STAGING || 'https://Datatym AI-staging.vercel.app' }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Full health check suite

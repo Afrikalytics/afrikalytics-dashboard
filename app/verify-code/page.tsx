@@ -2,11 +2,11 @@ import type { Metadata } from 'next';
 import VerifyCodeForm from './VerifyCodeForm';
 
 export const metadata: Metadata = {
-  title: 'Vérification — Afrikalytics',
-  description: 'Vérifiez votre code de sécurité Afrikalytics.',
+  title: 'Vérification — Datatym AI',
+  description: 'Vérifiez votre code de sécurité Datatym AI.',
   openGraph: {
-    title: 'Vérification — Afrikalytics',
-    description: 'Vérifiez votre code de sécurité sur la plateforme Afrikalytics',
+    title: 'Vérification — Datatym AI',
+    description: 'Vérifiez votre code de sécurité sur la plateforme Datatym AI',
   },
 };
 

@@ -1,10 +1,10 @@
-# CLAUDE.md — Afrikalytics Dashboard
+# CLAUDE.md — Datatym AI Dashboard
 
 ## Project Overview
 
-**Afrikalytics** is a Business Intelligence PaaS (Platform-as-a-Service) designed to democratize access to decisional data in Francophone Africa.
+**Datatym AI** is a Business Intelligence PaaS (Platform-as-a-Service) designed to democratize access to decisional data in Francophone Africa.
 
-- **Domain:** afrikalytics.com
+- **Domain:** Datatym AI.com
 - **Target:** 2,000-10,000 clients by end 2026
 - **Triple market:**
   - **Enterprises** (GE > 500 emp, ETI 100-500, PME 10-100) — dashboards, connectors, alerts
@@ -33,7 +33,7 @@
 ## Project Structure
 
 ```
-afrikalytics-dashboard/
+Datatym AI-dashboard/
 ├── app/                          # Next.js App Router
 │   ├── layout.tsx                # Root layout (metadata, fonts)
 │   ├── page.tsx                  # Index (redirects to /login)
@@ -262,7 +262,7 @@ These are the key technical decisions from the project steering matrix:
 | Analytics | PostHog (free) | 0 EUR | Events, funnels, retention |
 | Logs | Railway + Vercel native | 0 EUR | Centralized logs |
 | API Perf | FastAPI middleware | 0 EUR | Latency p50/p95/p99 |
-| Business | Afrikalytics dogfooding | 0 EUR | MRR, churn, NPS |
+| Business | Datatym AI dogfooding | 0 EUR | MRR, churn, NPS |
 
 ## Multi-Agent Architecture
 

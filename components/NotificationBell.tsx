@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-// Afrikalytics Dashboard — NotificationBell Component
+// Datatym AI Dashboard — NotificationBell Component
 // =============================================================================
 // Bell icon with unread badge + dropdown showing latest notifications.
 // Polls every 30 seconds for unread count.
