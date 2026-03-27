@@ -45,7 +45,7 @@ export default function AdminPage() {
         }
       } catch (error) {
         if (!controller.signal.aborted) {
-          // Erreur silencieuse — état loading gère l'affichage
+          console.error("Erreur chargement études admin:", error);
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -66,7 +66,7 @@ export default function AdminPage() {
       await api.delete(`/api/studies/${id}`);
       setStudies((prev) => prev.filter((s) => s.id !== id));
     } catch (error) {
-      // Erreur silencieuse
+      console.error("Erreur suppression étude:", error);
     }
   }, []);
 

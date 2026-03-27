@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, RefreshCw, BarChart3, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -25,6 +25,7 @@ const fadeInUp = {
 
 function VerifyCodeFormInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
@@ -42,14 +43,14 @@ function VerifyCodeFormInner() {
     }
   }, [countdown]);
 
-  // Récupérer l'email depuis sessionStorage au chargement
+  // Récupérer l'email depuis l'URL au chargement
   useEffect(() => {
-    const storedEmail = sessionStorage.getItem("verify_email");
-    if (storedEmail) {
-      setEmail(storedEmail);
+    const emailParam = searchParams.get("email");
+    if (emailParam) {
+      setEmail(emailParam);
     }
     inputRefs.current[0]?.focus();
-  }, []);
+  }, [searchParams]);
 
   const handleChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -121,7 +122,6 @@ function VerifyCodeFormInner() {
       }
 
       await saveSession(data.access_token, data.user);
-      sessionStorage.removeItem("verify_email");
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Une erreur est survenue");

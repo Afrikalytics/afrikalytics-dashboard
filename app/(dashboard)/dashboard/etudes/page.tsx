@@ -95,6 +95,7 @@ export default function EtudesListPage() {
         if (reportsData) setReports(reportsData);
       } catch (error) {
         if (controller.signal.aborted) return;
+        console.error("Erreur chargement données études:", error);
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }

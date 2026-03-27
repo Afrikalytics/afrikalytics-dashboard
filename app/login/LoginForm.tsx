@@ -61,8 +61,7 @@ export default function LoginForm() {
       }
 
       if (data.requires_verification) {
-        sessionStorage.setItem("verify_email", email);
-        router.push("/verify-code");
+        router.push(`/verify-code?email=${encodeURIComponent(email)}`);
         return;
       }
 

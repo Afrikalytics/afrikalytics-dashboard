@@ -47,7 +47,7 @@ export default function AdminInsightsPage() {
         setStudies(studiesData);
       } catch (error) {
         if (!controller.signal.aborted) {
-          // Erreur silencieuse — état loading gère l'affichage
+          console.error("Erreur chargement insights admin:", error);
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -67,7 +67,7 @@ export default function AdminInsightsPage() {
       await api.delete(`/api/insights/${id}`);
       setInsights((prev) => prev.filter((i) => i.id !== id));
     } catch (error) {
-      // Erreur silencieuse
+      console.error("Erreur suppression insight:", error);
     }
   }, []);
 
