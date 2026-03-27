@@ -9,13 +9,18 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import type { TooltipProps } from "recharts";
 
 // -----------------------------------------------------------------------------
 // Custom Recharts Tooltip
 // -----------------------------------------------------------------------------
 
-function CustomTooltip({ active, payload, label }: TooltipProps<number, string>) {
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number }>;
+  label?: string;
+}
+
+function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   if (!active || !payload?.length) return null;
   return (
     <div className="bg-surface-900 text-white px-4 py-3 rounded-lg shadow-lg text-sm">
