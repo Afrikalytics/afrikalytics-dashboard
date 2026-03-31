@@ -1,20 +1,15 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useMemo, useCallback } from "react";
-import {
-  Lightbulb,
-  ChevronRight,
-  Calendar,
-  UserCircle,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { api } from "@/lib/api";
-import type { Insight, Study } from "@/lib/types";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { SkeletonCard } from "@/components/ui/Skeleton";
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import { Lightbulb, ChevronRight, Calendar, UserCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { api } from '@/lib/api';
+import type { Insight, Study } from '@/lib/types';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { SkeletonCard } from '@/components/ui/Skeleton';
 
 // -----------------------------------------------------------------------------
 // Animation variants
@@ -27,7 +22,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
 // -----------------------------------------------------------------------------
@@ -55,7 +50,7 @@ function InsightsPageSkeleton() {
 // -----------------------------------------------------------------------------
 
 export default function InsightsListPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuthContext();
   const [insights, setInsights] = useState<Insight[]>([]);
   const [studies, setStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,8 +62,8 @@ export default function InsightsListPage() {
     const fetchData = async () => {
       try {
         const [insightsData, studiesData] = await Promise.all([
-          api.get<Insight[]>("/api/insights").catch(() => null),
-          api.get<Study[]>("/api/studies").catch(() => null),
+          api.get<Insight[]>('/api/insights').catch(() => null),
+          api.get<Study[]>('/api/studies').catch(() => null),
         ]);
 
         if (controller.signal.aborted) return;
@@ -91,16 +86,19 @@ export default function InsightsListPage() {
     return map;
   }, [studies]);
 
-  const getStudyForInsight = useCallback((studyId: number) => {
-    return studyMap.get(studyId);
-  }, [studyMap]);
+  const getStudyForInsight = useCallback(
+    (studyId: number) => {
+      return studyMap.get(studyId);
+    },
+    [studyMap],
+  );
 
   const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("fr-FR", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
+    return date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
     });
   }, []);
 
@@ -117,9 +115,7 @@ export default function InsightsListPage() {
         <h1 className="font-heading text-2xl lg:text-3xl font-bold text-surface-900 tracking-tight">
           Insights
         </h1>
-        <p className="text-surface-500 mt-1 text-sm">
-          Analyses et recommandations de nos experts
-        </p>
+        <p className="text-surface-500 mt-1 text-sm">Analyses et recommandations de nos experts</p>
       </motion.div>
 
       {/* ── Insights Grid ── */}
@@ -175,7 +171,7 @@ export default function InsightsListPage() {
                     <div className="flex flex-wrap items-center gap-3 text-xs text-surface-400 pt-4 border-t border-surface-100">
                       <span className="flex items-center gap-1.5">
                         <Calendar className="h-3.5 w-3.5" />
-                        {formatDate(insight.created_at || "")}
+                        {formatDate(insight.created_at || '')}
                       </span>
                       {insight.author && (
                         <span className="flex items-center gap-1.5">
@@ -184,7 +180,9 @@ export default function InsightsListPage() {
                         </span>
                       )}
                       {study && (
-                        <Badge variant="default" size="sm">{study.category}</Badge>
+                        <Badge variant="default" size="sm">
+                          {study.category}
+                        </Badge>
                       )}
                     </div>
                   </div>

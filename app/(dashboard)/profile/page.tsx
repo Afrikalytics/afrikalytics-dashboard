@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   User as UserIcon,
   Mail,
@@ -13,16 +13,16 @@ import {
   AlertCircle,
   Loader2,
   ArrowUpRight,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { api, ApiRequestError } from "@/lib/api";
-import { PLAN_DETAILS, ROUTES } from "@/lib/constants";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { api, ApiRequestError } from '@/lib/api';
+import { PLAN_DETAILS, ROUTES } from '@/lib/constants';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
 
 // -----------------------------------------------------------------------------
 // Animation variants
@@ -35,7 +35,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
 // -----------------------------------------------------------------------------
@@ -44,45 +44,50 @@ const itemVariants = {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useAuthContext();
 
   // Password change state
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
+  const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPasswordError("");
+    setPasswordError('');
     setPasswordSuccess(false);
 
     if (newPassword.length < 8) {
-      setPasswordError("Le nouveau mot de passe doit contenir au moins 8 caractères");
+      setPasswordError('Le nouveau mot de passe doit contenir au moins 8 caractères');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError("Les mots de passe ne correspondent pas");
+      setPasswordError('Les mots de passe ne correspondent pas');
       return;
     }
 
     setPasswordLoading(true);
 
     try {
-      await api.put("/api/users/change-password", {
+      await api.put('/api/users/change-password', {
         current_password: currentPassword,
         new_password: newPassword,
       });
 
       setPasswordSuccess(true);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
     } catch (err: unknown) {
-      const message = err instanceof ApiRequestError ? err.detail : (err instanceof Error ? err.message : "Une erreur est survenue");
+      const message =
+        err instanceof ApiRequestError
+          ? err.detail
+          : err instanceof Error
+            ? err.message
+            : 'Une erreur est survenue';
       setPasswordError(message);
     } finally {
       setPasswordLoading(false);
@@ -91,18 +96,18 @@ export default function ProfilePage() {
 
   const getPlanDetails = (plan: string) => {
     const details = PLAN_DETAILS[plan];
-    if (plan === "professionnel" || plan === "entreprise") {
+    if (plan === 'professionnel' || plan === 'entreprise') {
       return {
         name: details?.name || plan,
-        price: details?.price || "",
-        color: details?.color || "bg-gray-100 text-gray-700",
+        price: details?.price || '',
+        color: details?.color || 'bg-gray-100 text-gray-700',
         icon: Crown,
       };
     }
     return {
-      name: details?.name || "Basic",
-      price: details?.price || "Gratuit",
-      color: details?.color || "bg-gray-100 text-gray-700",
+      name: details?.name || 'Basic',
+      price: details?.price || 'Gratuit',
+      color: details?.color || 'bg-gray-100 text-gray-700',
       icon: UserIcon,
     };
   };
@@ -122,12 +127,12 @@ export default function ProfilePage() {
   if (!user) return null;
 
   const planDetails = getPlanDetails(user.plan);
-  const isPremium = user.plan === "professionnel" || user.plan === "entreprise";
+  const isPremium = user.plan === 'professionnel' || user.plan === 'entreprise';
 
   return (
     <div className="page-container max-w-2xl mx-auto space-y-6">
       {/* ── Breadcrumb ── */}
-      <Breadcrumb items={[{ label: "Profil" }]} />
+      <Breadcrumb items={[{ label: 'Profil' }]} />
 
       <motion.div
         variants={containerVariants}
@@ -140,7 +145,10 @@ export default function ProfilePage() {
           <Card padding="none" className="overflow-hidden">
             <div className="bg-surface-900 px-6 py-8">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center" aria-hidden="true">
+                <div
+                  className="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center"
+                  aria-hidden="true"
+                >
                   <UserIcon className="h-7 w-7 text-white" />
                 </div>
                 <div>
@@ -159,10 +167,7 @@ export default function ProfilePage() {
                   <planDetails.icon className="h-4 w-4 text-surface-400" aria-hidden="true" />
                   <span className="text-sm text-surface-500">Plan</span>
                 </div>
-                <Badge
-                  variant={isPremium ? "primary" : "default"}
-                  size="md"
-                >
+                <Badge variant={isPremium ? 'primary' : 'default'} size="md">
                   {planDetails.name}
                 </Badge>
               </div>
@@ -194,10 +199,10 @@ export default function ProfilePage() {
                   <span className="text-sm text-surface-500">Membre depuis</span>
                 </div>
                 <span className="text-sm text-surface-900">
-                  {new Date(user.created_at).toLocaleDateString("fr-FR", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
+                  {new Date(user.created_at).toLocaleDateString('fr-FR', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
                   })}
                 </span>
               </div>

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   BarChart3,
   Clock,
@@ -11,18 +11,18 @@ import {
   Download,
   Lock,
   FileText,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { api } from "@/lib/api";
-import type { Study, Insight, Report } from "@/lib/types";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { SkeletonCard } from "@/components/ui/Skeleton";
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { api } from '@/lib/api';
+import type { Study, Insight, Report } from '@/lib/types';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { SkeletonCard } from '@/components/ui/Skeleton';
 
 // -----------------------------------------------------------------------------
 // Animation variants
@@ -35,7 +35,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
 // -----------------------------------------------------------------------------
@@ -69,13 +69,13 @@ function EtudesPageSkeleton() {
 // -----------------------------------------------------------------------------
 
 export default function EtudesListPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuthContext();
   const [studies, setStudies] = useState<Study[]>([]);
   const [insights, setInsights] = useState<Insight[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("Tous");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('Tous');
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -84,9 +84,9 @@ export default function EtudesListPage() {
     const fetchData = async () => {
       try {
         const [studiesData, insightsData, reportsData] = await Promise.all([
-          api.get<Study[]>("/api/studies").catch(() => null),
-          api.get<Insight[]>("/api/insights").catch(() => null),
-          api.get<Report[]>("/api/reports").catch(() => null),
+          api.get<Study[]>('/api/studies').catch(() => null),
+          api.get<Insight[]>('/api/insights').catch(() => null),
+          api.get<Report[]>('/api/reports').catch(() => null),
         ]);
 
         if (controller.signal.aborted) return;
@@ -114,32 +114,38 @@ export default function EtudesListPage() {
         (study) =>
           study.title.toLowerCase().includes(term) ||
           study.description.toLowerCase().includes(term) ||
-          study.category.toLowerCase().includes(term)
+          study.category.toLowerCase().includes(term),
       );
     }
 
-    if (filterStatus !== "Tous") {
+    if (filterStatus !== 'Tous') {
       filtered = filtered.filter((study) => study.status === filterStatus);
     }
 
     return filtered;
   }, [studies, searchTerm, filterStatus]);
 
-  const getInsightForStudy = useCallback((studyId: number) => {
-    return insights.find((i) => i.study_id === studyId && i.is_published);
-  }, [insights]);
+  const getInsightForStudy = useCallback(
+    (studyId: number) => {
+      return insights.find((i) => i.study_id === studyId && i.is_published);
+    },
+    [insights],
+  );
 
-  const getReportForStudy = useCallback((studyId: number) => {
-    return reports.find((r) => r.study_id === studyId && r.is_available);
-  }, [reports]);
+  const getReportForStudy = useCallback(
+    (studyId: number) => {
+      return reports.find((r) => r.study_id === studyId && r.is_available);
+    },
+    [reports],
+  );
 
   const handleDownloadReport = useCallback(async (report: Report) => {
     try {
       await api.post(`/api/reports/${report.id}/download`);
-      window.open(report.file_url, "_blank");
+      window.open(report.file_url, '_blank');
     } catch (error) {
       // Erreur tracking silencieuse — le téléchargement continue
-      window.open(report.file_url, "_blank");
+      window.open(report.file_url, '_blank');
     }
   }, []);
 
@@ -189,15 +195,16 @@ export default function EtudesListPage() {
               value={filterStatus}
               onChange={handleFilterChange}
               options={[
-                { value: "Tous", label: "Tous les statuts" },
-                { value: "Ouvert", label: "Ouvert" },
-                { value: "Fermé", label: "Fermé" },
-                { value: "Bientôt", label: "Bientôt" },
+                { value: 'Tous', label: 'Tous les statuts' },
+                { value: 'Ouvert', label: 'Ouvert' },
+                { value: 'Fermé', label: 'Fermé' },
+                { value: 'Bientôt', label: 'Bientôt' },
               ]}
             />
           </div>
           <p className="mt-3 text-xs text-surface-400 tracking-wide uppercase">
-            {filteredStudies.length} étude{filteredStudies.length !== 1 ? "s" : ""} trouvée{filteredStudies.length !== 1 ? "s" : ""}
+            {filteredStudies.length} étude{filteredStudies.length !== 1 ? 's' : ''} trouvée
+            {filteredStudies.length !== 1 ? 's' : ''}
           </p>
         </Card>
       </motion.div>
@@ -235,11 +242,11 @@ export default function EtudesListPage() {
                       </h3>
                       <Badge
                         variant={
-                          study.status === "Ouvert"
-                            ? "success"
-                            : study.status === "Fermé"
-                            ? "danger"
-                            : "warning"
+                          study.status === 'Ouvert'
+                            ? 'success'
+                            : study.status === 'Fermé'
+                              ? 'danger'
+                              : 'warning'
                         }
                         size="sm"
                         dot
@@ -266,7 +273,9 @@ export default function EtudesListPage() {
                       )}
                     </div>
 
-                    <Badge variant="primary" size="sm">{study.category}</Badge>
+                    <Badge variant="primary" size="sm">
+                      {study.category}
+                    </Badge>
                   </div>
 
                   {/* Actions */}
@@ -277,7 +286,9 @@ export default function EtudesListPage() {
                     >
                       <span className="flex items-center gap-2 text-sm font-medium text-surface-700 group-hover:text-primary-600 transition-colors">
                         <BarChart3 className="h-4 w-4" />
-                        {study.status === "Ouvert" ? "Voir les résultats en temps réel" : "Voir les résultats finaux"}
+                        {study.status === 'Ouvert'
+                          ? 'Voir les résultats en temps réel'
+                          : 'Voir les résultats finaux'}
                       </span>
                       <ChevronRight className="h-4 w-4 text-surface-300 group-hover:text-primary-500 transition-colors" />
                     </a>
