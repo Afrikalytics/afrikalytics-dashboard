@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { BarChart3, Mail, Lock, User, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
-import { API_URL } from "@/lib/constants";
-import { saveSession } from "@/lib/api";
+import { ApiRequestError } from "@/lib/api";
+import { registerAndSave } from "@/lib/auth-service";
+import { registerSchema } from "@/lib/validations";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
@@ -53,49 +54,19 @@ export default function RegisterForm() {
     e.preventDefault();
     setError("");
 
-    // Validation
-    if (formData.password !== formData.confirmPassword) {
-      setError("Les mots de passe ne correspondent pas");
-      // Focus the confirm password field on mismatch
-      const confirmField = formRef.current?.querySelector<HTMLInputElement>('input[name="confirmPassword"]');
-      confirmField?.focus();
-      return;
-    }
-
-    if (formData.password.length < 8) {
-      setError("Le mot de passe doit contenir au moins 8 caractères");
-      // Focus the password field
-      const passwordField = formRef.current?.querySelector<HTMLInputElement>('input[name="password"]');
-      passwordField?.focus();
+    const parsed = registerSchema.safeParse(formData);
+    if (!parsed.success) {
+      setError(parsed.error.issues[0].message);
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Erreur lors de l'inscription");
-      }
-
-      await saveSession(data.access_token, data.user);
+      await registerAndSave(parsed.data.name, parsed.data.email, parsed.data.password);
       router.push("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur lors de l'inscription");
+      setError(err instanceof ApiRequestError ? err.detail : "Erreur lors de l'inscription");
     } finally {
       setLoading(false);
     }

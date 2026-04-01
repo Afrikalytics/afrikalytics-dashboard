@@ -5,8 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, RefreshCw, BarChart3, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { API_URL } from "@/lib/constants";
-import { saveSession } from "@/lib/api";
+import { ApiRequestError } from "@/lib/api";
+import { verifyCodeAndSave, resendCode } from "@/lib/auth-service";
 import { Button } from "@/components/ui/Button";
 import { Alert } from "@/components/ui/Alert";
 
@@ -103,28 +103,11 @@ function VerifyCodeFormInner() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/verify-code`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        body: JSON.stringify({
-          email: email,
-          code: finalCode,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Code invalide");
-      }
-
-      await saveSession(data.access_token, data.user);
+      await verifyCodeAndSave(email, finalCode);
+      sessionStorage.removeItem("verify_email");
       router.push("/dashboard");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+      setError(err instanceof ApiRequestError ? err.detail : "Code invalide");
       setCode(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } finally {
@@ -139,19 +122,7 @@ function VerifyCodeFormInner() {
     setError("");
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/resend-code`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erreur lors de l'envoi");
-      }
-
+      await resendCode(email);
       setCountdown(60);
     } catch {
       setError("Erreur lors de l'envoi du code");

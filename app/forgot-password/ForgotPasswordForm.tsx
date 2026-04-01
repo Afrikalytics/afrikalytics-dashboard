@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Mail, ArrowLeft, CheckCircle, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { API_URL } from "@/lib/constants";
+import { ApiRequestError } from "@/lib/api";
+import { forgotPassword } from "@/lib/auth-service";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
@@ -34,23 +35,10 @@ export default function ForgotPasswordForm() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.detail || "Une erreur est survenue");
-      }
-
+      await forgotPassword(email);
       setSubmitted(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+      setError(err instanceof ApiRequestError ? err.detail : "Une erreur est survenue");
     } finally {
       setLoading(false);
     }

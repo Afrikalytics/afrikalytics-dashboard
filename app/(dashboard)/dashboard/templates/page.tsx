@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
+import { useRouter } from 'next/navigation';
 import {
   ShoppingCart,
   Landmark,
@@ -15,10 +15,10 @@ import {
   LayoutDashboard,
   ArrowRight,
   LayoutTemplate,
-} from "lucide-react";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { TEMPLATE_INFOS } from "@/lib/templates";
-import type { LucideIcon } from "lucide-react";
+} from 'lucide-react';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { TEMPLATE_INFOS } from '@/lib/templates';
+import type { LucideIcon } from 'lucide-react';
 
 // =============================================================================
 // Icon mapping
@@ -43,7 +43,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
 // =============================================================================
 
 export default function DashboardTemplatesPage() {
-  const { isLoading } = useAuth();
+  const { isLoading } = useAuthContext();
   const router = useRouter();
 
   if (isLoading) {
@@ -62,9 +62,7 @@ export default function DashboardTemplatesPage() {
           <LayoutTemplate className="w-6 h-6" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">
-            Templates sectoriels
-          </h1>
+          <h1 className="text-xl font-bold text-gray-900">Templates sectoriels</h1>
           <p className="text-sm text-gray-500">
             Choisissez un template adapte a votre secteur pour demarrer rapidement
           </p>
@@ -91,9 +89,7 @@ export default function DashboardTemplatesPage() {
                     <h2 className="text-lg font-semibold text-gray-900 group-hover:text-primary-700 transition-colors">
                       {info.name}
                     </h2>
-                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                      {info.description}
-                    </p>
+                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">{info.description}</p>
                   </div>
                 </div>
 
@@ -104,9 +100,7 @@ export default function DashboardTemplatesPage() {
                   </span>
                   <button
                     type="button"
-                    onClick={() =>
-                      router.push(`/dashboard/builder?template=${info.id}`)
-                    }
+                    onClick={() => router.push(`/dashboard/builder?template=${info.id}`)}
                     className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors shadow-sm"
                   >
                     Utiliser ce template

@@ -11,14 +11,14 @@
 
 /** Admin role codes used for RBAC */
 export type AdminRole =
-  | "super_admin"
-  | "admin_content"
-  | "admin_studies"
-  | "admin_insights"
-  | "admin_reports";
+  | 'super_admin'
+  | 'admin_content'
+  | 'admin_studies'
+  | 'admin_insights'
+  | 'admin_reports';
 
 /** User plan tiers */
-export type UserPlan = "basic" | "professionnel" | "entreprise";
+export type UserPlan = 'basic' | 'professionnel' | 'entreprise';
 
 /** Core user object returned by the API */
 export interface User {
@@ -228,7 +228,7 @@ export interface PaymentHistoryItem {
   id: number;
   amount: number;
   currency: string;
-  status: "completed" | "pending" | "failed" | "refunded";
+  status: 'completed' | 'pending' | 'failed' | 'refunded';
   plan: string;
   payment_method: string;
   created_at: string;
@@ -270,9 +270,21 @@ export interface PlanInfo {
 
 /** Chart/widget types available in the Dashboard Builder */
 export type ChartType =
-  | 'bar' | 'line' | 'area' | 'pie' | 'donut'
-  | 'scatter' | 'radar' | 'funnel'
-  | 'stat-card' | 'table' | 'kpi';
+  | 'bar'
+  | 'line'
+  | 'area'
+  | 'pie'
+  | 'donut'
+  | 'scatter'
+  | 'radar'
+  | 'funnel'
+  | 'gauge'
+  | 'heatmap'
+  | 'treemap'
+  | 'map'
+  | 'stat-card'
+  | 'table'
+  | 'kpi';
 
 /** Configuration options for a dashboard widget's visual rendering */
 export interface WidgetConfig {

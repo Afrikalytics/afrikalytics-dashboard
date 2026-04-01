@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import {
   BarChart3,
   Clock,
@@ -14,27 +14,28 @@ import {
   ArrowRight,
   CheckCircle,
   Loader2,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { api } from "@/lib/api";
-import type { Insight } from "@/lib/types";
-import { ROUTES } from "@/lib/constants";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import { EmptyState } from "@/components/ui/EmptyState";
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { api } from '@/lib/api';
+import type { Insight } from '@/lib/types';
+import { ROUTES } from '@/lib/constants';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ExportButton } from '@/components/ExportButton';
 
 // -----------------------------------------------------------------------------
 // Constants
 // -----------------------------------------------------------------------------
 
 const ALLOWED_EMBED_ORIGINS = [
-  "https://lookerstudio.google.com",
-  "https://app.powerbi.com",
-  "https://public.tableau.com",
-  "https://datastudio.google.com",
+  'https://lookerstudio.google.com',
+  'https://app.powerbi.com',
+  'https://public.tableau.com',
+  'https://datastudio.google.com',
 ];
 
 function isValidEmbedUrl(url: string): boolean {
@@ -69,7 +70,7 @@ interface StudyDetail {
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
 // -----------------------------------------------------------------------------
@@ -78,7 +79,7 @@ const fadeInUp = {
 
 export default function StudyResultsPage() {
   const params = useParams();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [study, setStudy] = useState<StudyDetail | null>(null);
   const [insight, setInsight] = useState<Insight | null>(null);
   const [loading, setLoading] = useState(true);
@@ -108,7 +109,7 @@ export default function StudyResultsPage() {
     });
   }, [params.id]);
 
-  const isPremium = user?.plan === "professionnel" || user?.plan === "entreprise";
+  const isPremium = user?.plan === 'professionnel' || user?.plan === 'entreprise';
 
   const getReportUrl = () => {
     if (!study) return null;
@@ -120,9 +121,9 @@ export default function StudyResultsPage() {
 
   const getReportType = () => {
     if (isPremium && study?.report_url_premium) {
-      return "premium";
+      return 'premium';
     }
-    return "basic";
+    return 'basic';
   };
 
   const handleDownloadReport = async () => {
@@ -138,7 +139,7 @@ export default function StudyResultsPage() {
       // Erreur tracking silencieuse — le téléchargement continue
     }
 
-    window.open(reportUrl, "_blank");
+    window.open(reportUrl, '_blank');
     setDownloading(false);
   };
 
@@ -172,12 +173,7 @@ export default function StudyResultsPage() {
   return (
     <div className="page-container space-y-6">
       {/* ── Breadcrumb ── */}
-      <Breadcrumb
-        items={[
-          { label: "Études", href: ROUTES.ETUDES },
-          { label: study.title },
-        ]}
-      />
+      <Breadcrumb items={[{ label: 'Études', href: ROUTES.ETUDES }, { label: study.title }]} />
 
       {/* ── Header ── */}
       <motion.div
@@ -190,16 +186,10 @@ export default function StudyResultsPage() {
           <h1 className="font-heading text-2xl lg:text-3xl font-bold text-surface-900 tracking-tight">
             {study.title}
           </h1>
-          <p className="text-surface-500 mt-2 leading-relaxed max-w-2xl">
-            {study.description}
-          </p>
+          <p className="text-surface-500 mt-2 leading-relaxed max-w-2xl">{study.description}</p>
 
           <div className="flex flex-wrap items-center gap-3 mt-4">
-            <Badge
-              variant={study.status === "Ouvert" ? "success" : "danger"}
-              size="md"
-              dot
-            >
+            <Badge variant={study.status === 'Ouvert' ? 'success' : 'danger'} size="md" dot>
               {study.status}
             </Badge>
             <span className="flex items-center gap-1.5 text-sm text-surface-400">
@@ -215,12 +205,12 @@ export default function StudyResultsPage() {
           </div>
         </div>
 
-        <Badge
-          variant={isPremium ? "primary" : "default"}
-          size="md"
-        >
-          {isPremium ? "Premium" : "Basic"}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <ExportButton resourceType="studies" resourceId={Number(params.id)} />
+          <Badge variant={isPremium ? 'primary' : 'default'} size="md">
+            {isPremium ? 'Premium' : 'Basic'}
+          </Badge>
+        </div>
       </motion.div>
 
       {/* ── Action Cards ── */}
@@ -233,11 +223,11 @@ export default function StudyResultsPage() {
         {/* Insight */}
         <motion.div variants={fadeInUp}>
           {insight ? (
-            <Link
-              href={`/dashboard/insights/${insight.id}`}
-              className="group block"
-            >
-              <Card variant="bordered" className="hover:border-surface-300 hover:shadow-soft transition-all duration-200">
+            <Link href={`/dashboard/insights/${insight.id}`} className="group block">
+              <Card
+                variant="bordered"
+                className="hover:border-surface-300 hover:shadow-soft transition-all duration-200"
+              >
                 <div className="flex items-center gap-4">
                   <div className="p-3 rounded-lg bg-accent-50 shrink-0" aria-hidden="true">
                     <Lightbulb className="h-5 w-5 text-accent-600" />
@@ -270,18 +260,27 @@ export default function StudyResultsPage() {
         {/* Report */}
         <motion.div variants={fadeInUp}>
           {getReportUrl() ? (
-            <button onClick={handleDownloadReport} disabled={downloading} className="w-full text-left">
-              <Card variant="bordered" className="hover:border-surface-300 hover:shadow-soft transition-all duration-200">
+            <button
+              onClick={handleDownloadReport}
+              disabled={downloading}
+              className="w-full text-left"
+            >
+              <Card
+                variant="bordered"
+                className="hover:border-surface-300 hover:shadow-soft transition-all duration-200"
+              >
                 <div className="flex items-center gap-4">
                   <div className="p-3 rounded-lg bg-success-50 shrink-0" aria-hidden="true">
                     <Download className="h-5 w-5 text-success-600" />
                   </div>
                   <div className="flex-1">
                     <p className="font-semibold text-surface-900">
-                      {downloading ? "Ouverture..." : `Télécharger le rapport ${isPremium ? "complet" : ""}`}
+                      {downloading
+                        ? 'Ouverture...'
+                        : `Télécharger le rapport ${isPremium ? 'complet' : ''}`}
                     </p>
                     <p className="text-sm text-surface-500">
-                      {isPremium ? "Version Premium" : "Version Basic"}
+                      {isPremium ? 'Version Premium' : 'Version Basic'}
                     </p>
                   </div>
                   <Download className="h-4 w-4 text-surface-300" />
@@ -359,7 +358,8 @@ export default function StudyResultsPage() {
               </h3>
 
               <p className="text-surface-500 max-w-md mx-auto mb-8 leading-relaxed">
-                Les résultats en temps réel sont disponibles pour les abonnés Professionnel et Entreprise.
+                Les résultats en temps réel sont disponibles pour les abonnés Professionnel et
+                Entreprise.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -381,10 +381,10 @@ export default function StudyResultsPage() {
                 </p>
                 <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-surface-600">
                   {[
-                    "Résultats en temps réel",
-                    "Insights complets",
-                    "Rapports détaillés",
-                    "Dashboard avancé",
+                    'Résultats en temps réel',
+                    'Insights complets',
+                    'Rapports détaillés',
+                    'Dashboard avancé',
                   ].map((item) => (
                     <span key={item} className="flex items-center gap-1.5">
                       <CheckCircle className="h-4 w-4 text-success-500" />

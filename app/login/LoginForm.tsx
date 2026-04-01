@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowRight, BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { API_URL } from "@/lib/constants";
-import { saveSession } from "@/lib/api";
+import { ApiRequestError } from "@/lib/api";
+import { loginAndSave } from "@/lib/auth-service";
+import { loginSchema } from "@/lib/validations";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
@@ -42,35 +43,28 @@ export default function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    const parsed = loginSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0].message);
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        body: JSON.stringify({ email, password }),
-      });
+      const result = await loginAndSave(parsed.data.email, parsed.data.password);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Erreur de connexion");
-      }
-
-      if (data.requires_verification) {
-        router.push(`/verify-code?email=${encodeURIComponent(email)}`);
+      if (result.requiresVerification) {
+        sessionStorage.setItem("verify_email", result.email);
+        router.push("/verify-code");
         return;
       }
 
-      await saveSession(data.access_token, data.user);
       router.push("/dashboard");
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : "Une erreur est survenue";
+      const errorMsg = err instanceof ApiRequestError ? err.detail : "Une erreur est survenue";
       setError(errorMsg);
-      // Focus first form field on error
       requestAnimationFrame(() => {
         const firstInput = formRef.current?.querySelector<HTMLInputElement>('input');
         firstInput?.focus();

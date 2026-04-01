@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   BarChart3,
@@ -8,8 +8,16 @@ import {
   Hash,
   Activity,
   Target,
-} from "lucide-react";
-import type { ChartType } from "@/lib/types";
+  Circle,
+  Crosshair,
+  Radio,
+  Filter,
+  Gauge,
+  Grid3x3,
+  TreePine,
+  Map,
+} from 'lucide-react';
+import type { ChartType } from '@/lib/types';
 
 const WIDGET_TYPES: {
   type: ChartType;
@@ -17,13 +25,21 @@ const WIDGET_TYPES: {
   icon: React.ComponentType<{ className?: string }>;
   description: string;
 }[] = [
-  { type: "bar", label: "Barres", icon: BarChart3, description: "Comparaison de valeurs" },
-  { type: "line", label: "Lignes", icon: LineChart, description: "Tendances temporelles" },
-  { type: "area", label: "Aires", icon: Activity, description: "Volume dans le temps" },
-  { type: "pie", label: "Camembert", icon: PieChart, description: "Répartition en parts" },
-  { type: "stat-card", label: "Statistique", icon: Hash, description: "Chiffre clé" },
-  { type: "kpi", label: "KPI", icon: Target, description: "Indicateur vs objectif" },
-  { type: "table", label: "Tableau", icon: Table, description: "Données tabulaires" },
+  { type: 'bar', label: 'Barres', icon: BarChart3, description: 'Comparaison de valeurs' },
+  { type: 'line', label: 'Lignes', icon: LineChart, description: 'Tendances temporelles' },
+  { type: 'area', label: 'Aires', icon: Activity, description: 'Volume dans le temps' },
+  { type: 'pie', label: 'Camembert', icon: PieChart, description: 'Répartition en parts' },
+  { type: 'stat-card', label: 'Statistique', icon: Hash, description: 'Chiffre clé' },
+  { type: 'kpi', label: 'KPI', icon: Target, description: 'Indicateur vs objectif' },
+  { type: 'table', label: 'Tableau', icon: Table, description: 'Données tabulaires' },
+  { type: 'donut', label: 'Donut', icon: Circle, description: 'Répartition en anneau' },
+  { type: 'scatter', label: 'Nuage', icon: Crosshair, description: 'Corrélation entre variables' },
+  { type: 'radar', label: 'Radar', icon: Radio, description: 'Comparaison multicritères' },
+  { type: 'funnel', label: 'Entonnoir', icon: Filter, description: 'Conversion par étapes' },
+  { type: 'gauge', label: 'Jauge', icon: Gauge, description: 'Indicateur avec seuil' },
+  { type: 'heatmap', label: 'Heatmap', icon: Grid3x3, description: 'Densité croisée' },
+  { type: 'treemap', label: 'Treemap', icon: TreePine, description: 'Hiérarchie proportionnelle' },
+  { type: 'map', label: 'Carte', icon: Map, description: 'Données géographiques' },
 ];
 
 interface WidgetPaletteProps {
@@ -33,9 +49,7 @@ interface WidgetPaletteProps {
 export default function WidgetPalette({ onSelect }: WidgetPaletteProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm border p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">
-        Ajouter un widget
-      </h3>
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">Ajouter un widget</h3>
       <div className="grid grid-cols-2 gap-2">
         {WIDGET_TYPES.map(({ type, label, icon: Icon, description }) => (
           <button

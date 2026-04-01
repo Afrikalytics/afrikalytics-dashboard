@@ -5,7 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { Lock, ArrowLeft, CheckCircle, AlertCircle, BarChart3, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { API_URL } from "@/lib/constants";
+import { ApiRequestError } from "@/lib/api";
+import { resetPassword } from "@/lib/auth-service";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Alert } from "@/components/ui/Alert";
@@ -81,27 +82,10 @@ function ResetPasswordFormInner() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/reset-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Requested-With": "XMLHttpRequest",
-        },
-        body: JSON.stringify({
-          token: token,
-          new_password: newPassword,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Une erreur est survenue");
-      }
-
+      await resetPassword(token, newPassword);
       setSuccess(true);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Une erreur est survenue");
+      setError(err instanceof ApiRequestError ? err.detail : "Une erreur est survenue");
     } finally {
       setLoading(false);
     }

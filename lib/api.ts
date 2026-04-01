@@ -28,12 +28,16 @@ export class ApiRequestError extends Error {
 // Session helpers (httpOnly cookie management via /api/auth/session)
 // -----------------------------------------------------------------------------
 
-/** Save auth session (token + user) in httpOnly cookies */
-export async function saveSession(token: string, user: User): Promise<void> {
+/** Save auth session (token + user + optional refresh token) in httpOnly cookies */
+export async function saveSession(
+  token: string,
+  user: User,
+  refreshToken?: string,
+): Promise<void> {
   await fetch("/api/auth/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, user }),
+    body: JSON.stringify({ token, user, refreshToken }),
   });
 }
 

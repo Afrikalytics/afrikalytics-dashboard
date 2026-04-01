@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import Link from "next/link";
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import {
   Lightbulb,
   User as UserIcon,
@@ -14,16 +14,17 @@ import {
   BarChart3,
   ArrowRight,
   Loader2,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { api } from "@/lib/api";
-import { ROUTES } from "@/lib/constants";
-import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import { EmptyState } from "@/components/ui/EmptyState";
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { api } from '@/lib/api';
+import { ROUTES } from '@/lib/constants';
+import { Card } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Breadcrumb } from '@/components/ui/Breadcrumb';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ExportButton } from '@/components/ExportButton';
 
 // -----------------------------------------------------------------------------
 // Types
@@ -58,7 +59,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' as const } },
 };
 
 // -----------------------------------------------------------------------------
@@ -67,7 +68,7 @@ const itemVariants = {
 
 export default function InsightDetailPage() {
   const params = useParams();
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const [insight, setInsight] = useState<InsightDetail | null>(null);
   const [study, setStudy] = useState<StudyDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -92,12 +93,12 @@ export default function InsightDetailPage() {
     fetchInsight();
   }, [params.id]);
 
-  const isPremium = user?.plan === "professionnel" || user?.plan === "entreprise";
+  const isPremium = user?.plan === 'professionnel' || user?.plan === 'entreprise';
 
   const truncateText = (text: string, maxLength: number = 150) => {
-    if (!text) return "";
+    if (!text) return '';
     if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + "...";
+    return text.substring(0, maxLength) + '...';
   };
 
   const getReportUrl = () => {
@@ -139,10 +140,7 @@ export default function InsightDetailPage() {
     <div className="page-container max-w-4xl mx-auto space-y-6">
       {/* ── Breadcrumb ── */}
       <Breadcrumb
-        items={[
-          { label: "Insights", href: ROUTES.INSIGHTS },
-          { label: insight.title },
-        ]}
+        items={[{ label: 'Insights', href: ROUTES.INSIGHTS }, { label: insight.title }]}
       />
 
       {/* ── Header ── */}
@@ -165,21 +163,21 @@ export default function InsightDetailPage() {
             )}
             <span className="flex items-center gap-1.5">
               <Calendar className="h-4 w-4" />
-              {new Date(insight.created_at).toLocaleDateString("fr-FR", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
+              {new Date(insight.created_at).toLocaleDateString('fr-FR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
               })}
             </span>
           </div>
         </div>
 
-        <Badge
-          variant={isPremium ? "primary" : "default"}
-          size="md"
-        >
-          {isPremium ? "Premium" : "Basic"}
-        </Badge>
+        <div className="flex items-center gap-3">
+          <ExportButton resourceType="insights" resourceId={Number(params.id)} />
+          <Badge variant={isPremium ? 'primary' : 'default'} size="md">
+            {isPremium ? 'Premium' : 'Basic'}
+          </Badge>
+        </div>
       </motion.div>
 
       {/* ── Quick Actions ── */}
@@ -191,11 +189,11 @@ export default function InsightDetailPage() {
       >
         {study && (
           <motion.div variants={itemVariants}>
-            <Link
-              href={`/dashboard/etudes/${study.id}`}
-              className="group block"
-            >
-              <Card variant="bordered" className="hover:border-surface-300 hover:shadow-soft transition-all duration-200">
+            <Link href={`/dashboard/etudes/${study.id}`} className="group block">
+              <Card
+                variant="bordered"
+                className="hover:border-surface-300 hover:shadow-soft transition-all duration-200"
+              >
                 <div className="flex items-center gap-4">
                   <div className="p-3 rounded-lg bg-primary-50 shrink-0" aria-hidden="true">
                     <BarChart3 className="h-5 w-5 text-primary-600" />
@@ -221,7 +219,10 @@ export default function InsightDetailPage() {
               rel="noopener noreferrer"
               className="group block"
             >
-              <Card variant="bordered" className="hover:border-surface-300 hover:shadow-soft transition-all duration-200">
+              <Card
+                variant="bordered"
+                className="hover:border-surface-300 hover:shadow-soft transition-all duration-200"
+              >
                 <div className="flex items-center gap-4">
                   <div className="p-3 rounded-lg bg-success-50 shrink-0" aria-hidden="true">
                     <Download className="h-5 w-5 text-success-600" />
@@ -231,7 +232,7 @@ export default function InsightDetailPage() {
                       Télécharger le rapport
                     </p>
                     <p className="text-sm text-surface-500">
-                      {isPremium ? "Version complète" : "Version Basic"}
+                      {isPremium ? 'Version complète' : 'Version Basic'}
                     </p>
                   </div>
                   <Download className="h-4 w-4 text-surface-300" />
@@ -273,7 +274,7 @@ export default function InsightDetailPage() {
               </h2>
             </div>
             <p className="text-surface-700 leading-relaxed">
-              {isPremium ? insight.summary : truncateText(insight.summary || "", 200)}
+              {isPremium ? insight.summary : truncateText(insight.summary || '', 200)}
             </p>
 
             {!isPremium && insight.summary && insight.summary.length > 200 && (
@@ -299,16 +300,19 @@ export default function InsightDetailPage() {
 
             {isPremium ? (
               <div className="text-surface-700 leading-relaxed whitespace-pre-line">
-                {insight.key_findings || "Aucune découverte clé disponible."}
+                {insight.key_findings || 'Aucune découverte clé disponible.'}
               </div>
             ) : (
               <div>
                 <p className="text-surface-700 leading-relaxed">
-                  {truncateText(insight.key_findings || "", 150)}
+                  {truncateText(insight.key_findings || '', 150)}
                 </p>
 
                 <div className="mt-6 p-6 bg-surface-50 rounded-xl border border-surface-200 text-center">
-                  <div className="p-3 rounded-lg bg-surface-100 w-fit mx-auto mb-3" aria-hidden="true">
+                  <div
+                    className="p-3 rounded-lg bg-surface-100 w-fit mx-auto mb-3"
+                    aria-hidden="true"
+                  >
                     <Lock className="h-6 w-6 text-surface-500" />
                   </div>
                   <p className="font-semibold text-surface-900 mb-2">
@@ -342,16 +346,19 @@ export default function InsightDetailPage() {
 
             {isPremium ? (
               <div className="text-surface-700 leading-relaxed whitespace-pre-line">
-                {insight.recommendations || "Aucune recommandation disponible."}
+                {insight.recommendations || 'Aucune recommandation disponible.'}
               </div>
             ) : (
               <div>
                 <p className="text-surface-700 leading-relaxed">
-                  {truncateText(insight.recommendations || "", 100)}
+                  {truncateText(insight.recommendations || '', 100)}
                 </p>
 
                 <div className="mt-6 p-6 bg-surface-50 rounded-xl border border-surface-200 text-center">
-                  <div className="p-3 rounded-lg bg-surface-100 w-fit mx-auto mb-3" aria-hidden="true">
+                  <div
+                    className="p-3 rounded-lg bg-surface-100 w-fit mx-auto mb-3"
+                    aria-hidden="true"
+                  >
                     <Lock className="h-6 w-6 text-surface-500" />
                   </div>
                   <p className="font-semibold text-surface-900 mb-2">
@@ -374,15 +381,13 @@ export default function InsightDetailPage() {
         {/* CTA Final pour Basic */}
         {!isPremium && (
           <motion.div variants={itemVariants}>
-            <Card
-              padding="lg"
-              className="bg-surface-900 text-white border-none text-center"
-            >
+            <Card padding="lg" className="bg-surface-900 text-white border-none text-center">
               <h3 className="font-heading text-xl lg:text-2xl font-bold mb-3 tracking-tight">
                 Débloquez l&apos;accès complet
               </h3>
               <p className="text-surface-400 mb-6 max-w-md mx-auto">
-                Passez à Premium pour accéder à tous les insights, résultats en temps réel et rapports détaillés.
+                Passez à Premium pour accéder à tous les insights, résultats en temps réel et
+                rapports détaillés.
               </p>
               <Link href="/premium">
                 <Button

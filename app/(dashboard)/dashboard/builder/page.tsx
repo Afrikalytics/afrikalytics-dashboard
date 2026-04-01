@@ -1,87 +1,165 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
-import { Download, Eye, EyeOff, Save, LayoutDashboard, LayoutTemplate } from "lucide-react";
-import { useAuth } from "@/lib/hooks/useAuth";
-import type { ChartType, DashboardLayout, DashboardWidget } from "@/lib/types";
-import { DashboardGrid, WidgetPalette } from "@/components/dashboard-builder";
-import { getTemplateById, getTemplateDemoData } from "@/lib/templates";
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { Download, Eye, EyeOff, Save, LayoutDashboard, LayoutTemplate } from 'lucide-react';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
+import type { ChartType, DashboardLayout, DashboardWidget } from '@/lib/types';
+import { DashboardGrid, WidgetPalette } from '@/components/dashboard-builder';
+import { getTemplateById, getTemplateDemoData } from '@/lib/templates';
 
 // =============================================================================
 // Demo data — used to populate widgets with sample content
 // =============================================================================
 
 const DEMO_BAR_DATA = [
-  { name: "Jan", ventes: 4200, objectif: 5000 },
-  { name: "Fév", ventes: 5800, objectif: 5000 },
-  { name: "Mar", ventes: 4900, objectif: 5500 },
-  { name: "Avr", ventes: 6100, objectif: 5500 },
-  { name: "Mai", ventes: 7200, objectif: 6000 },
-  { name: "Jun", ventes: 6800, objectif: 6000 },
+  { name: 'Jan', ventes: 4200, objectif: 5000 },
+  { name: 'Fév', ventes: 5800, objectif: 5000 },
+  { name: 'Mar', ventes: 4900, objectif: 5500 },
+  { name: 'Avr', ventes: 6100, objectif: 5500 },
+  { name: 'Mai', ventes: 7200, objectif: 6000 },
+  { name: 'Jun', ventes: 6800, objectif: 6000 },
 ];
 
 const DEMO_LINE_DATA = [
-  { name: "Sem 1", utilisateurs: 120, sessions: 340 },
-  { name: "Sem 2", utilisateurs: 180, sessions: 520 },
-  { name: "Sem 3", utilisateurs: 150, sessions: 460 },
-  { name: "Sem 4", utilisateurs: 220, sessions: 680 },
-  { name: "Sem 5", utilisateurs: 280, sessions: 820 },
-  { name: "Sem 6", utilisateurs: 310, sessions: 950 },
+  { name: 'Sem 1', utilisateurs: 120, sessions: 340 },
+  { name: 'Sem 2', utilisateurs: 180, sessions: 520 },
+  { name: 'Sem 3', utilisateurs: 150, sessions: 460 },
+  { name: 'Sem 4', utilisateurs: 220, sessions: 680 },
+  { name: 'Sem 5', utilisateurs: 280, sessions: 820 },
+  { name: 'Sem 6', utilisateurs: 310, sessions: 950 },
 ];
 
 const DEMO_AREA_DATA = [
-  { name: "Lun", trafic: 2400, conversions: 400 },
-  { name: "Mar", trafic: 1398, conversions: 300 },
-  { name: "Mer", trafic: 9800, conversions: 1200 },
-  { name: "Jeu", trafic: 3908, conversions: 600 },
-  { name: "Ven", trafic: 4800, conversions: 800 },
-  { name: "Sam", trafic: 3800, conversions: 500 },
-  { name: "Dim", trafic: 4300, conversions: 700 },
+  { name: 'Lun', trafic: 2400, conversions: 400 },
+  { name: 'Mar', trafic: 1398, conversions: 300 },
+  { name: 'Mer', trafic: 9800, conversions: 1200 },
+  { name: 'Jeu', trafic: 3908, conversions: 600 },
+  { name: 'Ven', trafic: 4800, conversions: 800 },
+  { name: 'Sam', trafic: 3800, conversions: 500 },
+  { name: 'Dim', trafic: 4300, conversions: 700 },
 ];
 
 const DEMO_PIE_DATA = [
-  { name: "Sénégal", value: 35 },
+  { name: 'Sénégal', value: 35 },
   { name: "Côte d'Ivoire", value: 25 },
-  { name: "Cameroun", value: 20 },
-  { name: "Mali", value: 12 },
-  { name: "Autres", value: 8 },
+  { name: 'Cameroun', value: 20 },
+  { name: 'Mali', value: 12 },
+  { name: 'Autres', value: 8 },
 ];
 
-const DEMO_STAT_DATA = [
-  { value: 12450, label: "Revenus mensuels", trend: 12.5 },
-];
+const DEMO_STAT_DATA = [{ value: 12450, label: 'Revenus mensuels', trend: 12.5 }];
 
-const DEMO_KPI_DATA = [
-  { value: 7800, target: 10000, label: "Objectif trimestriel" },
-];
+const DEMO_KPI_DATA = [{ value: 7800, target: 10000, label: 'Objectif trimestriel' }];
 
 const DEMO_TABLE_DATA = [
-  { Pays: "Sénégal", Secteur: "Tech", Études: 12, Revenus: 45000 },
-  { Pays: "Côte d'Ivoire", Secteur: "Finance", Études: 8, Revenus: 38000 },
-  { Pays: "Cameroun", Secteur: "Énergie", Études: 6, Revenus: 29000 },
-  { Pays: "Mali", Secteur: "Agriculture", Études: 4, Revenus: 18000 },
-  { Pays: "Burkina Faso", Secteur: "Santé", Études: 3, Revenus: 15000 },
+  { Pays: 'Sénégal', Secteur: 'Tech', Études: 12, Revenus: 45000 },
+  { Pays: "Côte d'Ivoire", Secteur: 'Finance', Études: 8, Revenus: 38000 },
+  { Pays: 'Cameroun', Secteur: 'Énergie', Études: 6, Revenus: 29000 },
+  { Pays: 'Mali', Secteur: 'Agriculture', Études: 4, Revenus: 18000 },
+  { Pays: 'Burkina Faso', Secteur: 'Santé', Études: 3, Revenus: 15000 },
+];
+
+const DEMO_SCATTER_DATA = [
+  { x: 10, y: 30, z: 200 },
+  { x: 30, y: 80, z: 260 },
+  { x: 45, y: 50, z: 400 },
+  { x: 60, y: 90, z: 280 },
+  { x: 70, y: 60, z: 500 },
+  { x: 85, y: 120, z: 320 },
+  { x: 95, y: 40, z: 150 },
+];
+
+const DEMO_RADAR_DATA = [
+  { name: 'Qualité', score: 85, moyenne: 65 },
+  { name: 'Prix', score: 70, moyenne: 75 },
+  { name: 'Livraison', score: 90, moyenne: 60 },
+  { name: 'Service', score: 65, moyenne: 70 },
+  { name: 'Innovation', score: 80, moyenne: 55 },
+  { name: 'Fiabilité', score: 75, moyenne: 68 },
+];
+
+const DEMO_FUNNEL_DATA = [
+  { name: 'Visiteurs', value: 12000 },
+  { name: 'Inscrits', value: 5400 },
+  { name: 'Essai gratuit', value: 2800 },
+  { name: 'Abonnés', value: 1200 },
+  { name: 'Premium', value: 450 },
+];
+
+const DEMO_GAUGE_DATA = [{ value: 7200, target: 10000, label: 'Revenu mensuel' }];
+
+const DEMO_HEATMAP_DATA = [
+  { jour: 'Lun', heure: 'Matin', valeur: 45 },
+  { jour: 'Lun', heure: 'Après-midi', valeur: 80 },
+  { jour: 'Lun', heure: 'Soir', valeur: 30 },
+  { jour: 'Mar', heure: 'Matin', valeur: 60 },
+  { jour: 'Mar', heure: 'Après-midi', valeur: 95 },
+  { jour: 'Mar', heure: 'Soir', valeur: 50 },
+  { jour: 'Mer', heure: 'Matin', valeur: 35 },
+  { jour: 'Mer', heure: 'Après-midi', valeur: 70 },
+  { jour: 'Mer', heure: 'Soir', valeur: 65 },
+  { jour: 'Jeu', heure: 'Matin', valeur: 55 },
+  { jour: 'Jeu', heure: 'Après-midi', valeur: 85 },
+  { jour: 'Jeu', heure: 'Soir', valeur: 40 },
+  { jour: 'Ven', heure: 'Matin', valeur: 75 },
+  { jour: 'Ven', heure: 'Après-midi', valeur: 90 },
+  { jour: 'Ven', heure: 'Soir', valeur: 25 },
+];
+
+const DEMO_TREEMAP_DATA = [
+  { name: 'Tech', value: 4500 },
+  { name: 'Finance', value: 3800 },
+  { name: 'Énergie', value: 2900 },
+  { name: 'Agriculture', value: 1800 },
+  { name: 'Santé', value: 1500 },
+  { name: 'Éducation', value: 1200 },
+  { name: 'Transport', value: 900 },
+];
+
+const DEMO_MAP_DATA = [
+  { name: 'Sénégal', value: 4500 },
+  { name: "Côte d'Ivoire", value: 3800 },
+  { name: 'Mali', value: 2200 },
+  { name: 'Burkina Faso', value: 1800 },
+  { name: 'Guinée', value: 1400 },
+  { name: 'Niger', value: 1100 },
+  { name: 'Bénin', value: 950 },
+  { name: 'Togo', value: 700 },
 ];
 
 /** Returns demo data matching the widget type */
 function getDemoDataForType(type: ChartType): Record<string, unknown>[] {
   switch (type) {
-    case "bar":
+    case 'bar':
       return DEMO_BAR_DATA;
-    case "line":
+    case 'line':
       return DEMO_LINE_DATA;
-    case "area":
+    case 'area':
       return DEMO_AREA_DATA;
-    case "pie":
-    case "donut":
+    case 'pie':
+    case 'donut':
       return DEMO_PIE_DATA;
-    case "stat-card":
+    case 'stat-card':
       return DEMO_STAT_DATA;
-    case "kpi":
+    case 'kpi':
       return DEMO_KPI_DATA;
-    case "table":
+    case 'table':
       return DEMO_TABLE_DATA;
+    case 'scatter':
+      return DEMO_SCATTER_DATA;
+    case 'radar':
+      return DEMO_RADAR_DATA;
+    case 'funnel':
+      return DEMO_FUNNEL_DATA;
+    case 'gauge':
+      return DEMO_GAUGE_DATA;
+    case 'heatmap':
+      return DEMO_HEATMAP_DATA;
+    case 'treemap':
+      return DEMO_TREEMAP_DATA;
+    case 'map':
+      return DEMO_MAP_DATA;
     default:
       return [];
   }
@@ -90,21 +168,50 @@ function getDemoDataForType(type: ChartType): Record<string, unknown>[] {
 /** Default config per widget type */
 function getDefaultConfig(type: ChartType) {
   switch (type) {
-    case "bar":
-      return { xAxisKey: "name", yAxisKeys: ["ventes", "objectif"], showLegend: true, showGrid: true };
-    case "line":
-      return { xAxisKey: "name", yAxisKeys: ["utilisateurs", "sessions"], showLegend: true, showGrid: true };
-    case "area":
-      return { xAxisKey: "name", yAxisKeys: ["trafic", "conversions"], showLegend: true, showGrid: true };
-    case "pie":
-    case "donut":
-      return { valueKey: "value", labelKey: "name", showLegend: true };
-    case "stat-card":
-      return { valueKey: "value", labelKey: "label", format: "currency" as const, unit: "FCFA" };
-    case "kpi":
-      return { valueKey: "value", format: "currency" as const, unit: "FCFA" };
-    case "table":
-      return { format: "number" as const };
+    case 'bar':
+      return {
+        xAxisKey: 'name',
+        yAxisKeys: ['ventes', 'objectif'],
+        showLegend: true,
+        showGrid: true,
+      };
+    case 'line':
+      return {
+        xAxisKey: 'name',
+        yAxisKeys: ['utilisateurs', 'sessions'],
+        showLegend: true,
+        showGrid: true,
+      };
+    case 'area':
+      return {
+        xAxisKey: 'name',
+        yAxisKeys: ['trafic', 'conversions'],
+        showLegend: true,
+        showGrid: true,
+      };
+    case 'pie':
+    case 'donut':
+      return { valueKey: 'value', labelKey: 'name', showLegend: true };
+    case 'stat-card':
+      return { valueKey: 'value', labelKey: 'label', format: 'currency' as const, unit: 'FCFA' };
+    case 'kpi':
+      return { valueKey: 'value', format: 'currency' as const, unit: 'FCFA' };
+    case 'table':
+      return { format: 'number' as const };
+    case 'scatter':
+      return { xAxisKey: 'x', yAxisKeys: ['y'], showGrid: true };
+    case 'radar':
+      return { labelKey: 'name', yAxisKeys: ['score', 'moyenne'], showLegend: true };
+    case 'funnel':
+      return { valueKey: 'value', labelKey: 'name' };
+    case 'gauge':
+      return { valueKey: 'value', format: 'currency' as const, unit: 'FCFA' };
+    case 'heatmap':
+      return { valueKey: 'valeur' };
+    case 'treemap':
+      return { valueKey: 'value', labelKey: 'name' };
+    case 'map':
+      return { valueKey: 'value', labelKey: 'name' };
     default:
       return {};
   }
@@ -112,26 +219,42 @@ function getDefaultConfig(type: ChartType) {
 
 /** Widget type display labels */
 const TYPE_LABELS: Record<string, string> = {
-  bar: "Barres",
-  line: "Lignes",
-  area: "Aires",
-  pie: "Camembert",
-  "stat-card": "Statistique",
-  kpi: "KPI",
-  table: "Tableau",
+  bar: 'Barres',
+  line: 'Lignes',
+  area: 'Aires',
+  pie: 'Camembert',
+  donut: 'Donut',
+  'stat-card': 'Statistique',
+  kpi: 'KPI',
+  table: 'Tableau',
+  scatter: 'Nuage',
+  radar: 'Radar',
+  funnel: 'Entonnoir',
+  gauge: 'Jauge',
+  heatmap: 'Heatmap',
+  treemap: 'Treemap',
+  map: 'Carte',
 };
 
 /** Default grid size per type */
 function getDefaultSize(type: ChartType): { w: number; h: number } {
   switch (type) {
-    case "stat-card":
-    case "kpi":
-      return { w: 3, h: 1 };
-    case "table":
+    case 'stat-card':
+    case 'kpi':
+    case 'gauge':
+      return { w: 3, h: 2 };
+    case 'table':
+    case 'heatmap':
       return { w: 6, h: 2 };
-    case "pie":
-    case "donut":
+    case 'pie':
+    case 'donut':
+    case 'radar':
+    case 'treemap':
       return { w: 4, h: 2 };
+    case 'funnel':
+      return { w: 5, h: 2 };
+    case 'map':
+      return { w: 6, h: 3 };
     default:
       return { w: 6, h: 2 };
   }
@@ -142,16 +265,16 @@ function getDefaultSize(type: ChartType): { w: number; h: number } {
 // =============================================================================
 
 export default function DashboardBuilderPage() {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const searchParams = useSearchParams();
-  const templateId = searchParams.get("template");
+  const templateId = searchParams.get('template');
   const [isEditing, setIsEditing] = useState(true);
   const [templateLoaded, setTemplateLoaded] = useState(false);
 
   const [layout, setLayout] = useState<DashboardLayout>({
-    id: "draft-1",
-    name: "Mon tableau de bord",
-    description: "Tableau de bord personnalisé",
+    id: 'draft-1',
+    name: 'Mon tableau de bord',
+    description: 'Tableau de bord personnalisé',
     widgets: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -218,7 +341,7 @@ export default function DashboardBuilderPage() {
       // Otherwise start a new row
       return { x: 0, y: maxBottom, ...size };
     },
-    [layout.widgets]
+    [layout.widgets],
   );
 
   const handleAddWidget = useCallback(
@@ -244,31 +367,34 @@ export default function DashboardBuilderPage() {
         updatedAt: new Date().toISOString(),
       }));
     },
-    [getNextPosition]
+    [getNextPosition],
   );
 
-  const handleWidgetClick = useCallback((widget: DashboardWidget) => {
-    if (!isEditing) return;
-    // Future: open widget config panel
-  }, [isEditing]);
+  const handleWidgetClick = useCallback(
+    (widget: DashboardWidget) => {
+      if (!isEditing) return;
+      // Future: open widget config panel
+    },
+    [isEditing],
+  );
 
-  const [saveMessage, setSaveMessage] = useState("");
+  const [saveMessage, setSaveMessage] = useState('');
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
   const handleSave = useCallback(() => {
     // Export as JSON download until backend endpoint is implemented
     const json = JSON.stringify(layout, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
+    const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
     a.download = `dashboard-${layout.id}.json`;
     a.click();
     URL.revokeObjectURL(url);
 
-    setSaveMessage("Layout exporté en JSON. La sauvegarde serveur sera disponible prochainement.");
+    setSaveMessage('Layout exporté en JSON. La sauvegarde serveur sera disponible prochainement.');
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => setSaveMessage(""), 5000);
+    saveTimeoutRef.current = setTimeout(() => setSaveMessage(''), 5000);
   }, [layout]);
 
   const handleRemoveLastWidget = useCallback(() => {
@@ -288,12 +414,8 @@ export default function DashboardBuilderPage() {
             <LayoutDashboard className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              Dashboard Builder
-            </h1>
-            <p className="text-sm text-gray-500">
-              Créez votre tableau de bord personnalisé
-            </p>
+            <h1 className="text-xl font-bold text-gray-900">Dashboard Builder</h1>
+            <p className="text-sm text-gray-500">Créez votre tableau de bord personnalisé</p>
           </div>
         </div>
 
@@ -371,10 +493,8 @@ export default function DashboardBuilderPage() {
               {/* Stats */}
               <div className="mt-4 bg-white rounded-xl shadow-sm border p-4">
                 <p className="text-xs text-gray-500">
-                  <span className="font-semibold text-gray-700">
-                    {layout.widgets.length}
-                  </span>{" "}
-                  widget{layout.widgets.length !== 1 ? "s" : ""} sur le tableau
+                  <span className="font-semibold text-gray-700">{layout.widgets.length}</span>{' '}
+                  widget{layout.widgets.length !== 1 ? 's' : ''} sur le tableau
                 </p>
               </div>
             </div>

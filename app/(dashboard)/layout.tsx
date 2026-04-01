@@ -7,6 +7,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { ShieldX } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { AuthProvider } from "@/lib/contexts/AuthContext";
 import { Sidebar } from "@/components/Sidebar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Button } from "@/components/ui/Button";
@@ -71,33 +72,36 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user, isLoading, accessDenied, logout } = useAuth();
+  const auth = useAuth();
+  const { user, isLoading, accessDenied, logout } = auth;
 
   if (isLoading) return <DashboardSkeleton />;
   if (accessDenied) return <AccessDeniedScreen />;
 
   return (
-    <div className="min-h-screen bg-white">
-      <Sidebar currentPath={pathname} user={user} onLogout={logout} />
+    <AuthProvider value={auth}>
+      <div className="min-h-screen bg-white">
+        <Sidebar currentPath={pathname} user={user} onLogout={logout} />
 
-      {/* Top bar — notification bell (visible on all screen sizes) */}
-      <div className="lg:ml-64 fixed top-0 right-0 left-0 lg:left-64 z-20 bg-white/80 backdrop-blur-sm border-b border-surface-100">
-        <div className="flex items-center justify-end px-4 lg:px-8 py-2">
-          <NotificationBell />
+        {/* Top bar — notification bell (visible on all screen sizes) */}
+        <div className="lg:ml-64 fixed top-0 right-0 left-0 lg:left-64 z-20 bg-white/80 backdrop-blur-sm border-b border-surface-100">
+          <div className="flex items-center justify-end px-4 lg:px-8 py-2">
+            <NotificationBell />
+          </div>
         </div>
-      </div>
 
-      <main
-        id="main-content"
-        role="main"
-        aria-label="Contenu principal"
-        tabIndex={-1}
-        className="lg:ml-64 p-4 lg:p-8 pt-14 lg:pt-14"
-      >
-        <PageTransition>
-          {children}
-        </PageTransition>
-      </main>
-    </div>
+        <main
+          id="main-content"
+          role="main"
+          aria-label="Contenu principal"
+          tabIndex={-1}
+          className="lg:ml-64 p-4 lg:p-8 pt-14 lg:pt-14"
+        >
+          <PageTransition>
+            {children}
+          </PageTransition>
+        </main>
+      </div>
+    </AuthProvider>
   );
 }

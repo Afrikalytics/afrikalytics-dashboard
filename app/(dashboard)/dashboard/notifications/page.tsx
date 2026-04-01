@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 // =============================================================================
 // Datatym AI Dashboard — Notifications Page
@@ -6,7 +6,7 @@
 // Full list of user notifications with filtering, pagination, and mark-as-read.
 // =============================================================================
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from 'react';
 import {
   Bell,
   Check,
@@ -19,10 +19,10 @@ import {
   AlertTriangle,
   Info,
   Trash2,
-} from "lucide-react";
-import { useAuth } from "@/lib/hooks/useAuth";
-import { api } from "@/lib/api";
-import type { Notification, NotificationListResponse } from "@/lib/types";
+} from 'lucide-react';
+import { useAuthContext } from '@/lib/contexts/AuthContext';
+import { api } from '@/lib/api';
+import type { Notification, NotificationListResponse } from '@/lib/types';
 
 // -----------------------------------------------------------------------------
 // Constants
@@ -30,12 +30,12 @@ import type { Notification, NotificationListResponse } from "@/lib/types";
 
 const PAGE_SIZE = 15;
 
-type FilterStatus = "all" | "unread" | "read";
+type FilterStatus = 'all' | 'unread' | 'read';
 
 const FILTERS: { value: FilterStatus; label: string }[] = [
-  { value: "all", label: "Toutes" },
-  { value: "unread", label: "Non lues" },
-  { value: "read", label: "Lues" },
+  { value: 'all', label: 'Toutes' },
+  { value: 'unread', label: 'Non lues' },
+  { value: 'read', label: 'Lues' },
 ];
 
 // -----------------------------------------------------------------------------
@@ -44,15 +44,15 @@ const FILTERS: { value: FilterStatus; label: string }[] = [
 
 function getTypeIcon(type: string) {
   switch (type) {
-    case "study_created":
+    case 'study_created':
       return FileText;
-    case "insight_generated":
+    case 'insight_generated':
       return Lightbulb;
-    case "payment_confirmed":
+    case 'payment_confirmed':
       return CreditCard;
-    case "anomaly_detected":
+    case 'anomaly_detected':
       return AlertTriangle;
-    case "system":
+    case 'system':
     default:
       return Info;
   }
@@ -60,33 +60,33 @@ function getTypeIcon(type: string) {
 
 function getTypeColor(type: string): string {
   switch (type) {
-    case "study_created":
-      return "bg-blue-100 text-blue-600";
-    case "insight_generated":
-      return "bg-amber-100 text-amber-600";
-    case "payment_confirmed":
-      return "bg-green-100 text-green-600";
-    case "anomaly_detected":
-      return "bg-red-100 text-red-600";
-    case "system":
+    case 'study_created':
+      return 'bg-blue-100 text-blue-600';
+    case 'insight_generated':
+      return 'bg-amber-100 text-amber-600';
+    case 'payment_confirmed':
+      return 'bg-green-100 text-green-600';
+    case 'anomaly_detected':
+      return 'bg-red-100 text-red-600';
+    case 'system':
     default:
-      return "bg-surface-100 text-surface-600";
+      return 'bg-surface-100 text-surface-600';
   }
 }
 
 function getTypeLabel(type: string): string {
   switch (type) {
-    case "study_created":
-      return "Etude";
-    case "insight_generated":
-      return "Insight";
-    case "payment_confirmed":
-      return "Paiement";
-    case "anomaly_detected":
-      return "Anomalie";
-    case "system":
+    case 'study_created':
+      return 'Etude';
+    case 'insight_generated':
+      return 'Insight';
+    case 'payment_confirmed':
+      return 'Paiement';
+    case 'anomaly_detected':
+      return 'Anomalie';
+    case 'system':
     default:
-      return "Systeme";
+      return 'Systeme';
   }
 }
 
@@ -102,10 +102,10 @@ function timeAgo(dateStr: string): string {
   if (diffMin < 60) return `Il y a ${diffMin} min`;
   if (diffHours < 24) return `Il y a ${diffHours}h`;
   if (diffDays < 7) return `Il y a ${diffDays}j`;
-  return date.toLocaleDateString("fr-FR", {
-    day: "numeric",
-    month: "long",
-    year: diffDays > 365 ? "numeric" : undefined,
+  return date.toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: diffDays > 365 ? 'numeric' : undefined,
   });
 }
 
@@ -114,12 +114,12 @@ function timeAgo(dateStr: string): string {
 // -----------------------------------------------------------------------------
 
 export default function NotificationsPage() {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [total, setTotal] = useState(0);
-  const [filter, setFilter] = useState<FilterStatus>("all");
+  const [filter, setFilter] = useState<FilterStatus>('all');
   const [page, setPage] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -130,7 +130,7 @@ export default function NotificationsPage() {
     setIsLoading(true);
     try {
       const data = await api.get<NotificationListResponse>(
-        `/api/notifications?skip=${page * PAGE_SIZE}&limit=${PAGE_SIZE}&status=${filter}`
+        `/api/notifications?skip=${page * PAGE_SIZE}&limit=${PAGE_SIZE}&status=${filter}`,
       );
       setNotifications(data.notifications);
       setUnreadCount(data.unread_count);
@@ -157,10 +157,8 @@ export default function NotificationsPage() {
       await api.put(`/api/notifications/${id}/read`);
       setNotifications((prev) =>
         prev.map((n) =>
-          n.id === id
-            ? { ...n, is_read: true, read_at: new Date().toISOString() }
-            : n
-        )
+          n.id === id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n,
+        ),
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch {
@@ -171,13 +169,13 @@ export default function NotificationsPage() {
   // Mark all as read
   const markAllAsRead = async () => {
     try {
-      await api.put("/api/notifications/read-all");
+      await api.put('/api/notifications/read-all');
       setNotifications((prev) =>
         prev.map((n) => ({
           ...n,
           is_read: true,
           read_at: new Date().toISOString(),
-        }))
+        })),
       );
       setUnreadCount(0);
     } catch {
@@ -206,13 +204,11 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-surface-900 tracking-tight">
-            Notifications
-          </h1>
+          <h1 className="text-2xl font-bold text-surface-900 tracking-tight">Notifications</h1>
           <p className="text-sm text-surface-500 mt-1">
             {unreadCount > 0
-              ? `${unreadCount} notification${unreadCount > 1 ? "s" : ""} non lue${unreadCount > 1 ? "s" : ""}`
-              : "Toutes les notifications sont lues"}
+              ? `${unreadCount} notification${unreadCount > 1 ? 's' : ''} non lue${unreadCount > 1 ? 's' : ''}`
+              : 'Toutes les notifications sont lues'}
           </p>
         </div>
         {unreadCount > 0 && (
@@ -235,8 +231,8 @@ export default function NotificationsPage() {
             aria-pressed={filter === f.value}
             className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
               filter === f.value
-                ? "bg-primary-600 text-white"
-                : "bg-surface-100 text-surface-600 hover:bg-surface-200"
+                ? 'bg-primary-600 text-white'
+                : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
             }`}
           >
             {f.label}
@@ -247,18 +243,16 @@ export default function NotificationsPage() {
       {/* Notifications List */}
       <div className="bg-white rounded-xl border border-surface-200 divide-y divide-surface-100 overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-surface-400">
-            Chargement des notifications...
-          </div>
+          <div className="p-12 text-center text-surface-400">Chargement des notifications...</div>
         ) : notifications.length === 0 ? (
           <div className="p-12 text-center">
             <Bell className="h-12 w-12 text-surface-200 mx-auto mb-4" />
             <p className="text-surface-500 font-medium">
-              {filter === "unread"
-                ? "Aucune notification non lue"
-                : filter === "read"
-                  ? "Aucune notification lue"
-                  : "Aucune notification"}
+              {filter === 'unread'
+                ? 'Aucune notification non lue'
+                : filter === 'read'
+                  ? 'Aucune notification lue'
+                  : 'Aucune notification'}
             </p>
           </div>
         ) : (
@@ -269,14 +263,14 @@ export default function NotificationsPage() {
                 key={notification.id}
                 className={`flex items-start gap-4 px-5 py-4 transition-colors ${
                   !notification.is_read
-                    ? "bg-primary-50/20 hover:bg-primary-50/40"
-                    : "hover:bg-surface-50"
+                    ? 'bg-primary-50/20 hover:bg-primary-50/40'
+                    : 'hover:bg-surface-50'
                 }`}
               >
                 {/* Type Icon */}
                 <div
                   className={`shrink-0 mt-0.5 w-10 h-10 rounded-lg flex items-center justify-center ${getTypeColor(
-                    notification.type
+                    notification.type,
                   )}`}
                 >
                   <Icon className="h-5 w-5" />
@@ -289,15 +283,15 @@ export default function NotificationsPage() {
                       <p
                         className={`text-sm leading-snug ${
                           notification.is_read
-                            ? "text-surface-700"
-                            : "text-surface-900 font-semibold"
+                            ? 'text-surface-700'
+                            : 'text-surface-900 font-semibold'
                         }`}
                       >
                         {notification.title}
                       </p>
                       <span
                         className={`inline-block mt-1 text-2xs font-medium px-2 py-0.5 rounded-full ${getTypeColor(
-                          notification.type
+                          notification.type,
                         )}`}
                       >
                         {getTypeLabel(notification.type)}
@@ -343,7 +337,7 @@ export default function NotificationsPage() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-6">
           <p className="text-sm text-surface-500">
-            Page {page + 1} sur {totalPages} ({total} notification{total > 1 ? "s" : ""})
+            Page {page + 1} sur {totalPages} ({total} notification{total > 1 ? 's' : ''})
           </p>
           <div className="flex gap-2">
             <button
