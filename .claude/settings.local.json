@@ -18,7 +18,16 @@
       "Bash(ls *)",
       "Bash(du *)",
       "Bash(wc *)",
-      "Bash(gh *)"
+      "Bash(gh *)",
+      "Bash(find \"/c/Users/JDTKD/OneDrive - H&C EXECUTIVE EDUCATION/Bureau/Datatym/afrikalytics-dashboard\" -maxdepth 3 -type f)",
+      "Bash(find \"/c/Users/JDTKD/OneDrive - H&C EXECUTIVE EDUCATION/Bureau/Datatym/afrikalytics-dashboard\" -maxdepth 4 -name *.json -o -name *.md -o -name *.ts -name hooks*)",
+      "Read(//c/Users/JDTKD/.claude/projects/C--Users-JDTKD-OneDrive---H-C-EXECUTIVE-EDUCATION-Bureau-Datatym-afrikalytics-dashboard/memory//**)",
+      "Read(//c/Users/JDTKD/.claude/projects/C--Users-JDTKD-OneDrive---H-C-EXECUTIVE-EDUCATION-Bureau-Datatym-afrikalytics-dashboard/**)",
+      "Bash(find \"/c/Users/JDTKD/OneDrive - H&C EXECUTIVE EDUCATION/Bureau/Datatym/afrikalytics-dashboard\" -name hooks.json -not -path */node_modules/*)",
+      "Bash(find \"/c/Users/JDTKD/OneDrive - H&C EXECUTIVE EDUCATION/Bureau/Datatym/afrikalytics-dashboard\" -name .eslintrc* -o -name eslint.config*)",
+      "Bash(find \"/c/Users/JDTKD/OneDrive - H&C EXECUTIVE EDUCATION/Bureau/Datatym/afrikalytics-dashboard\" -name prettier* -not -path */node_modules/* -not -path */.next/*)",
+      "Bash(find \"/c/Users/JDTKD/OneDrive - H&C EXECUTIVE EDUCATION/Bureau/Datatym/afrikalytics-dashboard\" -maxdepth 2 -name *.eslint* -o -name .prettier*)",
+      "Bash(grep -c '\"\"model\"\"' \"/c/Users/JDTKD/OneDrive - H&C EXECUTIVE EDUCATION/Bureau/Datatym/afrikalytics-dashboard/.claude/agents/api-integrator.md\")"
     ],
     "deny": [
       "Bash(rm -rf *)",

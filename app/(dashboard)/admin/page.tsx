@@ -13,9 +13,10 @@ import {
   BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { api, ApiRequestError } from "@/lib/api";
+import { api } from "@/lib/api";
 import type { Study } from "@/lib/types";
 import {
+  Alert,
   Breadcrumb,
   Button,
   Badge,
@@ -27,9 +28,14 @@ import { AccessDeniedScreen } from "@/components/AccessDeniedScreen";
 import { pageVariants, listVariants, rowVariants } from "./_constants";
 
 export default function AdminPage() {
-  const { user, isLoading: authLoading, accessDenied } = useAuth({ requireAdmin: "studies" });
+  const {
+    user,
+    isLoading: authLoading,
+    accessDenied,
+  } = useAuth({ requireAdmin: "studies" });
   const [studies, setStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
@@ -43,9 +49,9 @@ export default function AdminPage() {
         if (!controller.signal.aborted) {
           setStudies(data);
         }
-      } catch (error) {
+      } catch {
         if (!controller.signal.aborted) {
-          console.error("Erreur chargement études admin:", error);
+          setError("Une erreur est survenue. Veuillez réessayer.");
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -62,22 +68,33 @@ export default function AdminPage() {
   const handleDelete = useCallback(async (id: number) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cette étude ?")) return;
 
+    let snapshot: Study[] = [];
+    setStudies((prev) => {
+      snapshot = prev;
+      return prev.filter((s) => s.id !== id);
+    });
+
     try {
       await api.delete(`/api/studies/${id}`);
-      setStudies((prev) => prev.filter((s) => s.id !== id));
-    } catch (error) {
-      console.error("Erreur suppression étude:", error);
+    } catch {
+      setStudies(snapshot);
+      setError("Une erreur est survenue. Veuillez réessayer.");
     }
   }, []);
 
-  const filteredStudies = useMemo(() => studies.filter((study) => {
-    const matchesSearch =
-      !searchTerm ||
-      study.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      study.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === "all" || study.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  }), [studies, searchTerm, filterStatus]);
+  const filteredStudies = useMemo(
+    () =>
+      studies.filter((study) => {
+        const matchesSearch =
+          !searchTerm ||
+          study.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          study.description?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus =
+          filterStatus === "all" || study.status === filterStatus;
+        return matchesSearch && matchesStatus;
+      }),
+    [studies, searchTerm, filterStatus],
+  );
 
   if (accessDenied) return <AccessDeniedScreen />;
 
@@ -115,6 +132,12 @@ export default function AdminPage() {
         className="mb-2"
       />
 
+      {error && (
+        <Alert variant="error" dismissible onDismiss={() => setError("")}>
+          {error}
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -126,19 +149,22 @@ export default function AdminPage() {
           </p>
         </div>
         <Link href="/admin/ajouter">
-          <Button
-            variant="primary"
-            icon={<Plus className="h-4 w-4" />}
-          >
+          <Button variant="primary" icon={<Plus className="h-4 w-4" />}>
             Nouvelle Étude
           </Button>
         </Link>
       </div>
 
       {/* Filters */}
-      <Card padding="sm" className="flex flex-col sm:flex-row gap-3 items-center">
+      <Card
+        padding="sm"
+        className="flex flex-col sm:flex-row gap-3 items-center"
+      >
         <div className="flex-1 min-w-[200px] relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-surface-400" aria-hidden="true" />
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-surface-400"
+            aria-hidden="true"
+          />
           <input
             type="text"
             placeholder="Rechercher une étude..."
@@ -165,21 +191,40 @@ export default function AdminPage() {
           <table className="w-full" aria-label="Liste des études">
             <thead>
               <tr className="border-b border-surface-100">
-                <th className="text-left px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">Titre</th>
-                <th className="text-left px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">Catégorie</th>
-                <th className="text-left px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">Statut</th>
-                <th className="text-left px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">Visible</th>
-                <th className="text-right px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">Actions</th>
+                <th className="text-left px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">
+                  Titre
+                </th>
+                <th className="text-left px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">
+                  Catégorie
+                </th>
+                <th className="text-left px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">
+                  Statut
+                </th>
+                <th className="text-left px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">
+                  Visible
+                </th>
+                <th className="text-right px-6 py-3.5 text-2xs font-semibold text-surface-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
-            <motion.tbody variants={listVariants} initial="hidden" animate="visible" className="divide-y divide-surface-100">
+            <motion.tbody
+              variants={listVariants}
+              initial="hidden"
+              animate="visible"
+              className="divide-y divide-surface-100"
+            >
               {filteredStudies.length === 0 ? (
                 <tr>
                   <td colSpan={5}>
                     <EmptyState
                       icon={<BookOpen className="h-8 w-8" />}
                       title="Aucune étude trouvée"
-                      description={searchTerm ? "Essayez de modifier vos critères de recherche." : "Créez votre première étude pour commencer."}
+                      description={
+                        searchTerm
+                          ? "Essayez de modifier vos critères de recherche."
+                          : "Créez votre première étude pour commencer."
+                      }
                       action={
                         !searchTerm ? (
                           <Link href="/admin/ajouter">
@@ -198,19 +243,32 @@ export default function AdminPage() {
                 </tr>
               ) : (
                 filteredStudies.map((study) => (
-                  <motion.tr key={study.id} variants={rowVariants} className="hover:bg-surface-50 transition-colors">
+                  <motion.tr
+                    key={study.id}
+                    variants={rowVariants}
+                    className="hover:bg-surface-50 transition-colors"
+                  >
                     <td className="px-6 py-4">
-                      <p className="font-medium text-surface-900">{study.title}</p>
-                      <p className="text-sm text-surface-400 truncate max-w-xs mt-0.5">{study.description}</p>
+                      <p className="font-medium text-surface-900">
+                        {study.title}
+                      </p>
+                      <p className="text-sm text-surface-400 truncate max-w-xs mt-0.5">
+                        {study.description}
+                      </p>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant="primary" size="sm">{study.category}</Badge>
+                      <Badge variant="primary" size="sm">
+                        {study.category}
+                      </Badge>
                     </td>
                     <td className="px-6 py-4">
                       <Badge
                         variant={
-                          study.status === "Ouvert" ? "success" :
-                          study.status === "Fermé" ? "danger" : "warning"
+                          study.status === "Ouvert"
+                            ? "success"
+                            : study.status === "Fermé"
+                              ? "danger"
+                              : "warning"
                         }
                         size="sm"
                         dot
@@ -220,9 +278,15 @@ export default function AdminPage() {
                     </td>
                     <td className="px-6 py-4">
                       {study.is_active ? (
-                        <Eye className="h-4 w-4 text-success-500" aria-label="Visible" />
+                        <Eye
+                          className="h-4 w-4 text-success-500"
+                          aria-label="Visible"
+                        />
                       ) : (
-                        <EyeOff className="h-4 w-4 text-surface-300" aria-label="Masqué" />
+                        <EyeOff
+                          className="h-4 w-4 text-surface-300"
+                          aria-label="Masqué"
+                        />
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -263,7 +327,11 @@ export default function AdminPage() {
             <EmptyState
               icon={<BookOpen className="h-8 w-8" />}
               title="Aucune étude trouvée"
-              description={searchTerm ? "Essayez de modifier vos critères de recherche." : "Créez votre première étude pour commencer."}
+              description={
+                searchTerm
+                  ? "Essayez de modifier vos critères de recherche."
+                  : "Créez votre première étude pour commencer."
+              }
             />
           </Card>
         ) : (
@@ -272,22 +340,37 @@ export default function AdminPage() {
               <Card padding="sm">
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-surface-900 truncate">{study.title}</h3>
-                    <p className="text-sm text-surface-400 line-clamp-2 mt-1">{study.description}</p>
+                    <h3 className="font-medium text-surface-900 truncate">
+                      {study.title}
+                    </h3>
+                    <p className="text-sm text-surface-400 line-clamp-2 mt-1">
+                      {study.description}
+                    </p>
                   </div>
                   {study.is_active ? (
-                    <Eye className="h-4 w-4 text-success-500 ml-3 shrink-0" aria-hidden="true" />
+                    <Eye
+                      className="h-4 w-4 text-success-500 ml-3 shrink-0"
+                      aria-hidden="true"
+                    />
                   ) : (
-                    <EyeOff className="h-4 w-4 text-surface-300 ml-3 shrink-0" aria-hidden="true" />
+                    <EyeOff
+                      className="h-4 w-4 text-surface-300 ml-3 shrink-0"
+                      aria-hidden="true"
+                    />
                   )}
                 </div>
                 <div className="flex items-center justify-between pt-3 border-t border-surface-100">
                   <div className="flex items-center gap-2">
-                    <Badge variant="primary" size="sm">{study.category}</Badge>
+                    <Badge variant="primary" size="sm">
+                      {study.category}
+                    </Badge>
                     <Badge
                       variant={
-                        study.status === "Ouvert" ? "success" :
-                        study.status === "Fermé" ? "danger" : "warning"
+                        study.status === "Ouvert"
+                          ? "success"
+                          : study.status === "Fermé"
+                            ? "danger"
+                            : "warning"
                       }
                       size="sm"
                       dot
