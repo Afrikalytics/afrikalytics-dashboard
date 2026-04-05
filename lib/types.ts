@@ -284,7 +284,8 @@ export type ChartType =
   | 'map'
   | 'stat-card'
   | 'table'
-  | 'kpi';
+  | 'kpi'
+  | 'text';
 
 /** Configuration options for a dashboard widget's visual rendering */
 export interface WidgetConfig {
@@ -297,6 +298,10 @@ export interface WidgetConfig {
   labelKey?: string;
   unit?: string;
   format?: 'number' | 'currency' | 'percent';
+  /** Text widget fields */
+  content?: string;
+  fontSize?: 'sm' | 'md' | 'lg';
+  align?: 'left' | 'center' | 'right';
 }
 
 /** A single widget placed on a custom dashboard */

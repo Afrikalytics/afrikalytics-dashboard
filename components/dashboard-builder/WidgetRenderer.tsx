@@ -116,6 +116,13 @@ const ChartWidgets: Record<
     widget: DashboardWidget;
     data: Record<string, unknown>[];
   }>,
+  text: dynamic(() => import('./widgets/TextWidget'), {
+    ssr: false,
+    loading: WidgetSkeleton,
+  }) as unknown as React.ComponentType<{
+    widget: DashboardWidget;
+    data: Record<string, unknown>[];
+  }>,
 };
 
 interface WidgetRendererProps {
@@ -136,14 +143,9 @@ export default function WidgetRenderer({ widget, data, isEditing }: WidgetRender
   }
 
   return (
-    <div
-      className={`bg-white rounded-xl shadow-sm border p-4 h-full flex flex-col ${
-        isEditing ? 'ring-2 ring-primary-500 cursor-pointer' : ''
-      }`}
-    >
-      <h3 className="text-sm font-semibold text-gray-700 mb-2 shrink-0">{widget.title}</h3>
+    <div className="h-full flex flex-col">
       {widget.description && (
-        <p className="text-xs text-gray-400 mb-2 shrink-0">{widget.description}</p>
+        <p className="text-xs text-gray-400 mb-1 shrink-0 px-0">{widget.description}</p>
       )}
       <div className="flex-1 min-h-0">
         <WidgetComponent widget={widget} data={data} />

@@ -1,12 +1,23 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Download, Eye, EyeOff, Save, LayoutDashboard, LayoutTemplate } from 'lucide-react';
+import {
+  Download,
+  Eye,
+  EyeOff,
+  Save,
+  LayoutDashboard,
+  LayoutTemplate,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+} from 'lucide-react';
 import { useAuthContext } from '@/lib/contexts/AuthContext';
 import type { ChartType, DashboardLayout, DashboardWidget } from '@/lib/types';
 import { DashboardGrid, WidgetPalette } from '@/components/dashboard-builder';
 import { getTemplateById, getTemplateDemoData } from '@/lib/templates';
+import { api } from '@/lib/api';
 
 // =============================================================================
 // Demo data — used to populate widgets with sample content
@@ -128,6 +139,8 @@ const DEMO_MAP_DATA = [
   { name: 'Togo', value: 700 },
 ];
 
+const DEMO_TEXT_DATA = [{ content: '' }];
+
 /** Returns demo data matching the widget type */
 function getDemoDataForType(type: ChartType): Record<string, unknown>[] {
   switch (type) {
@@ -160,6 +173,8 @@ function getDemoDataForType(type: ChartType): Record<string, unknown>[] {
       return DEMO_TREEMAP_DATA;
     case 'map':
       return DEMO_MAP_DATA;
+    case 'text':
+      return DEMO_TEXT_DATA;
     default:
       return [];
   }
@@ -212,6 +227,8 @@ function getDefaultConfig(type: ChartType) {
       return { valueKey: 'value', labelKey: 'name' };
     case 'map':
       return { valueKey: 'value', labelKey: 'name' };
+    case 'text':
+      return { content: '', fontSize: 'md' as const, align: 'left' as const };
     default:
       return {};
   }
@@ -234,6 +251,7 @@ const TYPE_LABELS: Record<string, string> = {
   heatmap: 'Heatmap',
   treemap: 'Treemap',
   map: 'Carte',
+  text: 'Texte',
 };
 
 /** Default grid size per type */
@@ -243,6 +261,8 @@ function getDefaultSize(type: ChartType): { w: number; h: number } {
     case 'kpi':
     case 'gauge':
       return { w: 3, h: 2 };
+    case 'text':
+      return { w: 4, h: 1 };
     case 'table':
     case 'heatmap':
       return { w: 6, h: 2 };
@@ -261,6 +281,44 @@ function getDefaultSize(type: ChartType): { w: number; h: number } {
 }
 
 // =============================================================================
+// Save status
+// =============================================================================
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+// =============================================================================
+// Save status indicator (extracted to module scope to avoid remount on parent render)
+// =============================================================================
+
+function SaveIndicator({ status }: { status: SaveStatus }) {
+  if (status === 'saving') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-gray-500">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        Sauvegarde…
+      </span>
+    );
+  }
+  if (status === 'saved') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-green-600">
+        <CheckCircle2 className="w-3.5 h-3.5" />
+        Sauvegardé
+      </span>
+    );
+  }
+  if (status === 'error') {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-red-500">
+        <AlertCircle className="w-3.5 h-3.5" />
+        Erreur de sauvegarde
+      </span>
+    );
+  }
+  return null;
+}
+
+// =============================================================================
 // Page component
 // =============================================================================
 
@@ -270,6 +328,13 @@ export default function DashboardBuilderPage() {
   const templateId = searchParams.get('template');
   const [isEditing, setIsEditing] = useState(true);
   const [templateLoaded, setTemplateLoaded] = useState(false);
+
+  // Backend layout ID (null = not yet persisted)
+  const [backendId, setBackendId] = useState<number | null>(null);
+  const backendIdRef = useRef<number | null>(null);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const [layout, setLayout] = useState<DashboardLayout>({
     id: 'draft-1',
@@ -300,89 +365,199 @@ export default function DashboardBuilderPage() {
     }
   }, [templateId, templateLoaded, user?.id]);
 
-  // Build widget data map from demo data — use template demo data if available
-  const widgetData: Record<string, Record<string, unknown>[]> = {};
-  for (const w of layout.widgets) {
-    const templateData = getTemplateDemoData(w.id);
-    widgetData[w.id] = templateData.length > 0 ? templateData : getDemoDataForType(w.type);
-  }
+  // Build widget data map from demo data (memoized to avoid child re-renders)
+  const widgetData = useMemo(() => {
+    const map: Record<string, Record<string, unknown>[]> = {};
+    for (const w of layout.widgets) {
+      const templateData = getTemplateDemoData(w.id);
+      map[w.id] = templateData.length > 0 ? templateData : getDemoDataForType(w.type);
+    }
+    return map;
+  }, [layout.widgets]);
 
-  // Calculate next available position (simple row-based auto-placement)
-  const getNextPosition = useCallback(
-    (size: { w: number; h: number }) => {
-      if (layout.widgets.length === 0) return { x: 0, y: 0, ...size };
+  // --------------------------------------------------
+  // Persistence helpers
+  // --------------------------------------------------
 
-      // Find the max y + h to place below existing widgets
-      let maxBottom = 0;
-      let rightmostX = 0;
-      let rightmostW = 0;
-      let rightmostY = 0;
+  const persistLayout = useCallback(
+    async (currentLayout: DashboardLayout) => {
+      if (!user) return;
+      setSaveStatus('saving');
+      try {
+        const payload = {
+          name: currentLayout.name,
+          description: currentLayout.description,
+          layout: {
+            widgets: currentLayout.widgets,
+          },
+        };
 
-      for (const w of layout.widgets) {
-        const bottom = w.position.y + w.position.h;
-        if (bottom > maxBottom) {
-          maxBottom = bottom;
+        if (backendIdRef.current) {
+          await api.updateLayout(backendIdRef.current, payload);
+        } else {
+          const created = await api.createLayout(payload);
+          backendIdRef.current = created.id;
+          setBackendId(created.id);
         }
-        if (w.position.y + w.position.h === maxBottom) {
-          if (w.position.x + w.position.w > rightmostX + rightmostW) {
-            rightmostX = w.position.x;
-            rightmostW = w.position.w;
-            rightmostY = w.position.y;
-          }
-        }
+        setSaveStatus('saved');
+        if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+        statusTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000);
+      } catch {
+        setSaveStatus('error');
+        if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+        statusTimerRef.current = setTimeout(() => setSaveStatus('idle'), 5000);
       }
+    },
+    [user],
+  );
 
-      // Try to place next to the last widget on the same row
-      const nextX = rightmostX + rightmostW;
-      if (nextX + size.w <= 12) {
-        return { x: nextX, y: rightmostY, ...size };
+  // Auto-save debounced (2s after last change)
+  const scheduleAutoSave = useCallback(
+    (updatedLayout: DashboardLayout) => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = setTimeout(() => {
+        persistLayout(updatedLayout);
+      }, 2000);
+    },
+    [persistLayout],
+  );
+
+  // Cleanup all timers on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+    };
+  }, []);
+
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (saveStatus === 'saving') {
+        e.preventDefault();
       }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [saveStatus]);
 
-      // Otherwise start a new row
-      return { x: 0, y: maxBottom, ...size };
+  // --------------------------------------------------
+  // Widget operations
+  // --------------------------------------------------
+
+  const createWidget = useCallback(
+    (type: ChartType, x?: number, y?: number): DashboardWidget => {
+      const size = getDefaultSize(type);
+      const id = `widget-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+      // Compute bottom of existing widgets for auto-placement
+      const bottomY = y ?? layout.widgets.reduce(
+        (max, w) => Math.max(max, w.position.y + w.position.h),
+        0,
+      );
+
+      return {
+        id,
+        type,
+        title: `${TYPE_LABELS[type] || type} — Sans titre`,
+        position: {
+          x: x ?? 0,
+          y: bottomY,
+          ...size,
+        },
+        config: getDefaultConfig(type),
+        dataSource: { columns: [] },
+      };
     },
     [layout.widgets],
   );
 
   const handleAddWidget = useCallback(
     (type: ChartType) => {
-      const size = getDefaultSize(type);
-      const position = getNextPosition(size);
-      const id = `widget-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const newWidget = createWidget(type);
+      const updatedLayout: DashboardLayout = {
+        ...layout,
+        widgets: [...layout.widgets, newWidget],
+        updatedAt: new Date().toISOString(),
+      };
+      setLayout(updatedLayout);
+      scheduleAutoSave(updatedLayout);
+    },
+    [layout, createWidget, scheduleAutoSave],
+  );
 
-      const newWidget: DashboardWidget = {
-        id,
-        type,
-        title: `${TYPE_LABELS[type] || type} — Sans titre`,
-        position,
-        config: getDefaultConfig(type),
-        dataSource: {
-          columns: [],
+  const handleDropWidget = useCallback(
+    (type: ChartType, x: number, y: number) => {
+      const newWidget = createWidget(type, x, y);
+      const updatedLayout: DashboardLayout = {
+        ...layout,
+        widgets: [...layout.widgets, newWidget],
+        updatedAt: new Date().toISOString(),
+      };
+      setLayout(updatedLayout);
+      scheduleAutoSave(updatedLayout);
+    },
+    [layout, createWidget, scheduleAutoSave],
+  );
+
+  const handleLayoutChange = useCallback(
+    (updatedWidgets: DashboardWidget[]) => {
+      const updatedLayout: DashboardLayout = {
+        ...layout,
+        widgets: updatedWidgets,
+        updatedAt: new Date().toISOString(),
+      };
+      setLayout(updatedLayout);
+      scheduleAutoSave(updatedLayout);
+    },
+    [layout, scheduleAutoSave],
+  );
+
+  const handleDeleteWidget = useCallback(
+    (id: string) => {
+      const updatedLayout: DashboardLayout = {
+        ...layout,
+        widgets: layout.widgets.filter((w) => w.id !== id),
+        updatedAt: new Date().toISOString(),
+      };
+      setLayout(updatedLayout);
+      scheduleAutoSave(updatedLayout);
+    },
+    [layout, scheduleAutoSave],
+  );
+
+  const handleDuplicateWidget = useCallback(
+    (id: string) => {
+      const original = layout.widgets.find((w) => w.id === id);
+      if (!original) return;
+
+      const duplicated: DashboardWidget = {
+        ...original,
+        id: `widget-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        title: `${original.title} (copie)`,
+        position: {
+          ...original.position,
+          y: original.position.y + original.position.h,
         },
       };
 
-      setLayout((prev) => ({
-        ...prev,
-        widgets: [...prev.widgets, newWidget],
+      const updatedLayout: DashboardLayout = {
+        ...layout,
+        widgets: [...layout.widgets, duplicated],
         updatedAt: new Date().toISOString(),
-      }));
+      };
+      setLayout(updatedLayout);
+      scheduleAutoSave(updatedLayout);
     },
-    [getNextPosition],
+    [layout, scheduleAutoSave],
   );
 
-  const handleWidgetClick = useCallback(
-    (widget: DashboardWidget) => {
-      if (!isEditing) return;
-      // Future: open widget config panel
-    },
-    [isEditing],
-  );
+  const handleManualSave = useCallback(() => {
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+    persistLayout(layout);
+  }, [layout, persistLayout]);
 
-  const [saveMessage, setSaveMessage] = useState('');
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
-
-  const handleSave = useCallback(() => {
-    // Export as JSON download until backend endpoint is implemented
+  const handleExportJson = useCallback(() => {
     const json = JSON.stringify(layout, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -391,19 +566,7 @@ export default function DashboardBuilderPage() {
     a.download = `dashboard-${layout.id}.json`;
     a.click();
     URL.revokeObjectURL(url);
-
-    setSaveMessage('Layout exporté en JSON. La sauvegarde serveur sera disponible prochainement.');
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(() => setSaveMessage(''), 5000);
   }, [layout]);
-
-  const handleRemoveLastWidget = useCallback(() => {
-    setLayout((prev) => ({
-      ...prev,
-      widgets: prev.widgets.slice(0, -1),
-      updatedAt: new Date().toISOString(),
-    }));
-  }, []);
 
   return (
     <div className="page-container space-y-6">
@@ -415,18 +578,23 @@ export default function DashboardBuilderPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">Dashboard Builder</h1>
-            <p className="text-sm text-gray-500">Créez votre tableau de bord personnalisé</p>
+            <p className="text-sm text-gray-500">
+              {isEditing
+                ? 'Glissez-déposez pour réorganiser vos widgets'
+                : 'Aperçu de votre tableau de bord'}
+            </p>
           </div>
+          <SaveIndicator status={saveStatus} />
         </div>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={handleExportJson}
             className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <Download className="w-4 h-4" />
-            Exporter en PDF
+            Exporter JSON
           </button>
 
           <a
@@ -436,16 +604,6 @@ export default function DashboardBuilderPage() {
             <LayoutTemplate className="w-4 h-4" />
             Templates
           </a>
-
-          {isEditing && layout.widgets.length > 0 && (
-            <button
-              type="button"
-              onClick={handleRemoveLastWidget}
-              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
-            >
-              Supprimer dernier
-            </button>
-          )}
 
           <button
             type="button"
@@ -467,20 +625,19 @@ export default function DashboardBuilderPage() {
 
           <button
             type="button"
-            onClick={handleSave}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors shadow-sm"
+            onClick={handleManualSave}
+            disabled={saveStatus === 'saving'}
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors shadow-sm disabled:opacity-50"
           >
-            <Save className="w-4 h-4" />
+            {saveStatus === 'saving' ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
             Sauvegarder
           </button>
         </div>
       </div>
-
-      {saveMessage && (
-        <div className="bg-success-50 text-success-700 px-4 py-3 rounded-lg text-sm font-medium border border-success-200">
-          {saveMessage}
-        </div>
-      )}
 
       {/* Main content */}
       <div className="flex gap-6">
@@ -496,6 +653,9 @@ export default function DashboardBuilderPage() {
                   <span className="font-semibold text-gray-700">{layout.widgets.length}</span>{' '}
                   widget{layout.widgets.length !== 1 ? 's' : ''} sur le tableau
                 </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Glissez depuis la palette ou cliquez pour ajouter
+                </p>
               </div>
             </div>
           </aside>
@@ -507,7 +667,10 @@ export default function DashboardBuilderPage() {
             layout={layout}
             data={widgetData}
             isEditing={isEditing}
-            onWidgetClick={handleWidgetClick}
+            onLayoutChange={handleLayoutChange}
+            onDeleteWidget={handleDeleteWidget}
+            onDuplicateWidget={handleDuplicateWidget}
+            onDropWidget={handleDropWidget}
           />
         </main>
       </div>

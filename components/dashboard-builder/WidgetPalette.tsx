@@ -16,6 +16,7 @@ import {
   Grid3x3,
   TreePine,
   Map,
+  Type,
 } from 'lucide-react';
 import type { ChartType } from '@/lib/types';
 
@@ -40,6 +41,7 @@ const WIDGET_TYPES: {
   { type: 'heatmap', label: 'Heatmap', icon: Grid3x3, description: 'Densité croisée' },
   { type: 'treemap', label: 'Treemap', icon: TreePine, description: 'Hiérarchie proportionnelle' },
   { type: 'map', label: 'Carte', icon: Map, description: 'Données géographiques' },
+  { type: 'text', label: 'Texte', icon: Type, description: 'Bloc de texte libre' },
 ];
 
 interface WidgetPaletteProps {
@@ -50,13 +52,17 @@ export default function WidgetPalette({ onSelect }: WidgetPaletteProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm border p-4">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">Ajouter un widget</h3>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 max-h-[70vh] overflow-y-auto">
         {WIDGET_TYPES.map(({ type, label, icon: Icon, description }) => (
           <button
             key={type}
             type="button"
             onClick={() => onSelect(type)}
-            className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 hover:border-primary-500 hover:bg-primary-50 transition-colors text-left"
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData('widgetType', type);
+            }}
+            className="flex items-center gap-2 p-3 rounded-lg border border-gray-200 hover:border-primary-500 hover:bg-primary-50 transition-colors text-left cursor-grab active:cursor-grabbing"
           >
             <Icon className="w-5 h-5 text-primary-600 shrink-0" />
             <div>

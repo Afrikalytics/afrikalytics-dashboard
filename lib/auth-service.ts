@@ -43,7 +43,7 @@ interface MessageResponse {
  * Login — returns user or indicates 2FA verification needed.
  * Caller is responsible for saveSession() and navigation.
  */
-export async function login(
+async function login(
   email: string,
   password: string
 ): Promise<LoginResponse> {

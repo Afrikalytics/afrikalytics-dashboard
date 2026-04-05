@@ -146,6 +146,55 @@ class ApiService {
 
     return data as T;
   }
+
+  // ---------------------------------------------------------------------------
+  // Dashboard Layouts
+  // ---------------------------------------------------------------------------
+
+  /** List all saved layouts for the current user */
+  async listLayouts(): Promise<DashboardLayoutResponse[]> {
+    return this.get<DashboardLayoutResponse[]>('/dashboard/layouts');
+  }
+
+  /** Load a specific layout */
+  async getLayout(id: number): Promise<DashboardLayoutResponse> {
+    return this.get<DashboardLayoutResponse>(`/dashboard/layouts/${id}`);
+  }
+
+  /** Create a new layout */
+  async createLayout(payload: DashboardLayoutPayload): Promise<DashboardLayoutResponse> {
+    return this.post<DashboardLayoutResponse>('/dashboard/layouts', payload);
+  }
+
+  /** Update an existing layout */
+  async updateLayout(id: number, payload: Partial<DashboardLayoutPayload>): Promise<DashboardLayoutResponse> {
+    return this.put<DashboardLayoutResponse>(`/dashboard/layouts/${id}`, payload);
+  }
+
+  /** Delete a layout */
+  async deleteLayout(id: number): Promise<void> {
+    return this.delete(`/dashboard/layouts/${id}`);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Dashboard Layout types (API contract)
+// -----------------------------------------------------------------------------
+
+export interface DashboardLayoutPayload {
+  name: string;
+  description?: string;
+  layout: Record<string, unknown>;
+}
+
+export interface DashboardLayoutResponse {
+  id: number;
+  name: string;
+  description: string | null;
+  layout: Record<string, unknown>;
+  is_template: boolean;
+  created_at: string;
+  updated_at: string | null;
 }
 
 // -----------------------------------------------------------------------------
