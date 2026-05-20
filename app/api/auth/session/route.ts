@@ -19,14 +19,18 @@ const VALID_ADMIN_ROLES = [
 // SECURITY: Allowed origins for CSRF protection
 const ALLOWED_ORIGINS = [
   process.env.NEXT_PUBLIC_APP_URL,
+  "https://dashboard.datatym.ai",
   "https://dashboard.afrikalytics.com",
   "http://localhost:3000",
 ].filter(Boolean);
 
 function isAllowedOrigin(origin: string): boolean {
   if (ALLOWED_ORIGINS.some((allowed) => origin === allowed)) return true;
-  // Only allow Afrikalytics Vercel preview deploys (project-specific prefix)
-  return /^https:\/\/afrikalytics-dashboard[\w-]*\.vercel\.app$/.test(origin);
+  // Allow Afrikalytics/Datatym Vercel preview deploys
+  return (
+    /^https:\/\/afrikalytics-dashboard[\w-]*\.vercel\.app$/.test(origin) ||
+    /^https:\/\/datatym[\w-]*\.vercel\.app$/.test(origin)
+  );
 }
 
 /**

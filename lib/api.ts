@@ -34,11 +34,14 @@ export async function saveSession(
   user: User,
   refreshToken?: string,
 ): Promise<void> {
-  await fetch("/api/auth/session", {
+  const res = await fetch("/api/auth/session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token, user, refreshToken }),
   });
+  if (!res.ok) {
+    throw new ApiRequestError(res.status, "Impossible de sauvegarder la session. Veuillez réessayer.");
+  }
 }
 
 /** Clear auth session (httpOnly cookies) */
