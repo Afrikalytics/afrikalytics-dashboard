@@ -56,8 +56,7 @@ export default function LoginForm() {
       const result = await loginAndSave(parsed.data.email, parsed.data.password);
 
       if (result.requiresVerification) {
-        sessionStorage.setItem("verify_email", result.email);
-        router.push("/verify-code");
+        router.push(`/verify-code?email=${encodeURIComponent(result.email)}`);
         return;
       }
 
